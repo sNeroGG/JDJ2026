@@ -1,0 +1,147 @@
+:root {
+  --green: #6f8647;
+  --green-deep: #4f6332;
+  --green-soft: #a3b97a;
+  --navy: #1c232c;
+  --navy-soft: #2a3440;
+  --teal: #3d6a78;
+  --teal-soft: #6a9aab;
+  --orange: #e8913a;
+  --orange-soft: #f0b06a;
+  --yellow: #f5c96a;
+  --sky: #d4e4e8;
+  --sky-deep: #b7ced6;
+  --cream: #f7f5f0;
+  --white: #ffffff;
+  --ink: #1c232c;
+  --muted: #5a6570;
+
+  --font-display: "Outfit", sans-serif;
+  --font-body: "Figtree", sans-serif;
+  --font-script: "Caveat", cursive;
+
+  --radius: 1.25rem;
+  --section-pad: clamp(4.5rem, 10vw, 7.5rem);
+  --content: min(1120px, calc(100% - 2.5rem));
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--cream);
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.section {
+  padding: var(--section-pad) 0;
+  position: relative;
+}
+
+.section__inner {
+  width: var(--content);
+  margin: 0 auto;
+}
+
+.section__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 0.85rem;
+}
+
+.section__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--navy);
+  max-width: 16ch;
+}
+
+.section__lead {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 42ch;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 {
+  transition-delay: 0.1s;
+}
+.reveal-delay-2 {
+  transition-delay: 0.2s;
+}
+.reveal-delay-3 {
+  transition-delay: 0.3s;
+}
+.reveal-delay-4 {
+  transition-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
