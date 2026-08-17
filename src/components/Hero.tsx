@@ -1,6 +1,10 @@
+import { useContent } from "../context/ContentContext";
 import "./Hero.css";
 
 export function Hero() {
+  const { content } = useContent();
+  const { hero, logoUrl } = content;
+
   return (
     <header className="hero" id="inicio">
       <div className="hero__atmosphere" aria-hidden="true">
@@ -21,17 +25,15 @@ export function Hero() {
       <div className="hero__content">
         <img
           className="hero__logo"
-          src="/images/logo-principal.png"
-          alt="JDJ Jayaque 2026"
+          src={logoUrl}
+          alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
           width={720}
-          height={320}
+          height={420}
         />
-        <p className="hero__slogan">Tengan valor y síganme</p>
-        <p className="hero__tagline">
-          Jornada Diocesana de la Juventud · Arquidiócesis de San Salvador
-        </p>
+        <p className="hero__slogan">{hero.slogan}</p>
+        <p className="hero__tagline">{hero.tagline}</p>
         <a className="hero__cta" href="#donde">
-          Descubrir el encuentro
+          {hero.ctaLabel}
           <span aria-hidden="true">↓</span>
         </a>
       </div>

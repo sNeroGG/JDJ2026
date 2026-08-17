@@ -4,10 +4,10 @@
   place-items: center;
   position: relative;
   overflow: hidden;
-  padding: 2rem 1.25rem 4rem;
+  padding: 2rem 1.25rem 4.5rem;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 18%, rgba(245, 201, 106, 0.45), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(111, 134, 71, 0.28), transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 18%, rgba(245, 201, 106, 0.42), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(111, 134, 71, 0.24), transparent 55%),
     linear-gradient(180deg, #e8f1f4 0%, var(--sky) 38%, #eef3e8 72%, var(--cream) 100%);
 }
 
@@ -117,18 +117,18 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 720px;
+  max-width: 760px;
 }
 
 .hero__logo {
-  width: min(88vw, 560px);
+  width: min(92vw, 620px);
   height: auto;
   filter: drop-shadow(0 18px 40px rgba(28, 35, 44, 0.12));
   animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero__slogan {
-  margin-top: 1.35rem;
+  margin-top: 1.2rem;
   font-family: var(--font-script);
   font-size: clamp(2rem, 5vw, 2.85rem);
   font-weight: 600;
@@ -141,7 +141,7 @@
   margin-top: 0.65rem;
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
   color: var(--navy-soft);
-  max-width: 34ch;
+  max-width: 36ch;
   animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
 }
 

@@ -1,22 +1,19 @@
-import { EventInfo } from "./components/EventInfo";
-import { Footer } from "./components/Footer";
-import { Hero } from "./components/Hero";
-import { Location } from "./components/Location";
-import { Meaning } from "./components/Meaning";
-import { Partners } from "./components/Partners";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { ContentProvider } from "./context/ContentContext";
+import { AdminPage } from "./pages/AdminPage";
+import { LandingPage } from "./pages/LandingPage";
 
 function App() {
   return (
-    <div className="app">
-      <Hero />
-      <main>
-        <Location />
-        <Meaning />
-        <EventInfo />
-        <Partners />
-      </main>
-      <Footer />
-    </div>
+    <ContentProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ContentProvider>
   );
 }
 

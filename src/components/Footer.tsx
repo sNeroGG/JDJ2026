@@ -1,22 +1,5 @@
+import { useContent } from "../context/ContentContext";
 import "./Footer.css";
-
-const SOCIAL = [
-  {
-    name: "Instagram",
-    handle: "@pjarqui_ss",
-    href: "https://www.instagram.com/pjarqui_ss/",
-  },
-  {
-    name: "Facebook",
-    handle: "Pastoral Juvenil",
-    href: "https://www.facebook.com/search/top/?q=Pastoral%20Juvenil%20Arquidi%C3%B3cesis%20de%20San%20Salvador",
-  },
-  {
-    name: "YouTube",
-    handle: "Arquidiócesis SS",
-    href: "https://www.youtube.com/results?search_query=Arquidi%C3%B3cesis+de+San+Salvador",
-  },
-] as const;
 
 const NAV = [
   { href: "#donde", label: "Sede" },
@@ -26,19 +9,20 @@ const NAV = [
 ] as const;
 
 export function Footer() {
+  const { content } = useContent();
+  const { footer, logoUrl, hero } = content;
+
   return (
     <footer className="footer" id="contacto">
       <div className="footer__inner">
         <div className="footer__brand">
           <img
-            src="/images/logo-principal.png"
+            src={logoUrl}
             alt="JDJ Jayaque 2026"
             className="footer__logo"
           />
-          <p className="footer__slogan">Tengan valor y síganme</p>
-          <p className="footer__org">
-            Pastoral Juvenil · Arquidiócesis de San Salvador
-          </p>
+          <p className="footer__slogan">{hero.slogan}</p>
+          <p className="footer__org">{footer.org}</p>
         </div>
 
         <nav className="footer__nav" aria-label="Secciones">
@@ -55,8 +39,8 @@ export function Footer() {
         <div className="footer__social">
           <p>Redes oficiales</p>
           <ul>
-            {SOCIAL.map((item) => (
-              <li key={item.name}>
+            {footer.social.map((item) => (
+              <li key={item.id}>
                 <a href={item.href} target="_blank" rel="noreferrer">
                   <strong>{item.name}</strong>
                   <span>{item.handle}</span>
@@ -68,8 +52,8 @@ export function Footer() {
       </div>
 
       <div className="footer__bottom">
-        <span>JDJ Jayaque 2026</span>
-        <span>Arquidiócesis de San Salvador, El Salvador</span>
+        <span>{footer.bottomLeft}</span>
+        <span>{footer.bottomRight}</span>
       </div>
     </footer>
   );

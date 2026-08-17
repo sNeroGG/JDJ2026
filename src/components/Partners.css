@@ -46,9 +46,23 @@
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  padding: 1rem;
   transition:
     border-color 0.25s ease,
     background 0.25s ease;
+}
+
+.partners__slot--filled {
+  border-style: solid;
+  border-color: rgba(28, 35, 44, 0.08);
+  background: #fff;
+}
+
+.partners__slot img {
+  max-height: 88px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .partners__slot:hover {

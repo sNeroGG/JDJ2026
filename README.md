@@ -57,7 +57,12 @@ npm i -g vercel
 vercel
 ```
 
-## Estructura útil
+## Admin
 
-- `public/images/` — logo principal y assets estáticos
-- `src/components/` — secciones de la landing
+Panel de edición rápida en `/admin`.
+
+Contraseña por defecto: `jdj2026`  
+Cámbiala con la variable de entorno `VITE_ADMIN_PASSWORD` (ver `.env.example`).
+
+Los cambios se guardan en el navegador (`localStorage`). Usa **Exportar JSON** para respaldo.
+Puedes editar textos, logo principal, logos institucionales y redes sociales.
