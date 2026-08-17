@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { Link } from "react-router-dom";
 import { useContent } from "../context/ContentContext";
 import {
@@ -25,18 +31,26 @@ export function AdminPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [section, setSection] = useState("hero");
+  const [section, setSection] = useState("variables");
+  const [logoNotice, setLogoNotice] = useState("");
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [logoDragging, setLogoDragging] = useState(false);
 
   useEffect(() => {
     setDraft(content);
   }, [content]);
 
   const partnerCount = draft.partners.logos.length;
+  const isDirty = useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(content),
+    [draft, content],
+  );
 
   const navItems = useMemo(
     () => [
+      { id: "variables", label: "Variables rápidas" },
+      { id: "logo", label: "Logo PNG" },
       { id: "hero", label: "Hero" },
-      { id: "logo", label: "Logo principal" },
       { id: "location", label: "Sede" },
       { id: "meaning", label: "Significado" },
       { id: "event", label: "Evento" },
@@ -59,11 +73,30 @@ export function AdminPage() {
     setSavedAt(new Date().toLocaleTimeString("es-SV"));
   }
 
+  async function applyMainLogoFile(file: File) {
+    const isImage =
+      file.type.startsWith("image/") ||
+      /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
+    if (!isImage) {
+      setLogoNotice("El archivo debe ser una imagen (PNG recomendado).");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setLogoNotice("El archivo supera 4 MB. Usa un PNG más liviano.");
+      return;
+    }
+
+    const src = await readFileAsDataUrl(file);
+    setDraft((prev) => ({ ...prev, logoUrl: src }));
+    setLogoFileName(file.name);
+    setLogoNotice(`Logo listo: ${file.name}. Guárdalo para verlo en la landing.`);
+  }
+
   async function onMainLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const src = await readFileAsDataUrl(file);
-    setDraft((prev) => ({ ...prev, logoUrl: src }));
+    await applyMainLogoFile(file);
+    event.target.value = "";
   }
 
   async function onPartnerUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -116,7 +149,7 @@ export function AdminPage() {
       <aside className="admin__side">
         <div className="admin__brand">
           <strong>JDJ Admin</strong>
-          <span>Edición rápida</span>
+          <span>Variables editables</span>
         </div>
         <nav>
           {navItems.map((item) => (
@@ -143,13 +176,24 @@ export function AdminPage() {
           <div>
             <h1>Contenido de la landing</h1>
             <p>
-              Los cambios se guardan en este navegador. Exporta JSON si quieres
-              respaldarlos.
+              Todas estas variables alimentan la landing. Guarda para aplicarlas
+              en este navegador.
             </p>
           </div>
           <div className="admin__actions">
+            {isDirty ? (
+              <span className="admin__dirty">Cambios sin guardar</span>
+            ) : null}
             {savedAt ? <span>Guardado {savedAt}</span> : null}
-            <button type="button" className="btn btn--ghost" onClick={() => setDraft(content)}>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                setDraft(content);
+                setLogoNotice("");
+                setLogoFileName(null);
+              }}
+            >
               Descartar
             </button>
             <button
@@ -172,11 +216,257 @@ export function AdminPage() {
             >
               Exportar JSON
             </button>
-            <button type="button" className="btn btn--primary" onClick={() => persist()}>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => persist()}
+            >
               Guardar cambios
             </button>
           </div>
         </header>
+
+        {section === "variables" && (
+          <section className="admin-panel">
+            <h2>Variables rápidas</h2>
+            <p className="admin-panel__hint">
+              Accesos directos a lo más usado. El detalle completo está en cada
+              sección del menú.
+            </p>
+
+            <h3>Sitio</h3>
+            <div className="admin-grid">
+              <label>
+                Nombre del evento
+                <input
+                  value={draft.site.name}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      site: { ...draft.site, name: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Año
+                <input
+                  value={draft.site.year}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      site: { ...draft.site, year: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Título de la pestaña
+                <input
+                  value={draft.site.pageTitle}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      site: { ...draft.site, pageTitle: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Descripción SEO
+                <input
+                  value={draft.site.metaDescription}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      site: { ...draft.site, metaDescription: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <h3>Hero</h3>
+            <label>
+              Lema
+              <input
+                value={draft.hero.slogan}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    hero: { ...draft.hero, slogan: e.target.value },
+                  })
+                }
+              />
+            </label>
+            <label>
+              Texto debajo del lema
+              <textarea
+                rows={2}
+                value={draft.hero.tagline}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    hero: { ...draft.hero, tagline: e.target.value },
+                  })
+                }
+              />
+            </label>
+            <div className="admin-grid">
+              <label>
+                Texto del botón
+                <input
+                  value={draft.hero.ctaLabel}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      hero: { ...draft.hero, ctaLabel: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Enlace del botón
+                <input
+                  value={draft.hero.ctaHref}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      hero: { ...draft.hero, ctaHref: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <h3>Sede</h3>
+            <div className="admin-grid">
+              <label>
+                Parroquia
+                <input
+                  value={draft.location.parishName}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      location: {
+                        ...draft.location,
+                        parishName: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Lugar
+                <input
+                  value={draft.location.placeLine}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      location: {
+                        ...draft.location,
+                        placeLine: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Título sección sede
+                <input
+                  value={draft.location.title}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      location: { ...draft.location, title: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Organización (footer)
+                <input
+                  value={draft.footer.org}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      footer: { ...draft.footer, org: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            </div>
+          </section>
+        )}
+
+        {section === "logo" && (
+          <section className="admin-panel">
+            <h2>Logo principal (PNG)</h2>
+            <p className="admin-panel__hint">
+              Sube el PNG del logo. Se usa en hero, significado y footer.
+            </p>
+            <div className="admin-logo-preview">
+              <img src={draft.logoUrl} alt="Vista previa del logo" />
+            </div>
+            <label
+              className={`logo-dropzone ${logoDragging ? "is-dragging" : ""}`}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setLogoDragging(true);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setLogoDragging(false);
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                setLogoDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) await applyMainLogoFile(file);
+              }}
+            >
+              <strong>Arrastra tu logo PNG aquí</strong>
+              <span>o haz clic para seleccionar el archivo</span>
+              {logoFileName ? (
+                <em className="logo-dropzone__file">{logoFileName}</em>
+              ) : (
+                <em className="logo-dropzone__file">
+                  PNG, JPG o WebP · máx. 4 MB
+                </em>
+              )}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                onChange={onMainLogoChange}
+              />
+            </label>
+            {logoNotice ? <p className="admin-notice">{logoNotice}</p> : null}
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => {
+                  persist();
+                  setLogoNotice("Logo guardado. Ya se refleja en la landing.");
+                }}
+              >
+                Guardar logo
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setDraft({ ...draft, logoUrl: DEFAULT_CONTENT.logoUrl });
+                  setLogoFileName(null);
+                  setLogoNotice("Se restauró el logo oficial del sitio.");
+                }}
+              >
+                Usar logo oficial del sitio
+              </button>
+            </div>
+          </section>
+        )}
 
         {section === "hero" && (
           <section className="admin-panel">
@@ -186,7 +476,10 @@ export function AdminPage() {
               <input
                 value={draft.hero.slogan}
                 onChange={(e) =>
-                  setDraft({ ...draft, hero: { ...draft.hero, slogan: e.target.value } })
+                  setDraft({
+                    ...draft,
+                    hero: { ...draft.hero, slogan: e.target.value },
+                  })
                 }
               />
             </label>
@@ -196,51 +489,39 @@ export function AdminPage() {
                 rows={2}
                 value={draft.hero.tagline}
                 onChange={(e) =>
-                  setDraft({ ...draft, hero: { ...draft.hero, tagline: e.target.value } })
+                  setDraft({
+                    ...draft,
+                    hero: { ...draft.hero, tagline: e.target.value },
+                  })
                 }
               />
             </label>
-            <label>
-              Texto del botón
-              <input
-                value={draft.hero.ctaLabel}
-                onChange={(e) =>
-                  setDraft({ ...draft, hero: { ...draft.hero, ctaLabel: e.target.value } })
-                }
-              />
-            </label>
-          </section>
-        )}
-
-        {section === "logo" && (
-          <section className="admin-panel">
-            <h2>Logo principal</h2>
-            <div className="admin-logo-preview">
-              <img src={draft.logoUrl} alt="Vista previa del logo" />
+            <div className="admin-grid">
+              <label>
+                Texto del botón
+                <input
+                  value={draft.hero.ctaLabel}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      hero: { ...draft.hero, ctaLabel: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Enlace del botón
+                <input
+                  value={draft.hero.ctaHref}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      hero: { ...draft.hero, ctaHref: e.target.value },
+                    })
+                  }
+                />
+              </label>
             </div>
-            <label className="file-field">
-              Subir nuevo logo (PNG/JPG/WebP)
-              <input type="file" accept="image/*" onChange={onMainLogoChange} />
-            </label>
-            <label>
-              URL del logo
-              <input
-                value={draft.logoUrl.startsWith("data:") ? "(imagen cargada en el navegador)" : draft.logoUrl}
-                onChange={(e) => setDraft({ ...draft, logoUrl: e.target.value })}
-                disabled={draft.logoUrl.startsWith("data:")}
-              />
-            </label>
-            {draft.logoUrl.startsWith("data:") ? (
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={() =>
-                  setDraft({ ...draft, logoUrl: DEFAULT_CONTENT.logoUrl })
-                }
-              >
-                Usar logo oficial del sitio
-              </button>
-            ) : null}
           </section>
         )}
 
@@ -249,7 +530,7 @@ export function AdminPage() {
             <h2>Sede</h2>
             <div className="admin-grid">
               <label>
-                Eyebrow
+                Etiqueta superior
                 <input
                   value={draft.location.eyebrow}
                   onChange={(e) =>
@@ -274,7 +555,7 @@ export function AdminPage() {
               </label>
             </div>
             <label>
-              Lead
+              Texto introductorio
               <textarea
                 rows={3}
                 value={draft.location.lead}
@@ -294,7 +575,10 @@ export function AdminPage() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      location: { ...draft.location, parishLabel: e.target.value },
+                      location: {
+                        ...draft.location,
+                        parishLabel: e.target.value,
+                      },
                     })
                   }
                 />
@@ -306,7 +590,10 @@ export function AdminPage() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      location: { ...draft.location, parishName: e.target.value },
+                      location: {
+                        ...draft.location,
+                        parishName: e.target.value,
+                      },
                     })
                   }
                 />
@@ -318,7 +605,10 @@ export function AdminPage() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      location: { ...draft.location, placeLine: e.target.value },
+                      location: {
+                        ...draft.location,
+                        placeLine: e.target.value,
+                      },
                     })
                   }
                 />
@@ -378,7 +668,7 @@ export function AdminPage() {
             <h2>Significado del logo</h2>
             <div className="admin-grid">
               <label>
-                Eyebrow
+                Etiqueta superior
                 <input
                   value={draft.meaning.eyebrow}
                   onChange={(e) =>
@@ -403,7 +693,7 @@ export function AdminPage() {
               </label>
             </div>
             <label>
-              Lead
+              Texto introductorio
               <textarea
                 rows={2}
                 value={draft.meaning.lead}
@@ -427,7 +717,6 @@ export function AdminPage() {
                 }
               />
             </label>
-
             <h3>Elementos</h3>
             {draft.meaning.elements.map((item, index) => (
               <div className="admin-card" key={item.id}>
@@ -461,7 +750,7 @@ export function AdminPage() {
                     />
                   </label>
                   <label>
-                    Acento
+                    Color de acento
                     <select
                       value={item.accent}
                       onChange={(e) => {
@@ -509,7 +798,7 @@ export function AdminPage() {
             <h2>Información del evento</h2>
             <div className="admin-grid">
               <label>
-                Eyebrow
+                Etiqueta superior
                 <input
                   value={draft.event.eyebrow}
                   onChange={(e) =>
@@ -534,7 +823,7 @@ export function AdminPage() {
               </label>
             </div>
             <label>
-              Lead
+              Texto introductorio
               <textarea
                 rows={2}
                 value={draft.event.lead}
@@ -556,7 +845,10 @@ export function AdminPage() {
                       onChange={(e) => {
                         const items = [...draft.event.items];
                         items[index] = { ...item, label: e.target.value };
-                        setDraft({ ...draft, event: { ...draft.event, items } });
+                        setDraft({
+                          ...draft,
+                          event: { ...draft.event, items },
+                        });
                       }}
                     />
                   </label>
@@ -567,7 +859,10 @@ export function AdminPage() {
                       onChange={(e) => {
                         const items = [...draft.event.items];
                         items[index] = { ...item, title: e.target.value };
-                        setDraft({ ...draft, event: { ...draft.event, items } });
+                        setDraft({
+                          ...draft,
+                          event: { ...draft.event, items },
+                        });
                       }}
                     />
                   </label>
@@ -580,7 +875,10 @@ export function AdminPage() {
                     onChange={(e) => {
                       const items = [...draft.event.items];
                       items[index] = { ...item, text: e.target.value };
-                      setDraft({ ...draft, event: { ...draft.event, items } });
+                      setDraft({
+                        ...draft,
+                        event: { ...draft.event, items },
+                      });
                     }}
                   />
                 </label>
@@ -594,7 +892,7 @@ export function AdminPage() {
             <h2>Logos institucionales</h2>
             <div className="admin-grid">
               <label>
-                Eyebrow
+                Etiqueta superior
                 <input
                   value={draft.partners.eyebrow}
                   onChange={(e) =>
@@ -619,7 +917,7 @@ export function AdminPage() {
               </label>
             </div>
             <label>
-              Lead
+              Texto introductorio
               <textarea
                 rows={2}
                 value={draft.partners.lead}
@@ -643,7 +941,6 @@ export function AdminPage() {
                 }
               />
             </label>
-
             <label className="file-field">
               Agregar logos (puedes seleccionar varios)
               <input
@@ -653,10 +950,11 @@ export function AdminPage() {
                 onChange={onPartnerUpload}
               />
             </label>
-
             <div className="admin-logos">
               {draft.partners.logos.length === 0 ? (
-                <p className="admin-empty">Aún no hay logos. Sube los de la Arquidiócesis aquí.</p>
+                <p className="admin-empty">
+                  Aún no hay logos. Sube los de la Arquidiócesis aquí.
+                </p>
               ) : (
                 draft.partners.logos.map((logo, index) => (
                   <div className="admin-logo-item" key={logo.id}>
@@ -683,7 +981,9 @@ export function AdminPage() {
                           ...draft,
                           partners: {
                             ...draft.partners,
-                            logos: draft.partners.logos.filter((l) => l.id !== logo.id),
+                            logos: draft.partners.logos.filter(
+                              (l) => l.id !== logo.id,
+                            ),
                           },
                         })
                       }
@@ -714,13 +1014,46 @@ export function AdminPage() {
             </label>
             <div className="admin-grid">
               <label>
+                Título menú
+                <input
+                  value={draft.footer.exploreLabel}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      footer: {
+                        ...draft.footer,
+                        exploreLabel: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Título redes
+                <input
+                  value={draft.footer.socialLabel}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      footer: {
+                        ...draft.footer,
+                        socialLabel: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
                 Pie izquierdo
                 <input
                   value={draft.footer.bottomLeft}
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      footer: { ...draft.footer, bottomLeft: e.target.value },
+                      footer: {
+                        ...draft.footer,
+                        bottomLeft: e.target.value,
+                      },
                     })
                   }
                 />
@@ -732,12 +1065,51 @@ export function AdminPage() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      footer: { ...draft.footer, bottomRight: e.target.value },
+                      footer: {
+                        ...draft.footer,
+                        bottomRight: e.target.value,
+                      },
                     })
                   }
                 />
               </label>
             </div>
+
+            <h3>Menú del footer</h3>
+            {draft.footer.nav.map((item, index) => (
+              <div className="admin-card" key={item.id}>
+                <div className="admin-grid">
+                  <label>
+                    Etiqueta
+                    <input
+                      value={item.label}
+                      onChange={(e) => {
+                        const nav = [...draft.footer.nav];
+                        nav[index] = { ...item, label: e.target.value };
+                        setDraft({
+                          ...draft,
+                          footer: { ...draft.footer, nav },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Enlace
+                    <input
+                      value={item.href}
+                      onChange={(e) => {
+                        const nav = [...draft.footer.nav];
+                        nav[index] = { ...item, href: e.target.value };
+                        setDraft({
+                          ...draft,
+                          footer: { ...draft.footer, nav },
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
 
             <h3>Redes sociales</h3>
             {draft.footer.social.map((item, index) => (

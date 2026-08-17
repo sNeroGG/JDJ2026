@@ -59,10 +59,16 @@ vercel
 
 ## Admin
 
-Panel de edición rápida en `/admin`.
+Panel en `/admin`.
 
 Contraseña por defecto: `jdj2026`  
-Cámbiala con la variable de entorno `VITE_ADMIN_PASSWORD` (ver `.env.example`).
+Cámbiala con `VITE_ADMIN_PASSWORD` (local: `.env` / Vercel: Environment Variables).
 
-Los cambios se guardan en el navegador (`localStorage`). Usa **Exportar JSON** para respaldo.
-Puedes editar textos, logo principal, logos institucionales y redes sociales.
+### Qué puedes editar
+1. **Variables rápidas** — nombre, año, lema, sede, botón, SEO
+2. **Logo PNG** — arrastra o selecciona el archivo del logo principal
+3. Hero, sede, significado, evento
+4. Logos institucionales
+5. Footer, menú y redes
+
+Pulsa **Guardar cambios** (o **Guardar logo**) para aplicar. Los cambios quedan en este navegador (`localStorage`). Usa **Exportar JSON** para respaldo.

@@ -34,12 +34,25 @@ export type PartnerLogo = {
   src: string;
 };
 
+export type NavLink = {
+  id: string;
+  href: string;
+  label: string;
+};
+
 export type SiteContent = {
   logoUrl: string;
+  site: {
+    name: string;
+    year: string;
+    pageTitle: string;
+    metaDescription: string;
+  };
   hero: {
     slogan: string;
     tagline: string;
     ctaLabel: string;
+    ctaHref: string;
   };
   location: {
     eyebrow: string;
@@ -73,8 +86,11 @@ export type SiteContent = {
   };
   footer: {
     org: string;
+    exploreLabel: string;
+    socialLabel: string;
     bottomLeft: string;
     bottomRight: string;
+    nav: NavLink[];
     social: SocialLink[];
   };
 };
@@ -84,10 +100,18 @@ export const AUTH_KEY = "jdj2026-admin-auth";
 
 export const DEFAULT_CONTENT: SiteContent = {
   logoUrl: "/images/logo-principal.png",
+  site: {
+    name: "JDJ Jayaque",
+    year: "2026",
+    pageTitle: "JDJ Jayaque 2026",
+    metaDescription:
+      "JDJ Jayaque 2026 — Jornada Diocesana de la Juventud. Tengan valor y síganme. Arquidiócesis de San Salvador.",
+  },
   hero: {
     slogan: "Tengan valor y síganme",
     tagline: "Jornada Diocesana de la Juventud · Arquidiócesis de San Salvador",
     ctaLabel: "Descubrir el encuentro",
+    ctaHref: "#donde",
   },
   location: {
     eyebrow: "Sede 2026",
@@ -190,8 +214,16 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   footer: {
     org: "Pastoral Juvenil · Arquidiócesis de San Salvador",
+    exploreLabel: "Explorar",
+    socialLabel: "Redes oficiales",
     bottomLeft: "JDJ Jayaque 2026",
     bottomRight: "Arquidiócesis de San Salvador, El Salvador",
+    nav: [
+      { id: "nav-sede", href: "#donde", label: "Sede" },
+      { id: "nav-logo", href: "#significado", label: "Logo" },
+      { id: "nav-evento", href: "#evento", label: "Evento" },
+      { id: "nav-logos", href: "#auspiciadores", label: "Logos" },
+    ],
     social: [
       {
         id: "instagram",

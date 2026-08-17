@@ -1,16 +1,9 @@
 import { useContent } from "../context/ContentContext";
 import "./Footer.css";
 
-const NAV = [
-  { href: "#donde", label: "Sede" },
-  { href: "#significado", label: "Logo" },
-  { href: "#evento", label: "Evento" },
-  { href: "#auspiciadores", label: "Logos" },
-] as const;
-
 export function Footer() {
   const { content } = useContent();
-  const { footer, logoUrl, hero } = content;
+  const { footer, logoUrl, hero, site } = content;
 
   return (
     <footer className="footer" id="contacto">
@@ -18,7 +11,7 @@ export function Footer() {
         <div className="footer__brand">
           <img
             src={logoUrl}
-            alt="JDJ Jayaque 2026"
+            alt={`${site.name} ${site.year}`}
             className="footer__logo"
           />
           <p className="footer__slogan">{hero.slogan}</p>
@@ -26,10 +19,10 @@ export function Footer() {
         </div>
 
         <nav className="footer__nav" aria-label="Secciones">
-          <p>Explorar</p>
+          <p>{footer.exploreLabel}</p>
           <ul>
-            {NAV.map((item) => (
-              <li key={item.href}>
+            {footer.nav.map((item) => (
+              <li key={item.id}>
                 <a href={item.href}>{item.label}</a>
               </li>
             ))}
@@ -37,7 +30,7 @@ export function Footer() {
         </nav>
 
         <div className="footer__social">
-          <p>Redes oficiales</p>
+          <p>{footer.socialLabel}</p>
           <ul>
             {footer.social.map((item) => (
               <li key={item.id}>

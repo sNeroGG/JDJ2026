@@ -180,6 +180,11 @@
   margin-right: 0.25rem;
 }
 
+.admin__dirty {
+  color: #9b5b12 !important;
+  font-weight: 700;
+}
+
 .btn {
   border-radius: 0.7rem;
   padding: 0.65rem 0.9rem;
@@ -227,6 +232,27 @@
   font-size: 1.05rem;
 }
 
+.admin-panel__hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: -0.35rem;
+}
+
+.admin-notice {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  background: #e8f5f3;
+  color: #1d5a54;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .admin-panel label,
 .admin-card label {
   display: grid;
@@ -264,6 +290,56 @@
   border-radius: 0.9rem;
   background: #f6f8f7;
   border: 1px solid rgba(28, 35, 44, 0.06);
+}
+
+.logo-dropzone {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  border-radius: 1rem;
+  border: 1.5px dashed rgba(45, 128, 142, 0.45);
+  background: #f3faf9;
+  color: var(--navy);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.logo-dropzone:hover,
+.logo-dropzone.is-dragging {
+  border-color: #2d808e;
+  background: #e7f5f3;
+  transform: translateY(-1px);
+}
+
+.logo-dropzone strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.logo-dropzone span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.logo-dropzone__file {
+  margin-top: 0.35rem;
+  font-style: normal;
+  font-size: 0.82rem;
+  color: #2d808e;
+  font-weight: 700;
+}
+
+.logo-dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .admin-logo-preview {

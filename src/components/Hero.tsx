@@ -32,7 +32,7 @@ export function Hero() {
         />
         <p className="hero__slogan">{hero.slogan}</p>
         <p className="hero__tagline">{hero.tagline}</p>
-        <a className="hero__cta" href="#donde">
+        <a className="hero__cta" href={hero.ctaHref}>
           {hero.ctaLabel}
           <span aria-hidden="true">↓</span>
         </a>

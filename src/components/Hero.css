@@ -6,7 +6,7 @@
   overflow: hidden;
   padding: 2rem 1.25rem 4.5rem;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 18%, rgba(245, 201, 106, 0.42), transparent 60%),
+    radial-gradient(ellipse 80% 48% at 50% -2%, rgba(245, 201, 106, 0.5), transparent 58%),
     radial-gradient(ellipse 90% 70% at 50% 100%, rgba(111, 134, 71, 0.24), transparent 55%),
     linear-gradient(180deg, #e8f1f4 0%, var(--sky) 38%, #eef3e8 72%, var(--cream) 100%);
 }
@@ -19,20 +19,20 @@
 
 .hero__sun {
   position: absolute;
-  top: 8%;
+  top: -6%;
   left: 50%;
-  width: min(42vw, 280px);
+  width: min(48vw, 320px);
   aspect-ratio: 1;
   translate: -50% 0;
   border-radius: 50%;
   background: radial-gradient(circle, #fff 0%, var(--yellow) 42%, transparent 70%);
-  opacity: 0.55;
+  opacity: 0.62;
   animation: sun-pulse 8s ease-in-out infinite;
 }
 
 .hero__rays {
   position: absolute;
-  top: -8%;
+  top: -22%;
   left: 50%;
   width: min(120vw, 900px);
   aspect-ratio: 1;
@@ -138,10 +138,15 @@
 }
 
 .hero__tagline {
-  margin-top: 0.65rem;
-  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
-  color: var(--navy-soft);
-  max-width: 36ch;
+  margin-top: 0.85rem;
+  font-family: var(--font-display);
+  font-size: clamp(0.78rem, 1.8vw, 0.9rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.45;
+  color: var(--teal);
+  max-width: 42ch;
   animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
 }
 

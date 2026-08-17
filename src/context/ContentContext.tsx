@@ -31,6 +31,7 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
     ...DEFAULT_CONTENT,
     ...parsed,
     logoUrl: parsed.logoUrl || DEFAULT_CONTENT.logoUrl,
+    site: { ...DEFAULT_CONTENT.site, ...parsed.site },
     hero: { ...DEFAULT_CONTENT.hero, ...parsed.hero },
     location: {
       ...DEFAULT_CONTENT.location,
@@ -61,6 +62,9 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
     footer: {
       ...DEFAULT_CONTENT.footer,
       ...parsed.footer,
+      nav: parsed.footer?.nav?.length
+        ? parsed.footer.nav
+        : DEFAULT_CONTENT.footer.nav,
       social: parsed.footer?.social?.length
         ? parsed.footer.social
         : DEFAULT_CONTENT.footer.social,
