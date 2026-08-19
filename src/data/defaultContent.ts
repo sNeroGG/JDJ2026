@@ -83,6 +83,36 @@ export type Vicariate = {
   note: string;
 };
 
+export type StoreProduct = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  /** 0 = agotado. */
+  stock: number;
+  sizes: string[];
+};
+
+export type StoreOrderStatus = "nuevo" | "atendido" | "cancelado";
+
+export type StoreOrder = {
+  id: string;
+  createdAt: string;
+  name: string;
+  email: string;
+  phone: string;
+  productId: string;
+  productTitle: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  payment: "Transferencia";
+  note: string;
+  status: StoreOrderStatus;
+};
+
 export type SiteContent = {
   logoUrl: string;
   site: {
@@ -118,6 +148,15 @@ export type SiteContent = {
     mapNote: string;
     directionsLabel: string;
     wazeLabel: string;
+  };
+  instagram: {
+    enabled: boolean;
+    eyebrow: string;
+    title: string;
+    lead: string;
+    handle: string;
+    /** URLs de hasta 3 publicaciones. Si está vacío se muestra el perfil embebido. */
+    posts: string[];
   };
   meaning: {
     eyebrow: string;
@@ -179,6 +218,17 @@ export type SiteContent = {
     lead: string;
     credit: string;
     logos: PartnerLogo[];
+  };
+  store: {
+    logoUrl: string;
+    eyebrow: string;
+    title: string;
+    lead: string;
+    /** Número de WhatsApp con código de país, ej. 50370123456. */
+    whatsapp: string;
+    paymentNote: string;
+    ctaLabel: string;
+    products: StoreProduct[];
   };
   header: {
     ctaLabel: string;
@@ -278,6 +328,14 @@ export const DEFAULT_CONTENT: SiteContent = {
       "El mapa se carga solo cuando lo pides, para no gastar tus datos de más.",
     directionsLabel: "Abrir en Google Maps",
     wazeLabel: "Abrir en Waze",
+  },
+  instagram: {
+    enabled: true,
+    eyebrow: "Instagram",
+    title: "Últimas publicaciones",
+    lead: "Lo más reciente de Pastoral Juvenil Arquidiocesana.",
+    handle: "pjarqui_ss",
+    posts: [],
   },
   meaning: {
     eyebrow: "Identidad",
@@ -446,6 +504,17 @@ export const DEFAULT_CONTENT: SiteContent = {
     credit: "Arquidiócesis de San Salvador · El Salvador",
     logos: [],
   },
+  store: {
+    logoUrl: "",
+    eyebrow: "Tienda JDJ",
+    title: "Lleva el encuentro contigo",
+    lead: "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
+    whatsapp: "",
+    paymentNote:
+      "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
+    ctaLabel: "Pedir por WhatsApp",
+    products: [],
+  },
   header: {
     ctaLabel: "Catequesis",
     ctaHref: "/catequesis",
@@ -454,6 +523,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { id: "nav-evento", href: "#evento", label: "Evento" },
       { id: "nav-agenda", href: "#agenda", label: "Agenda" },
       { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
+      { id: "nav-tienda", href: "/tienda", label: "Tienda" },
       { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
     ],
   },
@@ -480,6 +550,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { id: "nav-evento", href: "#evento", label: "Evento" },
       { id: "nav-agenda", href: "#agenda", label: "Agenda" },
       { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
+      { id: "nav-tienda", href: "/tienda", label: "Tienda" },
       { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
       { id: "nav-faq", href: "#faq", label: "Preguntas" },
       { id: "nav-logos", href: "#auspiciadores", label: "Logos" },

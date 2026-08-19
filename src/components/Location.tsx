@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InstagramFeed } from "./InstagramFeed";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
 import { mapDirectionsUrl, mapEmbedUrl, mapWazeUrl } from "../utils/maps";
@@ -50,6 +51,8 @@ export function Location() {
             ))}
           </ul>
         </div>
+
+        <InstagramFeed />
 
         {embedUrl ? (
           <div className="location__map reveal reveal-delay-2">

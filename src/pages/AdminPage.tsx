@@ -15,9 +15,13 @@ import {
   type PartnerLogo,
   type RegistrationStatus,
   type SiteContent,
+  type StoreOrder,
+  type StoreOrderStatus,
+  type StoreProduct,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
 import { uploadMedia } from "../utils/media";
+import { formatOrderDate, formatUsd } from "../utils/store";
 import "./AdminPage.css";
 
 const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
@@ -32,6 +36,7 @@ export function AdminPage() {
   const {
     content,
     setContent,
+    updateContent,
     saveContent,
     resetContent,
     isAuthenticated,
@@ -48,6 +53,9 @@ export function AdminPage() {
   const [projectDocs, setProjectDocs] = useState<{ name: string; url: string }[]>(
     [],
   );
+  const [orders, setOrders] = useState<StoreOrder[]>([]);
+  const [ordersNotice, setOrdersNotice] = useState("");
+  const [ordersPersist, setOrdersPersist] = useState("");
 
   useEffect(() => {
     setDraft(content);
@@ -73,10 +81,36 @@ export function AdminPage() {
       });
   }, [isAuthenticated, section, draft.catechesis.docs.length]);
 
+  useEffect(() => {
+    if (!isAuthenticated || section !== "orders") return;
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    void fetch("/api/orders", {
+      headers: { Authorization: `Bearer ${secret}` },
+    })
+      .then(async (remote) => {
+        const payload = (await remote.json().catch(() => null)) as {
+          orders?: StoreOrder[];
+          persist?: string;
+          error?: string;
+        } | null;
+        if (!remote.ok) {
+          setOrdersNotice(payload?.error || "No se pudieron cargar los pedidos.");
+          return;
+        }
+        setOrders(payload?.orders ?? []);
+        setOrdersPersist(payload?.persist || "");
+        setOrdersNotice("");
+      })
+      .catch(() => {
+        setOrdersNotice("No se pudieron cargar los pedidos.");
+      });
+  }, [isAuthenticated, section]);
+
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
   const itemCount = draft.schedule.items.length;
   const faqCount = draft.faq.items.length;
+  const productCount = draft.store.products.length;
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(content),
     [draft, content],
@@ -97,12 +131,22 @@ export function AdminPage() {
         full: "Documentos de catequesis",
       },
       {
+        id: "store",
+        label: `Tienda${productCount ? ` (${productCount})` : ""}`,
+        full: "Logo, productos y WhatsApp",
+      },
+      {
+        id: "orders",
+        label: `Pedidos${orders.length ? ` (${orders.length})` : ""}`,
+        full: "Pedidos de la tienda",
+      },
+      {
         id: "page",
         label: "Página",
         full: "Textos, logos y pie",
       },
     ],
-    [itemCount, docCount],
+    [itemCount, docCount, productCount, orders.length],
   );
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
@@ -122,6 +166,9 @@ export function AdminPage() {
   }
   function patchLocation(patch: Partial<SiteContent["location"]>) {
     setDraft({ ...draft, location: { ...draft.location, ...patch } });
+  }
+  function patchInstagram(patch: Partial<SiteContent["instagram"]>) {
+    setDraft({ ...draft, instagram: { ...draft.instagram, ...patch } });
   }
   function patchSchedule(patch: Partial<SiteContent["schedule"]>) {
     setDraft({ ...draft, schedule: { ...draft.schedule, ...patch } });
@@ -149,6 +196,14 @@ export function AdminPage() {
   }
   function patchPartners(patch: Partial<SiteContent["partners"]>) {
     setDraft({ ...draft, partners: { ...draft.partners, ...patch } });
+  }
+  function patchStore(patch: Partial<SiteContent["store"]>) {
+    setDraft({ ...draft, store: { ...draft.store, ...patch } });
+  }
+  function patchProduct(index: number, patch: Partial<StoreProduct>) {
+    const products = [...draft.store.products];
+    products[index] = { ...products[index], ...patch };
+    patchStore({ products });
   }
 
   function patchHighlight(
@@ -233,6 +288,100 @@ export function AdminPage() {
       await persist(next);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function onStoreLogoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const next = {
+        ...draft,
+        store: { ...draft.store, logoUrl: uploaded.url },
+      };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onProductImageChange(
+    index: number,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const products = [...draft.store.products];
+      products[index] = { ...products[index], imageUrl: uploaded.url };
+      const next = { ...draft, store: { ...draft.store, products } };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function applyProductStock(productId: string, delta: number) {
+    const apply = (products: StoreProduct[]) =>
+      products.map((item) =>
+        item.id === productId
+          ? { ...item, stock: Math.max(0, item.stock + delta) }
+          : item,
+      );
+    setDraft((prev) => ({
+      ...prev,
+      store: { ...prev.store, products: apply(prev.store.products) },
+    }));
+    updateContent((prev) => ({
+      ...prev,
+      store: { ...prev.store, products: apply(prev.store.products) },
+    }));
+  }
+
+  async function patchOrderStatus(id: string, status: StoreOrderStatus) {
+    const current = orders.find((item) => item.id === id);
+    if (!current || current.status === status) return;
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    setOrdersNotice("Actualizando pedido…");
+    try {
+      const remote = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ id, status }),
+      });
+      const payload = (await remote.json().catch(() => null)) as {
+        error?: string;
+        order?: StoreOrder;
+      } | null;
+      if (!remote.ok || !payload?.order) {
+        setOrdersNotice(payload?.error || "No se pudo actualizar el pedido.");
+        return;
+      }
+      setOrders((prev) =>
+        prev.map((item) => (item.id === id ? payload.order! : item)),
+      );
+      if (status === "cancelado" && current.status !== "cancelado") {
+        applyProductStock(current.productId, current.quantity);
+      }
+      if (current.status === "cancelado" && status !== "cancelado") {
+        applyProductStock(current.productId, -current.quantity);
+      }
+      setOrdersNotice("Pedido actualizado.");
+    } catch {
+      setOrdersNotice("No se pudo actualizar el pedido.");
     }
   }
 
@@ -355,6 +504,7 @@ export function AdminPage() {
         </nav>
         <div className="admin__side-actions">
           <Link to="/">Ver landing</Link>
+          <Link to="/tienda">Ver tienda</Link>
           <button
             type="button"
             onClick={() => downloadJson("jdj2026-content.json", draft)}
@@ -816,6 +966,55 @@ export function AdminPage() {
                 onChange={(e) => patchLocation({ lead: e.target.value })}
               />
             </label>
+            <h2>Instagram</h2>
+            <p className="admin-panel__hint">
+              Se muestra en la sede, antes del mapa. Sin URLs se embebe el
+              perfil de @{draft.instagram.handle || "pjarqui_ss"}. Para que las
+              3 últimas salgan solas, configura{" "}
+              <code>INSTAGRAM_ACCESS_TOKEN</code> en Vercel.
+            </p>
+            <div className="admin-grid">
+              <label>
+                Usuario
+                <input
+                  value={draft.instagram.handle}
+                  onChange={(e) =>
+                    patchInstagram({ handle: e.target.value.replace(/^@/, "") })
+                  }
+                  placeholder="pjarqui_ss"
+                />
+              </label>
+              <label>
+                Título del apartado
+                <input
+                  value={draft.instagram.title}
+                  onChange={(e) => patchInstagram({ title: e.target.value })}
+                />
+              </label>
+            </div>
+            <label>
+              Texto
+              <input
+                value={draft.instagram.lead}
+                onChange={(e) => patchInstagram({ lead: e.target.value })}
+              />
+            </label>
+            {[0, 1, 2].map((index) => (
+              <label key={index}>
+                Publicación {index + 1} (URL de Instagram)
+                <input
+                  value={draft.instagram.posts[index] || ""}
+                  onChange={(e) => {
+                    const posts = [0, 1, 2].map(
+                      (slot) => draft.instagram.posts[slot] || "",
+                    );
+                    posts[index] = e.target.value.trim();
+                    patchInstagram({ posts });
+                  }}
+                  placeholder="https://www.instagram.com/p/…"
+                />
+              </label>
+            ))}
             <label>
               Dirección para el mapa
               <input
@@ -978,6 +1177,304 @@ export function AdminPage() {
                     Quitar
                   </button>
                 </div>
+              ))
+            )}
+          </section>
+        )}
+
+        {section === "store" && (
+          <div className="admin-stack">
+            <section className="admin-panel">
+              <h2>Logo de la tienda</h2>
+              <p className="admin-panel__hint">
+                Es un logo aparte de la portada y del footer. Se ve en /tienda.
+                Súbelo en local con <code>npm run dev</code>.
+              </p>
+              {draft.store.logoUrl ? (
+                <div className="admin-logo-preview">
+                  <img src={draft.store.logoUrl} alt="Logo de la tienda" />
+                </div>
+              ) : (
+                <p className="admin-empty">Aún no hay logo de tienda.</p>
+              )}
+              <label className={`file-field${uploading ? " is-busy" : ""}`}>
+                {uploading ? "Copiando…" : "Subir logo de tienda"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                  disabled={uploading}
+                  onChange={onStoreLogoChange}
+                />
+              </label>
+            </section>
+
+            <section className="admin-panel">
+              <h2>Textos y compra</h2>
+              <div className="admin-grid">
+                <label>
+                  Etiqueta
+                  <input
+                    value={draft.store.eyebrow}
+                    onChange={(e) => patchStore({ eyebrow: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Título
+                  <input
+                    value={draft.store.title}
+                    onChange={(e) => patchStore({ title: e.target.value })}
+                  />
+                </label>
+              </div>
+              <label>
+                Texto introductorio
+                <textarea
+                  rows={2}
+                  value={draft.store.lead}
+                  onChange={(e) => patchStore({ lead: e.target.value })}
+                />
+              </label>
+              <div className="admin-grid">
+                <label>
+                  WhatsApp (con código de país)
+                  <input
+                    value={draft.store.whatsapp}
+                    onChange={(e) => patchStore({ whatsapp: e.target.value })}
+                    placeholder="50370123456"
+                  />
+                </label>
+                <label>
+                  Texto del botón
+                  <input
+                    value={draft.store.ctaLabel}
+                    onChange={(e) => patchStore({ ctaLabel: e.target.value })}
+                  />
+                </label>
+              </div>
+              <label>
+                Nota de pago (transferencia)
+                <textarea
+                  rows={3}
+                  value={draft.store.paymentNote}
+                  onChange={(e) => patchStore({ paymentNote: e.target.value })}
+                />
+              </label>
+            </section>
+
+            <section className="admin-panel">
+              <h2>Productos{productCount ? ` (${productCount})` : ""}</h2>
+              <p className="admin-panel__hint">
+                Stock 0 se muestra como AGOTADO. Las tallas van separadas por
+                coma, por ejemplo S, M, L, XL.
+              </p>
+              <div className="admin-inline-actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() =>
+                    patchStore({
+                      products: [
+                        ...draft.store.products,
+                        {
+                          id: createId("prod"),
+                          title: "Camisa JDJ 2026",
+                          description: "",
+                          price: 10,
+                          imageUrl: "",
+                          stock: 0,
+                          sizes: ["S", "M", "L", "XL"],
+                        },
+                      ],
+                    })
+                  }
+                >
+                  Agregar producto
+                </button>
+              </div>
+              {draft.store.products.length === 0 ? (
+                <p className="admin-empty">Aún no hay productos.</p>
+              ) : (
+                draft.store.products.map((product, index) => (
+                  <div className="admin-card" key={product.id}>
+                    {product.imageUrl ? (
+                      <div className="admin-product-preview">
+                        <img src={product.imageUrl} alt={product.title} />
+                      </div>
+                    ) : null}
+                    <label className={`file-field${uploading ? " is-busy" : ""}`}>
+                      {uploading ? "Copiando…" : "Imagen del producto"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                        disabled={uploading}
+                        onChange={(e) => void onProductImageChange(index, e)}
+                      />
+                    </label>
+                    <label>
+                      Título
+                      <input
+                        value={product.title}
+                        onChange={(e) =>
+                          patchProduct(index, { title: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Descripción
+                      <textarea
+                        rows={2}
+                        value={product.description}
+                        onChange={(e) =>
+                          patchProduct(index, { description: e.target.value })
+                        }
+                      />
+                    </label>
+                    <div className="admin-grid">
+                      <label>
+                        Precio (USD)
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={product.price}
+                          onChange={(e) =>
+                            patchProduct(index, {
+                              price: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Stock (0 = agotado)
+                        <input
+                          type="number"
+                          min={0}
+                          step="1"
+                          value={product.stock}
+                          onChange={(e) =>
+                            patchProduct(index, {
+                              stock: Math.max(0, Number(e.target.value) || 0),
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <label>
+                      Tallas
+                      <input
+                        value={product.sizes.join(", ")}
+                        onChange={(e) =>
+                          patchProduct(index, {
+                            sizes: e.target.value
+                              .split(",")
+                              .map((item) => item.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        placeholder="S, M, L, XL"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      onClick={() =>
+                        patchStore({
+                          products: draft.store.products.filter(
+                            (item) => item.id !== product.id,
+                          ),
+                        })
+                      }
+                    >
+                      Quitar producto
+                    </button>
+                  </div>
+                ))
+              )}
+            </section>
+          </div>
+        )}
+
+        {section === "orders" && (
+          <section className="admin-panel">
+            <h2>Pedidos{orders.length ? ` (${orders.length})` : ""}</h2>
+            <p className="admin-panel__hint">
+              Cada compra llega aquí y se abre WhatsApp con el pedido. El pago
+              es por transferencia.
+              {ordersPersist === "memory"
+                ? " En producción, configura GITHUB_TOKEN si quieres conservarlos entre deploys."
+                : ordersPersist === "file"
+                  ? " En local se guardan en src/data/savedOrders.ts."
+                  : ""}
+            </p>
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={!orders.length}
+                onClick={() => downloadJson("jdj2026-pedidos.json", orders)}
+              >
+                Exportar JSON
+              </button>
+            </div>
+            {ordersNotice ? (
+              <p className="admin-panel__hint">{ordersNotice}</p>
+            ) : null}
+            {orders.length === 0 ? (
+              <p className="admin-empty">Aún no hay pedidos.</p>
+            ) : (
+              orders.map((order) => (
+                <article className="admin-order" key={order.id}>
+                  <div className="admin-order__top">
+                    <strong>{order.id}</strong>
+                    <span className={`admin-order__status is-${order.status}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <p>
+                    {order.name} · {order.email} · {order.phone}
+                  </p>
+                  <p>
+                    {order.productTitle}
+                    {order.size ? ` · Talla ${order.size}` : ""} ·{" "}
+                    {order.quantity} {order.quantity === 1 ? "unidad" : "unidades"}{" "}
+                    · {formatUsd(order.total)} · {order.payment}
+                  </p>
+                  {order.note ? <p>Nota: {order.note}</p> : null}
+                  <p className="admin-order__date">
+                    {formatOrderDate(order.createdAt)}
+                  </p>
+                  <div className="admin-inline-actions">
+                    {order.status !== "atendido" ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => void patchOrderStatus(order.id, "atendido")}
+                      >
+                        Marcar atendido
+                      </button>
+                    ) : null}
+                    {order.status !== "nuevo" ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => void patchOrderStatus(order.id, "nuevo")}
+                      >
+                        Marcar nuevo
+                      </button>
+                    ) : null}
+                    {order.status !== "cancelado" ? (
+                      <button
+                        type="button"
+                        className="btn btn--danger"
+                        onClick={() =>
+                          void patchOrderStatus(order.id, "cancelado")
+                        }
+                      >
+                        Cancelar y devolver stock
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
               ))
             )}
           </section>

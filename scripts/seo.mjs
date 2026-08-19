@@ -12,7 +12,7 @@ const FALLBACK_DESCRIPTION =
   "JDJ Jayaque 2026 — Jornada Diocesana de la Juventud. Tengan valor y síganme. Arquidiócesis de San Salvador.";
 const FALLBACK_OG_IMAGE = "/images/og-jdj-2026.jpg";
 const FALLBACK_HERO_LOGO = "/images/logo-jdj-2026.webp";
-const ROUTES = ["/", "/catequesis"];
+const ROUTES = ["/", "/catequesis", "/tienda"];
 
 export function readSavedContent(root) {
   try {

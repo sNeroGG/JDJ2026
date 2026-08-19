@@ -10,6 +10,7 @@ import {
   AUTH_KEY,
   AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
+  type NavLink,
   type RegistrationStatus,
   type SavedContent,
   type ScheduleItem,
@@ -38,6 +39,29 @@ function catechesisPath(href: string) {
 
 function withCatechesisRoute<T extends { href: string }>(items: T[]) {
   return items.map((item) => ({ ...item, href: catechesisPath(item.href) }));
+}
+
+const STORE_NAV: NavLink = {
+  id: "nav-tienda",
+  href: "/tienda",
+  label: "Tienda",
+};
+
+function withStoreNav<T extends NavLink>(items: T[]) {
+  if (items.some((item) => item.href === "/tienda" || item.id === "nav-tienda")) {
+    return items;
+  }
+  const catechesisAt = items.findIndex(
+    (item) => item.href === "/catequesis" || item.id === "nav-catequesis",
+  );
+  if (catechesisAt >= 0) {
+    return [
+      ...items.slice(0, catechesisAt),
+      STORE_NAV as T,
+      ...items.slice(catechesisAt),
+    ];
+  }
+  return [...items, STORE_NAV as T];
 }
 
 function isHostedUrl(value: string) {
@@ -95,6 +119,19 @@ function mergeContent(parsed: SavedContent): SiteContent {
         ? parsed.location.facts
         : DEFAULT_CONTENT.location.facts,
     },
+    instagram: {
+      ...DEFAULT_CONTENT.instagram,
+      ...parsed.instagram,
+      posts: (
+        Array.isArray(parsed.instagram?.posts)
+          ? parsed.instagram.posts
+          : DEFAULT_CONTENT.instagram.posts
+      )
+        .filter((url): url is string => typeof url === "string")
+        .map((url) => url.trim())
+        .filter(Boolean)
+        .slice(0, 3),
+    },
     schedule: mergeSchedule(parsed),
     registration: {
       ...DEFAULT_CONTENT.registration,
@@ -138,17 +175,32 @@ function mergeContent(parsed: SavedContent): SiteContent {
         (logo) => isHostedUrl(logo.src),
       ),
     },
+    store: {
+      ...DEFAULT_CONTENT.store,
+      ...parsed.store,
+      logoUrl:
+        parsed.store?.logoUrl && isHostedUrl(parsed.store.logoUrl)
+          ? parsed.store.logoUrl
+          : parsed.store?.logoUrl === ""
+            ? ""
+            : DEFAULT_CONTENT.store.logoUrl,
+      products: (parsed.store?.products ?? DEFAULT_CONTENT.store.products).filter(
+        (product) => !product.imageUrl || isHostedUrl(product.imageUrl),
+      ),
+    },
     header: {
       ...DEFAULT_CONTENT.header,
       ...parsed.header,
       ctaHref: catechesisPath(
         parsed.header?.ctaHref ?? DEFAULT_CONTENT.header.ctaHref,
       ),
-      nav: withCatechesisRoute(
-        parsed.header?.nav?.length &&
-          !parsed.header.nav.some((item) => item.id === "nav-inicio")
-          ? parsed.header.nav
-          : DEFAULT_CONTENT.header.nav,
+      nav: withStoreNav(
+        withCatechesisRoute(
+          parsed.header?.nav?.length &&
+            !parsed.header.nav.some((item) => item.id === "nav-inicio")
+            ? parsed.header.nav
+            : DEFAULT_CONTENT.header.nav,
+        ),
       ),
     },
     catechesis: {
@@ -165,10 +217,12 @@ function mergeContent(parsed: SavedContent): SiteContent {
         parsed.footer?.logoUrl && isHostedUrl(parsed.footer.logoUrl)
           ? parsed.footer.logoUrl
           : DEFAULT_CONTENT.footer.logoUrl,
-      nav: withCatechesisRoute(
-        parsed.footer?.nav?.length
-          ? parsed.footer.nav
-          : DEFAULT_CONTENT.footer.nav,
+      nav: withStoreNav(
+        withCatechesisRoute(
+          parsed.footer?.nav?.length
+            ? parsed.footer.nav
+            : DEFAULT_CONTENT.footer.nav,
+        ),
       ),
       social: parsed.footer?.social?.length
         ? parsed.footer.social

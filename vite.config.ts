@@ -17,6 +17,24 @@ import {
   resolveSiteUrl,
   // @ts-expect-error local ESM helper without types
 } from "./scripts/seo.mjs";
+import {
+  loadInstagramFeed,
+  normalizeHandle,
+} from "./src/server/instagramFeed.ts";
+import type { StoreOrder } from "./src/data/defaultContent.ts";
+import {
+  adjustProductStock,
+  listStoreProducts,
+  readSavedContent as readStoreContent,
+  readSavedOrders,
+  stockMap,
+  writeSavedOrders,
+} from "./src/server/storePersist.ts";
+import {
+  buildStoreOrder,
+  parseCreateOrder,
+  whatsappOrderUrl,
+} from "./src/utils/store.ts";
 
 const ADMIN_PASSWORD = process.env.VITE_ADMIN_PASSWORD || "jdj2026";
 
@@ -194,6 +212,153 @@ export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
   };
 }
 
+function localStoreApiPlugin(): Plugin {
+  return {
+    name: "jdj-store-api",
+    configureServer(server) {
+      const root = server.config.root;
+
+      server.middlewares.use((req, res, next) => {
+        const url = req.url?.split("?")[0] || "";
+        if (url !== "/api/store" && url !== "/api/orders" && url !== "/api/instagram") {
+          next();
+          return;
+        }
+
+        void (async () => {
+          if (url === "/api/instagram" && req.method === "GET") {
+            const requestUrl = new URL(req.url || "/", "http://localhost");
+            const handle = requestUrl.searchParams.get("handle") || "pjarqui_ss";
+            const saved = readStoreContent(root);
+            const fallback = Array.isArray(
+              (saved as { instagram?: { posts?: string[] } }).instagram?.posts,
+            )
+              ? (saved as { instagram?: { posts?: string[] } }).instagram!.posts!
+              : [];
+            const feed = await loadInstagramFeed(
+              normalizeHandle(handle),
+              fallback,
+            );
+            sendJson(res, 200, feed);
+            return;
+          }
+          if (url === "/api/store" && req.method === "GET") {
+            sendJson(res, 200, {
+              stock: stockMap(listStoreProducts(root)),
+            });
+            return;
+          }
+
+          if (url === "/api/orders" && req.method === "GET") {
+            if (!isAuthorized(req)) {
+              sendJson(res, 401, { error: "No autorizado" });
+              return;
+            }
+            sendJson(res, 200, {
+              orders: readSavedOrders(root).slice().reverse(),
+              persist: "file",
+            });
+            return;
+          }
+
+          if (url === "/api/orders" && req.method === "POST") {
+            const body = await readJsonBody(req);
+            const parsed = parseCreateOrder(body);
+            if ("error" in parsed) {
+              sendJson(res, 400, parsed);
+              return;
+            }
+            const products = listStoreProducts(root);
+            const product = products.find((item) => item.id === parsed.productId);
+            if (!product) {
+              sendJson(res, 404, { error: "Producto no encontrado." });
+              return;
+            }
+            const order = buildStoreOrder(parsed, product);
+            if ("error" in order) {
+              sendJson(res, 409, order);
+              return;
+            }
+            const stock = adjustProductStock(root, product.id, -order.quantity);
+            if ("error" in stock) {
+              sendJson(res, 409, stock);
+              return;
+            }
+            const orders = [...readSavedOrders(root), order];
+            writeSavedOrders(root, orders);
+            const store = readStoreContent(root).store;
+            sendJson(res, 201, {
+              ok: true,
+              order,
+              stock: stock.stock,
+              whatsappUrl: whatsappOrderUrl(
+                String(store?.whatsapp || ""),
+                order,
+              ),
+            });
+            return;
+          }
+
+          if (url === "/api/orders" && req.method === "PATCH") {
+            if (!isAuthorized(req)) {
+              sendJson(res, 401, { error: "No autorizado" });
+              return;
+            }
+            const body = await readJsonBody(req);
+            const id = String(body.id || "");
+            const status = String(body.status || "") as StoreOrder["status"];
+            if (!id || !["nuevo", "atendido", "cancelado"].includes(status)) {
+              sendJson(res, 400, { error: "Pedido o estado no válido." });
+              return;
+            }
+            const orders = readSavedOrders(root);
+            const index = orders.findIndex((item) => item.id === id);
+            if (index < 0) {
+              sendJson(res, 404, { error: "Pedido no encontrado." });
+              return;
+            }
+            const current = orders[index];
+            if (current.status !== status) {
+              if (status === "cancelado" && current.status !== "cancelado") {
+                const restored = adjustProductStock(
+                  root,
+                  current.productId,
+                  current.quantity,
+                );
+                if ("error" in restored) {
+                  sendJson(res, 409, restored);
+                  return;
+                }
+              }
+              if (current.status === "cancelado" && status !== "cancelado") {
+                const taken = adjustProductStock(
+                  root,
+                  current.productId,
+                  -current.quantity,
+                );
+                if ("error" in taken) {
+                  sendJson(res, 409, taken);
+                  return;
+                }
+              }
+            }
+            orders[index] = { ...current, status };
+            writeSavedOrders(root, orders);
+            sendJson(res, 200, { ok: true, order: orders[index] });
+            return;
+          }
+
+          sendJson(res, 405, { error: "Método no permitido" });
+        })().catch((error) => {
+          const message =
+            error instanceof Error ? error.message : "Error en la tienda";
+          sendJson(res, 500, { error: message });
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // loadEnv lee los archivos .env; process.env trae lo que define Vercel.
   const env: BuildEnv = {
@@ -202,6 +367,6 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-    plugins: [react(), localMediaPlugin(env)],
+    plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
   };
 });

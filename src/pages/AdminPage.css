@@ -567,6 +567,69 @@
   grid-column: 1 / -1;
 }
 
+.admin-product-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-product-preview img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.admin-order {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.95rem;
+  border-radius: 0.9rem;
+  background: #f6f8f7;
+  border: 1px solid rgba(28, 35, 44, 0.06);
+}
+
+.admin-order p {
+  color: var(--navy-soft);
+  font-size: 0.92rem;
+}
+
+.admin-order__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-order__date {
+  color: var(--muted) !important;
+  font-size: 0.82rem !important;
+}
+
+.admin-order__status {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(232, 145, 58, 0.16);
+  color: #a45f14;
+}
+
+.admin-order__status.is-atendido {
+  background: rgba(111, 134, 71, 0.18);
+  color: var(--green-deep);
+}
+
+.admin-order__status.is-cancelado {
+  background: rgba(28, 35, 44, 0.1);
+  color: var(--navy);
+}
+
 @media (max-width: 900px) {
   .admin {
     grid-template-columns: 1fr;

@@ -70,6 +70,14 @@ export const SAVED_CONTENT: SavedContent = {
     "directionsLabel": "Abrir en Google Maps",
     "wazeLabel": "Abrir en Waze"
   },
+  "instagram": {
+    "enabled": true,
+    "eyebrow": "Instagram",
+    "title": "Últimas publicaciones",
+    "lead": "Lo más reciente de Pastoral Juvenil Arquidiocesana.",
+    "handle": "pjarqui_ss",
+    "posts": []
+  },
   "meaning": {
     "eyebrow": "Identidad",
     "title": "Significado del logo",
@@ -243,6 +251,16 @@ export const SAVED_CONTENT: SavedContent = {
       }
     ]
   },
+  "store": {
+    "logoUrl": "",
+    "eyebrow": "Tienda JDJ",
+    "title": "Lleva el encuentro contigo",
+    "lead": "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
+    "whatsapp": "",
+    "paymentNote": "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
+    "ctaLabel": "Pedir por WhatsApp",
+    "products": []
+  },
   "header": {
     "ctaLabel": "Catequesis",
     "ctaHref": "/catequesis",
@@ -266,6 +284,11 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "nav-inscripcion",
         "href": "#inscripcion",
         "label": "Inscripción"
+      },
+      {
+        "id": "nav-tienda",
+        "href": "/tienda",
+        "label": "Tienda"
       },
       {
         "id": "nav-catequesis",
@@ -324,6 +347,11 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "nav-inscripcion",
         "href": "#inscripcion",
         "label": "Inscripción"
+      },
+      {
+        "id": "nav-tienda",
+        "href": "/tienda",
+        "label": "Tienda"
       },
       {
         "id": "nav-catequesis",

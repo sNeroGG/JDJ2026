@@ -1,0 +1,112 @@
+.instagram-feed {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.instagram-feed__intro {
+  display: grid;
+  justify-items: start;
+  gap: 0.45rem;
+}
+
+.instagram-feed__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--navy);
+  line-height: 1.15;
+}
+
+.instagram-feed__lead {
+  max-width: 46ch;
+  color: var(--muted);
+}
+
+.instagram-feed__handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.12);
+  color: var(--navy);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.instagram-feed__handle svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.instagram-feed__handle:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.instagram-feed__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.instagram-feed__card {
+  overflow: hidden;
+  min-height: 520px;
+  border-radius: calc(var(--radius) + 0.15rem);
+  border: 1px solid rgba(28, 35, 44, 0.1);
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(28, 35, 44, 0.06);
+}
+
+.instagram-feed__card iframe {
+  width: 100%;
+  height: 620px;
+  border: 0;
+  display: block;
+  background: #fafafa;
+}
+
+.instagram-feed__profile {
+  display: grid;
+  justify-items: center;
+  padding: 0.35rem 0 0.5rem;
+}
+
+.instagram-feed__profile blockquote {
+  margin: 0 auto;
+}
+
+.instagram-feed__fallback {
+  display: grid;
+  place-items: center;
+  min-height: 9rem;
+  border-radius: var(--radius);
+  border: 1.5px dashed rgba(28, 35, 44, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.instagram-feed__fallback a {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--teal);
+}
+
+@media (max-width: 980px) {
+  .instagram-feed__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .instagram-feed__card {
+    min-height: 0;
+  }
+
+  .instagram-feed__card iframe {
+    height: 680px;
+  }
+}
