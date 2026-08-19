@@ -10,6 +10,8 @@ import { useContent } from "../context/ContentContext";
 import {
   DEFAULT_CONTENT,
   type AccentTone,
+  type CatechesisDoc,
+  type PartnerLogo,
   type SiteContent,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
@@ -109,7 +111,7 @@ export function AdminPage() {
     const files = event.target.files;
     event.target.value = "";
     if (!files?.length) return;
-    const uploads = [];
+    const uploads: CatechesisDoc[] = [];
     for (const file of Array.from(files)) {
       const href = await uploadOrWarn(file);
       if (!href) continue;
@@ -135,7 +137,7 @@ export function AdminPage() {
     const files = event.target.files;
     event.target.value = "";
     if (!files?.length) return;
-    const uploads = [];
+    const uploads: PartnerLogo[] = [];
     for (const file of Array.from(files)) {
       const src = await uploadOrWarn(file);
       if (!src) continue;
