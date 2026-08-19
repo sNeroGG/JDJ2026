@@ -1,22 +1,14 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
 function adminPassword() {
   return process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || "jdj2026";
 }
 
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse,
-) {
-  if (request.method !== "POST") {
-    response.setHeader("Allow", "POST");
-    return response.status(405).end();
-  }
-
-  const password =
-    typeof request.body?.password === "string" ? request.body.password : "";
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => null)) as {
+    password?: string;
+  } | null;
+  const password = typeof body?.password === "string" ? body.password : "";
   if (password !== adminPassword()) {
-    return response.status(401).json({ ok: false });
+    return Response.json({ ok: false }, { status: 401 });
   }
-  return response.status(200).json({ ok: true });
+  return Response.json({ ok: true });
 }

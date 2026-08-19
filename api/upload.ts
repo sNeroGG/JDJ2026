@@ -1,5 +1,4 @@
 import { put } from "@vercel/blob";
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export const config = {
   api: {
@@ -21,35 +20,37 @@ function blobHelp(message: string) {
   return message;
 }
 
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse,
-) {
-  if (request.method !== "POST") {
-    response.setHeader("Allow", "POST");
-    return response.status(405).json({ error: "Método no permitido" });
-  }
+function json(data: unknown, status = 200) {
+  return Response.json(data, { status });
+}
 
-  const token = String(request.headers.authorization || "").replace(
+export async function POST(request: Request) {
+  const token = (request.headers.get("authorization") || "").replace(
     /^Bearer\s+/i,
     "",
   );
   if (!token || token !== adminPassword()) {
-    return response.status(401).json({
-      error: "No autorizado. Cierra sesión en /admin y vuelve a entrar.",
-    });
+    return json(
+      { error: "No autorizado. Cierra sesión en /admin y vuelve a entrar." },
+      401,
+    );
   }
 
-  const filename =
-    typeof request.body?.filename === "string" ? request.body.filename : "";
+  const body = (await request.json().catch(() => null)) as {
+    filename?: string;
+    contentType?: string;
+    data?: string;
+  } | null;
+
+  const filename = typeof body?.filename === "string" ? body.filename : "";
   const contentType =
-    typeof request.body?.contentType === "string"
-      ? request.body.contentType
+    typeof body?.contentType === "string"
+      ? body.contentType
       : "application/octet-stream";
-  const data = typeof request.body?.data === "string" ? request.body.data : "";
+  const data = typeof body?.data === "string" ? body.data : "";
 
   if (!filename || !data) {
-    return response.status(400).json({ error: "Archivo incompleto" });
+    return json({ error: "Archivo incompleto" }, 400);
   }
 
   try {
@@ -59,37 +60,10 @@ export default async function handler(
       addRandomSuffix: true,
       contentType,
     });
-    return response.status(200).json({ url: blob.url });
+    return json({ url: blob.url });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Error al subir a Blob";
-    return response.status(500).json({ error: blobHelp(message) });
-  }
-}
-
-  const filename =
-    typeof request.body?.filename === "string" ? request.body.filename : "";
-  const contentType =
-    typeof request.body?.contentType === "string"
-      ? request.body.contentType
-      : "application/octet-stream";
-  const data = typeof request.body?.data === "string" ? request.body.data : "";
-
-  if (!filename || !data) {
-    return response.status(400).json({ error: "Archivo incompleto" });
-  }
-
-  try {
-    const buffer = Buffer.from(data, "base64");
-    const blob = await put(`jdj/${Date.now()}-${filename}`, buffer, {
-      access: "public",
-      addRandomSuffix: true,
-      contentType,
-    });
-    return response.status(200).json({ url: blob.url });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Error al subir a Blob";
-    return response.status(500).json({ error: message });
+    return json({ error: blobHelp(message) }, 500);
   }
 }
