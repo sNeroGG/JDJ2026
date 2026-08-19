@@ -120,9 +120,14 @@
   max-width: 760px;
 }
 
-.hero__logo {
+.hero__logo,
+.hero__logo-slot {
   width: min(86vw, 540px);
   height: auto;
+  aspect-ratio: 720 / 420;
+}
+
+.hero__logo {
   opacity: 1;
   animation: none;
   filter: drop-shadow(0 18px 40px rgba(28, 35, 44, 0.12));

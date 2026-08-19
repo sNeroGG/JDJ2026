@@ -17,6 +17,7 @@ import {
 
 type ContentContextValue = {
   content: SiteContent;
+  contentReady: boolean;
   setContent: (next: SiteContent) => void;
   updateContent: (updater: (prev: SiteContent) => SiteContent) => void;
   saveContent: (next?: SiteContent) => Promise<void>;
@@ -145,7 +146,10 @@ function authHeader() {
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContentState] = useState<SiteContent>(DEFAULT_CONTENT);
+  const [content, setContentState] = useState<SiteContent>(loadContent);
+  const [contentReady, setContentReady] = useState(
+    () => loadContent().logoUrl !== DEFAULT_CONTENT.logoUrl,
+  );
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuth());
 
   useEffect(() => {
@@ -153,18 +157,20 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
     async function hydrate() {
       try {
-        const remote = await fetch("/api/content");
+        const remote = await fetch("/api/content", { cache: "no-store" });
         if (remote.ok) {
           const data = mergeContent(
             (await remote.json()) as Partial<SiteContent>,
           );
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           if (!cancelled) setContentState(data);
           return;
         }
       } catch {
         // local / sin Blob
+      } finally {
+        if (!cancelled) setContentReady(true);
       }
-      if (!cancelled) setContentState(loadContent());
     }
 
     void hydrate();
@@ -267,6 +273,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       content,
+      contentReady,
       setContent,
       updateContent,
       saveContent,
@@ -277,6 +284,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     }),
     [
       content,
+      contentReady,
       setContent,
       updateContent,
       saveContent,
