@@ -56,11 +56,13 @@ export async function POST(request: Request) {
   try {
     const buffer = Buffer.from(data, "base64");
     const blob = await put(`jdj/${Date.now()}-${filename}`, buffer, {
-      access: "public",
+      access: "private",
       addRandomSuffix: true,
       contentType,
     });
-    return json({ url: blob.url });
+    return json({
+      url: `/api/file?pathname=${encodeURIComponent(blob.pathname)}`,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Error al subir a Blob";

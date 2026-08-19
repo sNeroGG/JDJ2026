@@ -1,4 +1,4 @@
-import { list, put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 const CONTENT_KEY = "jdj2026/content.json";
 
@@ -22,15 +22,16 @@ function json(data: unknown, status = 200) {
 }
 
 export async function GET() {
-  const { blobs } = await list({ prefix: CONTENT_KEY, limit: 1 });
-  if (!blobs[0]) {
+  try {
+    const result = await get(CONTENT_KEY, { access: "private" });
+    if (result.statusCode !== 200 || !result.stream) {
+      return json({ error: "empty" }, 404);
+    }
+    const text = await new Response(result.stream).text();
+    return json(JSON.parse(text) as unknown);
+  } catch {
     return json({ error: "empty" }, 404);
   }
-  const remote = await fetch(blobs[0].url);
-  if (!remote.ok) {
-    return json({ error: "empty" }, 404);
-  }
-  return json(await remote.json());
 }
 
 export async function PUT(request: Request) {
@@ -39,7 +40,7 @@ export async function PUT(request: Request) {
   }
   const body = await request.json().catch(() => ({}));
   await put(CONTENT_KEY, JSON.stringify(body ?? {}), {
-    access: "public",
+    access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
