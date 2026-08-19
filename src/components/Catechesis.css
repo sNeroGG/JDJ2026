@@ -1,0 +1,139 @@
+.catechesis {
+  background:
+    linear-gradient(180deg, #e8f0e4 0%, #f4f7f1 42%, #fff 100%);
+}
+
+.catechesis__intro {
+  margin-bottom: clamp(2rem, 5vw, 3.25rem);
+}
+
+.catechesis__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.catechesis__card,
+.catechesis__empty {
+  padding: clamp(1.35rem, 3vw, 1.85rem);
+  border-radius: calc(var(--radius) + 0.15rem);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.7));
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 16px 40px rgba(28, 35, 44, 0.04);
+}
+
+.catechesis__kind,
+.catechesis__empty span {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.7rem;
+}
+
+.catechesis__card h3,
+.catechesis__empty h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  margin-bottom: 0.5rem;
+}
+
+.catechesis__card p,
+.catechesis__empty p {
+  color: var(--muted);
+  max-width: 42ch;
+}
+
+.catechesis__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--teal);
+}
+
+.catechesis__link:hover {
+  color: var(--green-deep);
+}
+
+.catechesis__soon {
+  display: inline-block;
+  margin-top: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.catechesis__empty {
+  text-align: left;
+  max-width: 52ch;
+}
+
+.catechesis__teaser {
+  max-width: 52ch;
+  padding: clamp(1.35rem, 3vw, 1.85rem);
+  border-radius: calc(var(--radius) + 0.15rem);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.7));
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 16px 40px rgba(28, 35, 44, 0.04);
+}
+
+.catechesis__teaser span {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.7rem;
+}
+
+.catechesis__teaser h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  margin-bottom: 0.5rem;
+}
+
+.catechesis__teaser p {
+  color: var(--muted);
+}
+
+.catechesis__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.15rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.catechesis__cta:hover {
+  background: var(--green-deep);
+}
+
+@media (max-width: 760px) {
+  .catechesis__grid {
+    grid-template-columns: 1fr;
+  }
+}

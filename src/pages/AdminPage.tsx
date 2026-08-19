@@ -12,7 +12,8 @@ import {
   type AccentTone,
   type SiteContent,
 } from "../data/defaultContent";
-import { createId, downloadJson, readFileAsDataUrl } from "../utils/files";
+import { createId, downloadJson } from "../utils/files";
+import { uploadMedia } from "../utils/media";
 import "./AdminPage.css";
 
 const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
@@ -33,14 +34,13 @@ export function AdminPage() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [section, setSection] = useState("variables");
   const [logoNotice, setLogoNotice] = useState("");
-  const [logoFileName, setLogoFileName] = useState<string | null>(null);
-  const [logoDragging, setLogoDragging] = useState(false);
 
   useEffect(() => {
     setDraft(content);
   }, [content]);
 
   const partnerCount = draft.partners.logos.length;
+  const docCount = draft.catechesis.docs.length;
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(content),
     [draft, content],
@@ -54,61 +54,98 @@ export function AdminPage() {
       { id: "location", label: "Sede" },
       { id: "meaning", label: "Significado" },
       { id: "event", label: "Evento" },
+      { id: "catechesis", label: `Catequesis (${docCount})` },
       { id: "partners", label: `Logos (${partnerCount})` },
-      { id: "footer", label: "Footer / Redes" },
+      { id: "footer", label: "Menú / Footer" },
     ],
-    [partnerCount],
+    [partnerCount, docCount],
   );
 
-  function handleLogin(event: FormEvent) {
+  async function handleLogin(event: FormEvent) {
     event.preventDefault();
-    const ok = login(password);
+    const ok = await login(password);
     setError(ok ? "" : "Contraseña incorrecta");
     if (ok) setPassword("");
   }
 
-  function persist(next: SiteContent = draft) {
+  async function persist(next: SiteContent = draft) {
     setContent(next);
-    saveContent(next);
-    setSavedAt(new Date().toLocaleTimeString("es-SV"));
+    try {
+      await saveContent(next);
+      setSavedAt(new Date().toLocaleTimeString("es-SV"));
+    } catch (error) {
+      setLogoNotice(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar en Vercel.",
+      );
+    }
   }
 
-  async function applyMainLogoFile(file: File) {
-    const isImage =
-      file.type.startsWith("image/") ||
-      /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
-    if (!isImage) {
-      setLogoNotice("El archivo debe ser una imagen (PNG recomendado).");
-      return;
+  async function uploadOrWarn(file: File) {
+    try {
+      setLogoNotice(`Subiendo ${file.name}…`);
+      const url = await uploadMedia(file);
+      setLogoNotice(`${file.name} se subió. Guarda los cambios.`);
+      return url;
+    } catch {
+      setLogoNotice(
+        "No se pudo subir. En Vercel conecta un Blob Store. En local usa una ruta de public/.",
+      );
+      return null;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setLogoNotice("El archivo supera 4 MB. Usa un PNG más liviano.");
-      return;
-    }
-
-    const src = await readFileAsDataUrl(file);
-    setDraft((prev) => ({ ...prev, logoUrl: src }));
-    setLogoFileName(file.name);
-    setLogoNotice(`Logo listo: ${file.name}. Guárdalo para verlo en la landing.`);
   }
 
   async function onMainLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
-    await applyMainLogoFile(file);
     event.target.value = "";
+    if (!file) return;
+    const url = await uploadOrWarn(file);
+    if (!url) return;
+    setDraft((prev) => ({ ...prev, logoUrl: url }));
+  }
+
+  async function onCatechesisUpload(event: ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
+    event.target.value = "";
+    if (!files?.length) return;
+    const uploads = [];
+    for (const file of Array.from(files)) {
+      const href = await uploadOrWarn(file);
+      if (!href) continue;
+      uploads.push({
+        id: createId("doc"),
+        title: file.name.replace(/\.[^.]+$/, ""),
+        description: "",
+        fileName: file.name,
+        href,
+      });
+    }
+    if (!uploads.length) return;
+    setDraft((prev) => ({
+      ...prev,
+      catechesis: {
+        ...prev.catechesis,
+        docs: [...prev.catechesis.docs, ...uploads],
+      },
+    }));
   }
 
   async function onPartnerUpload(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files;
+    event.target.value = "";
     if (!files?.length) return;
-    const uploads = await Promise.all(
-      Array.from(files).map(async (file) => ({
+    const uploads = [];
+    for (const file of Array.from(files)) {
+      const src = await uploadOrWarn(file);
+      if (!src) continue;
+      uploads.push({
         id: createId("logo"),
         name: file.name.replace(/\.[^.]+$/, ""),
-        src: await readFileAsDataUrl(file),
-      })),
-    );
+        src,
+      });
+    }
+    if (!uploads.length) return;
     setDraft((prev) => ({
       ...prev,
       partners: {
@@ -116,7 +153,6 @@ export function AdminPage() {
         logos: [...prev.partners.logos, ...uploads],
       },
     }));
-    event.target.value = "";
   }
 
   if (!isAuthenticated) {
@@ -125,7 +161,10 @@ export function AdminPage() {
         <form className="admin-login__card" onSubmit={handleLogin}>
           <p className="admin-login__eyebrow">JDJ 2026</p>
           <h1>Panel de administración</h1>
-          <p>Edita textos, logo y logos institucionales de la landing.</p>
+          <p>
+            En Vercel puedes subir logos y documentos. Se guardan en Blob y se
+            ven en el sitio.
+          </p>
           <label>
             Contraseña
             <input
@@ -176,8 +215,7 @@ export function AdminPage() {
           <div>
             <h1>Contenido de la landing</h1>
             <p>
-              Todas estas variables alimentan la landing. Guarda para aplicarlas
-              en este navegador.
+              Guarda para publicar en Vercel (Blob) y en este navegador.
             </p>
           </div>
           <div className="admin__actions">
@@ -191,7 +229,6 @@ export function AdminPage() {
               onClick={() => {
                 setDraft(content);
                 setLogoNotice("");
-                setLogoFileName(null);
               }}
             >
               Descartar
@@ -201,7 +238,7 @@ export function AdminPage() {
               className="btn btn--ghost"
               onClick={() => {
                 if (confirm("¿Restablecer todo al contenido original?")) {
-                  resetContent();
+                  void resetContent();
                   setDraft(DEFAULT_CONTENT);
                   setSavedAt(new Date().toLocaleTimeString("es-SV"));
                 }
@@ -401,44 +438,30 @@ export function AdminPage() {
 
         {section === "logo" && (
           <section className="admin-panel">
-            <h2>Logo principal (PNG)</h2>
+            <h2>Logo principal</h2>
             <p className="admin-panel__hint">
-              Sube el PNG del logo. Se usa en hero, significado y footer.
+              En Vercel puedes subir el PNG aquí. En local también puedes usar
+              una ruta de <code>public/images/</code>.
             </p>
             <div className="admin-logo-preview">
               <img src={draft.logoUrl} alt="Vista previa del logo" />
             </div>
-            <label
-              className={`logo-dropzone ${logoDragging ? "is-dragging" : ""}`}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setLogoDragging(true);
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                setLogoDragging(false);
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                setLogoDragging(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) await applyMainLogoFile(file);
-              }}
-            >
-              <strong>Arrastra tu logo PNG aquí</strong>
-              <span>o haz clic para seleccionar el archivo</span>
-              {logoFileName ? (
-                <em className="logo-dropzone__file">{logoFileName}</em>
-              ) : (
-                <em className="logo-dropzone__file">
-                  PNG, JPG o WebP · máx. 4 MB
-                </em>
-              )}
+            <label className="file-field">
+              Subir logo
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                 onChange={onMainLogoChange}
+              />
+            </label>
+            <label>
+              Ruta o URL del logo
+              <input
+                value={draft.logoUrl}
+                onChange={(e) =>
+                  setDraft({ ...draft, logoUrl: e.target.value })
+                }
+                placeholder="/images/logo-principal.png"
               />
             </label>
             {logoNotice ? <p className="admin-notice">{logoNotice}</p> : null}
@@ -448,7 +471,7 @@ export function AdminPage() {
                 className="btn btn--primary"
                 onClick={() => {
                   persist();
-                  setLogoNotice("Logo guardado. Ya se refleja en la landing.");
+                  setLogoNotice("Ruta del logo guardada.");
                 }}
               >
                 Guardar logo
@@ -458,11 +481,10 @@ export function AdminPage() {
                 className="btn btn--ghost"
                 onClick={() => {
                   setDraft({ ...draft, logoUrl: DEFAULT_CONTENT.logoUrl });
-                  setLogoFileName(null);
-                  setLogoNotice("Se restauró el logo oficial del sitio.");
+                  setLogoNotice("Se restauró /images/logo-principal.png");
                 }}
               >
-                Usar logo oficial del sitio
+                Usar logo oficial
               </button>
             </div>
           </section>
@@ -522,6 +544,55 @@ export function AdminPage() {
                 />
               </label>
             </div>
+            <h3>Datos puntuales</h3>
+            {draft.hero.highlights.map((item, index) => (
+              <div className="admin-card" key={item.id}>
+                <div className="admin-grid">
+                  <label>
+                    Etiqueta
+                    <input
+                      value={item.label}
+                      onChange={(e) => {
+                        const highlights = [...draft.hero.highlights];
+                        highlights[index] = { ...item, label: e.target.value };
+                        setDraft({
+                          ...draft,
+                          hero: { ...draft.hero, highlights },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Dato
+                    <input
+                      value={item.value}
+                      onChange={(e) => {
+                        const highlights = [...draft.hero.highlights];
+                        highlights[index] = { ...item, value: e.target.value };
+                        setDraft({
+                          ...draft,
+                          hero: { ...draft.hero, highlights },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Enlace
+                    <input
+                      value={item.href}
+                      onChange={(e) => {
+                        const highlights = [...draft.hero.highlights];
+                        highlights[index] = { ...item, href: e.target.value };
+                        setDraft({
+                          ...draft,
+                          hero: { ...draft.hero, highlights },
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
           </section>
         )}
 
@@ -887,6 +958,216 @@ export function AdminPage() {
           </section>
         )}
 
+        {section === "catechesis" && (
+          <section className="admin-panel">
+            <h2>Catequesis / documentos</h2>
+            <p className="admin-panel__hint">
+              En Vercel sube el PDF aquí. También puedes pegar una ruta de{" "}
+              <code>public/docs/</code> o un enlace de Drive.
+            </p>
+            <div className="admin-grid">
+              <label>
+                Etiqueta superior
+                <input
+                  value={draft.catechesis.eyebrow}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      catechesis: {
+                        ...draft.catechesis,
+                        eyebrow: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Título
+                <input
+                  value={draft.catechesis.title}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      catechesis: {
+                        ...draft.catechesis,
+                        title: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <label>
+              Texto introductorio
+              <textarea
+                rows={2}
+                value={draft.catechesis.lead}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    catechesis: { ...draft.catechesis, lead: e.target.value },
+                  })
+                }
+              />
+            </label>
+            <div className="admin-grid">
+              <label>
+                Título vacío
+                <input
+                  value={draft.catechesis.emptyTitle}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      catechesis: {
+                        ...draft.catechesis,
+                        emptyTitle: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Texto vacío
+                <input
+                  value={draft.catechesis.emptyText}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      catechesis: {
+                        ...draft.catechesis,
+                        emptyText: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <label className="file-field">
+              Subir documentos
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf"
+                multiple
+                onChange={onCatechesisUpload}
+              />
+            </label>
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    catechesis: {
+                      ...draft.catechesis,
+                      docs: [
+                        ...draft.catechesis.docs,
+                        {
+                          id: createId("doc"),
+                          title: "Nueva catequesis",
+                          description: "",
+                          fileName: "",
+                          href: "/docs/",
+                        },
+                      ],
+                    },
+                  })
+                }
+              >
+                Agregar documento
+              </button>
+            </div>
+            {draft.catechesis.docs.length === 0 ? (
+              <p className="admin-empty">
+                Aún no hay documentos. Agrega una ruta de <code>public/docs</code>{" "}
+                o un enlace.
+              </p>
+            ) : (
+              draft.catechesis.docs.map((doc, index) => (
+                <div className="admin-card" key={doc.id}>
+                  <div className="admin-grid">
+                    <label>
+                      Título
+                      <input
+                        value={doc.title}
+                        onChange={(e) => {
+                          const docs = [...draft.catechesis.docs];
+                          docs[index] = { ...doc, title: e.target.value };
+                          setDraft({
+                            ...draft,
+                            catechesis: { ...draft.catechesis, docs },
+                          });
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Nombre de archivo
+                      <input
+                        value={doc.fileName}
+                        onChange={(e) => {
+                          const docs = [...draft.catechesis.docs];
+                          docs[index] = { ...doc, fileName: e.target.value };
+                          setDraft({
+                            ...draft,
+                            catechesis: { ...draft.catechesis, docs },
+                          });
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Descripción
+                    <textarea
+                      rows={2}
+                      value={doc.description}
+                      onChange={(e) => {
+                        const docs = [...draft.catechesis.docs];
+                        docs[index] = { ...doc, description: e.target.value };
+                        setDraft({
+                          ...draft,
+                          catechesis: { ...draft.catechesis, docs },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Enlace o archivo
+                    <input
+                      value={doc.href}
+                      onChange={(e) => {
+                        const docs = [...draft.catechesis.docs];
+                        docs[index] = { ...doc, href: e.target.value };
+                        setDraft({
+                          ...draft,
+                          catechesis: { ...draft.catechesis, docs },
+                        });
+                      }}
+                      placeholder="/docs/catequesis-1.pdf"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        catechesis: {
+                          ...draft.catechesis,
+                          docs: draft.catechesis.docs.filter(
+                            (item) => item.id !== doc.id,
+                          ),
+                        },
+                      })
+                    }
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))
+            )}
+          </section>
+        )}
+
         {section === "partners" && (
           <section className="admin-panel">
             <h2>Logos institucionales</h2>
@@ -941,8 +1222,12 @@ export function AdminPage() {
                 }
               />
             </label>
+            <p className="admin-panel__hint">
+              En Vercel sube los logos aquí. También puedes pegar una ruta de{" "}
+              <code>public/images/</code>.
+            </p>
             <label className="file-field">
-              Agregar logos (puedes seleccionar varios)
+              Subir logos
               <input
                 type="file"
                 accept="image/*"
@@ -950,10 +1235,34 @@ export function AdminPage() {
                 onChange={onPartnerUpload}
               />
             </label>
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    partners: {
+                      ...draft.partners,
+                      logos: [
+                        ...draft.partners.logos,
+                        {
+                          id: createId("logo"),
+                          name: "Logo institucional",
+                          src: "/images/",
+                        },
+                      ],
+                    },
+                  })
+                }
+              >
+                Agregar logo
+              </button>
+            </div>
             <div className="admin-logos">
               {draft.partners.logos.length === 0 ? (
                 <p className="admin-empty">
-                  Aún no hay logos. Sube los de la Arquidiócesis aquí.
+                  Aún no hay logos. Agrega rutas de <code>public/images</code>.
                 </p>
               ) : (
                 draft.partners.logos.map((logo, index) => (
@@ -971,6 +1280,21 @@ export function AdminPage() {
                             partners: { ...draft.partners, logos },
                           });
                         }}
+                      />
+                    </label>
+                    <label>
+                      Ruta o URL
+                      <input
+                        value={logo.src}
+                        onChange={(e) => {
+                          const logos = [...draft.partners.logos];
+                          logos[index] = { ...logo, src: e.target.value };
+                          setDraft({
+                            ...draft,
+                            partners: { ...draft.partners, logos },
+                          });
+                        }}
+                        placeholder="/images/logo.png"
                       />
                     </label>
                     <button
@@ -1074,6 +1398,68 @@ export function AdminPage() {
                 />
               </label>
             </div>
+
+            <h3>Menú del navbar</h3>
+            <div className="admin-grid">
+              <label>
+                Botón del navbar
+                <input
+                  value={draft.header.ctaLabel}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      header: { ...draft.header, ctaLabel: e.target.value },
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Enlace del botón
+                <input
+                  value={draft.header.ctaHref}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      header: { ...draft.header, ctaHref: e.target.value },
+                    })
+                  }
+                />
+              </label>
+            </div>
+            {draft.header.nav.map((item, index) => (
+              <div className="admin-card" key={item.id}>
+                <div className="admin-grid">
+                  <label>
+                    Etiqueta
+                    <input
+                      value={item.label}
+                      onChange={(e) => {
+                        const nav = [...draft.header.nav];
+                        nav[index] = { ...item, label: e.target.value };
+                        setDraft({
+                          ...draft,
+                          header: { ...draft.header, nav },
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Enlace
+                    <input
+                      value={item.href}
+                      onChange={(e) => {
+                        const nav = [...draft.header.nav];
+                        nav[index] = { ...item, href: e.target.value };
+                        setDraft({
+                          ...draft,
+                          header: { ...draft.header, nav },
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
 
             <h3>Menú del footer</h3>
             {draft.footer.nav.map((item, index) => (

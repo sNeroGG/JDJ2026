@@ -45,9 +45,14 @@
   gap: 1rem;
 }
 
-.meaning__tabs {
+.meaning__accordion {
   display: grid;
   gap: 0.65rem;
+}
+
+.meaning__item {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .meaning__tab {
@@ -102,23 +107,22 @@
   color: var(--navy);
 }
 
-.meaning__detail {
-  padding: 1.4rem 1.35rem;
-  border-radius: 1.15rem;
-  background: var(--navy);
-  color: #e8eef1;
-  min-height: 9.5rem;
-  animation: detail-in 0.35s ease;
+.meaning__item.is-open .meaning__tab {
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
 }
 
-.meaning__detail h3 {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  margin-bottom: 0.55rem;
+.meaning__detail {
+  padding: 1.05rem 1.15rem 1.15rem;
+  border-radius: 1rem;
+  background: var(--navy);
+  color: #e8eef1;
+  min-height: 0;
+  animation: detail-in 0.28s ease;
 }
 
 .meaning__detail p {
-  color: rgba(232, 238, 241, 0.86);
+  color: rgba(232, 238, 241, 0.9);
   max-width: 48ch;
 }
 

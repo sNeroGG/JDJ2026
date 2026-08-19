@@ -2,12 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import {
   AUTH_KEY,
+  AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
   STORAGE_KEY,
   type SiteContent,
@@ -17,22 +19,45 @@ type ContentContextValue = {
   content: SiteContent;
   setContent: (next: SiteContent) => void;
   updateContent: (updater: (prev: SiteContent) => SiteContent) => void;
-  saveContent: (next?: SiteContent) => void;
-  resetContent: () => void;
+  saveContent: (next?: SiteContent) => Promise<void>;
+  resetContent: () => Promise<void>;
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
+  login: (password: string) => Promise<boolean>;
   logout: () => void;
 };
 
 const ContentContext = createContext<ContentContextValue | null>(null);
 
+function catechesisPath(href: string) {
+  return href === "#catequesis" ? "/catequesis" : href;
+}
+
+function withCatechesisRoute<T extends { href: string }>(items: T[]) {
+  return items.map((item) => ({ ...item, href: catechesisPath(item.href) }));
+}
+
+function isHostedUrl(value: string) {
+  return Boolean(value) && !value.startsWith("data:");
+}
+
 function mergeContent(parsed: Partial<SiteContent>): SiteContent {
   return {
     ...DEFAULT_CONTENT,
     ...parsed,
-    logoUrl: parsed.logoUrl || DEFAULT_CONTENT.logoUrl,
+    logoUrl:
+      parsed.logoUrl && isHostedUrl(parsed.logoUrl)
+        ? parsed.logoUrl
+        : DEFAULT_CONTENT.logoUrl,
     site: { ...DEFAULT_CONTENT.site, ...parsed.site },
-    hero: { ...DEFAULT_CONTENT.hero, ...parsed.hero },
+    hero: {
+      ...DEFAULT_CONTENT.hero,
+      ...parsed.hero,
+      highlights: withCatechesisRoute(
+        parsed.hero?.highlights?.length
+          ? parsed.hero.highlights
+          : DEFAULT_CONTENT.hero.highlights,
+      ),
+    },
     location: {
       ...DEFAULT_CONTENT.location,
       ...parsed.location,
@@ -57,14 +82,38 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
     partners: {
       ...DEFAULT_CONTENT.partners,
       ...parsed.partners,
-      logos: parsed.partners?.logos ?? DEFAULT_CONTENT.partners.logos,
+      logos: (parsed.partners?.logos ?? DEFAULT_CONTENT.partners.logos).filter(
+        (logo) => isHostedUrl(logo.src),
+      ),
+    },
+    header: {
+      ...DEFAULT_CONTENT.header,
+      ...parsed.header,
+      ctaHref: catechesisPath(
+        parsed.header?.ctaHref ?? DEFAULT_CONTENT.header.ctaHref,
+      ),
+      nav: withCatechesisRoute(
+        parsed.header?.nav?.length &&
+          !parsed.header.nav.some((item) => item.id === "nav-inicio")
+          ? parsed.header.nav
+          : DEFAULT_CONTENT.header.nav,
+      ),
+    },
+    catechesis: {
+      ...DEFAULT_CONTENT.catechesis,
+      ...parsed.catechesis,
+      docs: (parsed.catechesis?.docs ?? DEFAULT_CONTENT.catechesis.docs).filter(
+        (doc) => !doc.href || isHostedUrl(doc.href),
+      ),
     },
     footer: {
       ...DEFAULT_CONTENT.footer,
       ...parsed.footer,
-      nav: parsed.footer?.nav?.length
-        ? parsed.footer.nav
-        : DEFAULT_CONTENT.footer.nav,
+      nav: withCatechesisRoute(
+        parsed.footer?.nav?.length
+          ? parsed.footer.nav
+          : DEFAULT_CONTENT.footer.nav,
+      ),
       social: parsed.footer?.social?.length
         ? parsed.footer.social
         : DEFAULT_CONTENT.footer.social,
@@ -90,9 +139,39 @@ function getAdminPassword() {
   return import.meta.env.VITE_ADMIN_PASSWORD || "jdj2026";
 }
 
+function authHeader() {
+  const password = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+  return { Authorization: `Bearer ${password}` };
+}
+
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContentState] = useState<SiteContent>(() => loadContent());
+  const [content, setContentState] = useState<SiteContent>(DEFAULT_CONTENT);
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuth());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrate() {
+      try {
+        const remote = await fetch("/api/content");
+        if (remote.ok) {
+          const data = mergeContent(
+            (await remote.json()) as Partial<SiteContent>,
+          );
+          if (!cancelled) setContentState(data);
+          return;
+        }
+      } catch {
+        // local / sin Blob
+      }
+      if (!cancelled) setContentState(loadContent());
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setContent = useCallback((next: SiteContent) => {
     setContentState(next);
@@ -105,23 +184,75 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const saveContent = useCallback((next?: SiteContent) => {
-    setContentState((prev) => {
-      const value = next ?? prev;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-      return value;
-    });
-  }, []);
+  const saveContent = useCallback(async (next?: SiteContent) => {
+    const value = next ?? content;
+    setContentState(value);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    try {
+      const remote = await fetch("/api/content", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(),
+        },
+        body: JSON.stringify(value),
+      });
+      if (!remote.ok && remote.status !== 404) {
+        const payload = (await remote.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (remote.status === 401) {
+          throw new Error("No autorizado para guardar en Vercel.");
+        }
+        if (payload?.error && remote.status >= 500) {
+          throw new Error(
+            "No se pudo guardar en Vercel Blob. Revisa el Blob Store.",
+          );
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("No ")) {
+        throw error;
+      }
+    }
+  }, [content]);
 
-  const resetContent = useCallback(() => {
+  const resetContent = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY);
     setContentState(DEFAULT_CONTENT);
+    try {
+      await fetch("/api/content", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(),
+        },
+        body: JSON.stringify(DEFAULT_CONTENT),
+      });
+    } catch {
+      // local
+    }
   }, []);
 
-  const login = useCallback((password: string) => {
-    const ok = password === getAdminPassword();
+  const login = useCallback(async (password: string) => {
+    let ok = password === getAdminPassword();
+    try {
+      const remote = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (remote.ok && remote.headers.get("content-type")?.includes("json")) {
+        ok = true;
+      } else if (remote.status === 401) {
+        ok = false;
+      }
+    } catch {
+      // sin API (local)
+    }
     if (ok) {
       sessionStorage.setItem(AUTH_KEY, "1");
+      sessionStorage.setItem(AUTH_SECRET_KEY, password);
       setIsAuthenticated(true);
     }
     return ok;
@@ -129,6 +260,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(AUTH_SECRET_KEY);
     setIsAuthenticated(false);
   }, []);
 

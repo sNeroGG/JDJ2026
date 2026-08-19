@@ -10,15 +10,12 @@ export function Meaning() {
   const [active, setActive] = useState(meaning.elements[0]?.id ?? "");
 
   useEffect(() => {
-    if (!meaning.elements.some((item) => item.id === active)) {
+    if (active && !meaning.elements.some((item) => item.id === active)) {
       setActive(meaning.elements[0]?.id ?? "");
     }
   }, [meaning.elements, active]);
 
-  const current =
-    meaning.elements.find((item) => item.id === active) ?? meaning.elements[0];
-
-  if (!current) return null;
+  if (!meaning.elements.length) return null;
 
   return (
     <section className="section meaning" id="significado" ref={ref}>
@@ -36,36 +33,38 @@ export function Meaning() {
           </div>
 
           <div className="meaning__explorer reveal reveal-delay-2">
-            <div
-              className="meaning__tabs"
-              role="tablist"
-              aria-label="Elementos del logo"
-            >
-              {meaning.elements.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active === item.id}
-                  className={`meaning__tab meaning__tab--${item.accent} ${
-                    active === item.id ? "is-active" : ""
-                  }`}
-                  onClick={() => setActive(item.id)}
-                >
-                  <span>{item.title}</span>
-                  <small>{item.summary}</small>
-                </button>
-              ))}
+            <div className="meaning__accordion" aria-label="Elementos del logo">
+              {meaning.elements.map((item) => {
+                const isOpen = active === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    className={`meaning__item${isOpen ? " is-open" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={`meaning-panel-${item.id}`}
+                      className={`meaning__tab meaning__tab--${item.accent}${
+                        isOpen ? " is-active" : ""
+                      }`}
+                      onClick={() => setActive(isOpen ? "" : item.id)}
+                    >
+                      <span>{item.title}</span>
+                      <small>{item.summary}</small>
+                    </button>
+                    {isOpen ? (
+                      <article
+                        id={`meaning-panel-${item.id}`}
+                        className={`meaning__detail meaning__detail--${item.accent}`}
+                      >
+                        <p>{item.body}</p>
+                      </article>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
-
-            <article
-              key={current.id}
-              className={`meaning__detail meaning__detail--${current.accent}`}
-              role="tabpanel"
-            >
-              <h3>{current.title}</h3>
-              <p>{current.body}</p>
-            </article>
           </div>
         </div>
       </div>

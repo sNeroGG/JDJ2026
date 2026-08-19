@@ -21,6 +21,13 @@ export type LocationFact = {
   value: string;
 };
 
+export type HeroHighlight = {
+  id: string;
+  label: string;
+  value: string;
+  href: string;
+};
+
 export type SocialLink = {
   id: string;
   name: string;
@@ -32,6 +39,14 @@ export type PartnerLogo = {
   id: string;
   name: string;
   src: string;
+};
+
+export type CatechesisDoc = {
+  id: string;
+  title: string;
+  description: string;
+  fileName: string;
+  href: string;
 };
 
 export type NavLink = {
@@ -53,6 +68,7 @@ export type SiteContent = {
     tagline: string;
     ctaLabel: string;
     ctaHref: string;
+    highlights: HeroHighlight[];
   };
   location: {
     eyebrow: string;
@@ -84,6 +100,20 @@ export type SiteContent = {
     credit: string;
     logos: PartnerLogo[];
   };
+  header: {
+    ctaLabel: string;
+    ctaHref: string;
+    nav: NavLink[];
+  };
+  catechesis: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    emptyTitle: string;
+    emptyText: string;
+    ctaLabel: string;
+    docs: CatechesisDoc[];
+  };
   footer: {
     org: string;
     exploreLabel: string;
@@ -97,6 +127,7 @@ export type SiteContent = {
 
 export const STORAGE_KEY = "jdj2026-site-content";
 export const AUTH_KEY = "jdj2026-admin-auth";
+export const AUTH_SECRET_KEY = "jdj2026-admin-secret";
 
 export const DEFAULT_CONTENT: SiteContent = {
   logoUrl: "/images/logo-principal.png",
@@ -112,6 +143,21 @@ export const DEFAULT_CONTENT: SiteContent = {
     tagline: "Jornada Diocesana de la Juventud · Arquidiócesis de San Salvador",
     ctaLabel: "Descubrir el encuentro",
     ctaHref: "#donde",
+    highlights: [
+      { id: "sede", label: "Sede", value: "Jayaque", href: "#donde" },
+      {
+        id: "parroquia",
+        label: "Parroquia",
+        value: "San Cristóbal",
+        href: "#donde",
+      },
+      {
+        id: "preparacion",
+        label: "Prepárate",
+        value: "Catequesis",
+        href: "/catequesis",
+      },
+    ],
   },
   location: {
     eyebrow: "Sede 2026",
@@ -212,6 +258,25 @@ export const DEFAULT_CONTENT: SiteContent = {
     credit: "Arquidiócesis de San Salvador · El Salvador",
     logos: [],
   },
+  header: {
+    ctaLabel: "Catequesis",
+    ctaHref: "/catequesis",
+    nav: [
+      { id: "nav-sede", href: "#donde", label: "Sede" },
+      { id: "nav-evento", href: "#evento", label: "Evento" },
+      { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
+    ],
+  },
+  catechesis: {
+    eyebrow: "Preparación",
+    title: "Catequesis para el encuentro",
+    lead: "Aquí encontrarás los documentos para prepararte con tu parroquia, grupo o vicaría rumbo a la JDJ 2026.",
+    emptyTitle: "Los materiales se publicarán pronto",
+    emptyText:
+      "Estamos reuniendo las catequesis de preparación. Vuelve a esta página para descargar guías, fichas y recursos del camino hacia Jayaque.",
+    ctaLabel: "Ver documentos",
+    docs: [],
+  },
   footer: {
     org: "Pastoral Juvenil · Arquidiócesis de San Salvador",
     exploreLabel: "Explorar",
@@ -222,6 +287,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { id: "nav-sede", href: "#donde", label: "Sede" },
       { id: "nav-logo", href: "#significado", label: "Logo" },
       { id: "nav-evento", href: "#evento", label: "Evento" },
+      { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
       { id: "nav-logos", href: "#auspiciadores", label: "Logos" },
     ],
     social: [

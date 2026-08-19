@@ -1,0 +1,44 @@
+import { useEffect } from "react";
+import { DocumentList } from "../components/DocumentList";
+import { Footer } from "../components/Footer";
+import { Navbar } from "../components/Navbar";
+import { useContent } from "../context/ContentContext";
+import { useReveal } from "../hooks/useReveal";
+import "../components/Catechesis.css";
+import "./CatechesisPage.css";
+
+export function CatechesisPage() {
+  const ref = useReveal<HTMLElement>();
+  const { content } = useContent();
+  const { catechesis, site } = content;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = `${catechesis.title} · ${site.year}`;
+  }, [catechesis.title, site.year]);
+
+  return (
+    <div className="app">
+      <Navbar />
+      <main>
+        <section className="section catechesis catechesis-page" ref={ref}>
+          <div className="section__inner">
+            <div className="catechesis__intro reveal">
+              <p className="section__eyebrow">{catechesis.eyebrow}</p>
+              <h1 className="section__title">{catechesis.title}</h1>
+              <p className="section__lead">{catechesis.lead}</p>
+            </div>
+            <div className="reveal reveal-delay-1">
+              <DocumentList
+                docs={catechesis.docs}
+                emptyTitle={catechesis.emptyTitle}
+                emptyText={catechesis.emptyText}
+              />
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}

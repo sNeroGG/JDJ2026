@@ -1,0 +1,8 @@
+.catechesis-page {
+  padding-top: calc(var(--section-pad) + 2.5rem);
+  min-height: 70svh;
+}
+
+.catechesis-page .section__title {
+  max-width: 18ch;
+}

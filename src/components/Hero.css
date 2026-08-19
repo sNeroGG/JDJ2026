@@ -4,7 +4,7 @@
   place-items: center;
   position: relative;
   overflow: hidden;
-  padding: 2rem 1.25rem 4.5rem;
+  padding: 5rem 1.25rem 4.5rem;
   background:
     radial-gradient(ellipse 80% 48% at 50% -2%, rgba(245, 201, 106, 0.5), transparent 58%),
     radial-gradient(ellipse 90% 70% at 50% 100%, rgba(111, 134, 71, 0.24), transparent 55%),
@@ -121,10 +121,11 @@
 }
 
 .hero__logo {
-  width: min(92vw, 620px);
+  width: min(86vw, 540px);
   height: auto;
+  opacity: 1;
+  animation: none;
   filter: drop-shadow(0 18px 40px rgba(28, 35, 44, 0.12));
-  animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero__slogan {
@@ -150,8 +151,57 @@
   animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
 }
 
+.hero__highlights {
+  margin-top: 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  list-style: none;
+  animation: logo-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.hero__highlights a {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 8.5rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  backdrop-filter: blur(10px);
+  text-align: left;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.hero__highlights a:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(45, 128, 142, 0.28);
+}
+
+.hero__highlights span {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.hero__highlights strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+
 .hero__cta {
-  margin-top: 1.75rem;
+  margin-top: 1.35rem;
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
@@ -232,7 +282,7 @@
 
 @media (max-width: 640px) {
   .hero {
-    padding-bottom: 5.5rem;
+    padding: 4.5rem 1.1rem 4.75rem;
   }
 
   .hero__hills {
@@ -242,5 +292,74 @@
   .hero__beads {
     bottom: 9vh;
     width: min(82vw, 360px);
+  }
+
+  .hero__logo {
+    width: min(78vw, 420px);
+  }
+
+  .hero__slogan {
+    margin-top: 0.85rem;
+    font-size: 1.55rem;
+  }
+
+  .hero__tagline {
+    margin-top: 0.5rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    max-width: 28ch;
+  }
+
+  .hero__highlights {
+    margin-top: 0.95rem;
+    display: grid;
+    width: min(100%, 280px);
+    gap: 0;
+    overflow: hidden;
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(28, 35, 44, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .hero__highlights li + li {
+    border-top: 1px solid rgba(28, 35, 44, 0.08);
+  }
+
+  .hero__highlights a,
+  .hero__highlights a:hover,
+  .hero__highlights a:focus,
+  .hero__highlights a:focus-visible,
+  .hero__highlights a:active {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.48rem 0.8rem;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    text-align: left;
+    transform: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hero__highlights span {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+  }
+
+  .hero__highlights strong {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .hero__cta {
+    margin-top: 1rem;
+    padding: 0.7rem 1.1rem;
+    font-size: 0.85rem;
   }
 }

@@ -27,15 +27,15 @@
 
 .partners__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
   justify-items: center;
 }
 
 .partners__slot {
   width: 100%;
-  min-height: 120px;
+  min-height: 220px;
   display: grid;
   place-items: center;
   border-radius: 1.1rem;
@@ -46,7 +46,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 1rem;
+  padding: 1.5rem 1.25rem;
   transition:
     border-color 0.25s ease,
     background 0.25s ease;
@@ -59,7 +59,7 @@
 }
 
 .partners__slot img {
-  max-height: 88px;
+  max-height: 180px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
@@ -83,6 +83,15 @@
 @media (max-width: 900px) {
   .partners__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .partners__slot {
+    min-height: 140px;
+    padding: 1rem;
+  }
+
+  .partners__slot img {
+    max-height: 96px;
   }
 }
 

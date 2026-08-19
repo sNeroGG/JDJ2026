@@ -1,3 +1,4 @@
+import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
 import "./Footer.css";
 
@@ -9,11 +10,13 @@ export function Footer() {
     <footer className="footer" id="contacto">
       <div className="footer__inner">
         <div className="footer__brand">
-          <img
-            src={logoUrl}
-            alt={`${site.name} ${site.year}`}
-            className="footer__logo"
-          />
+          <SiteLink href="#inicio">
+            <img
+              src={logoUrl}
+              alt={`${site.name} ${site.year}`}
+              className="footer__logo"
+            />
+          </SiteLink>
           <p className="footer__slogan">{hero.slogan}</p>
           <p className="footer__org">{footer.org}</p>
         </div>
@@ -23,7 +26,7 @@ export function Footer() {
           <ul>
             {footer.nav.map((item) => (
               <li key={item.id}>
-                <a href={item.href}>{item.label}</a>
+                <SiteLink href={item.href}>{item.label}</SiteLink>
               </li>
             ))}
           </ul>
