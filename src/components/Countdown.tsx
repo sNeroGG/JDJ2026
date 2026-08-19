@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useContent } from "../context/ContentContext";
-import { formatEventDates, getCountdown, parseEventDate } from "../utils/dates";
+import {
+  endOfEventDay,
+  formatEventDate,
+  getCountdown,
+  parseEventDate,
+} from "../utils/dates";
 import "./Countdown.css";
 
 const UNITS = [
@@ -17,27 +22,22 @@ export function Countdown() {
     () => parseEventDate(schedule.startDate),
     [schedule.startDate],
   );
-  const end = useMemo(() => parseEventDate(schedule.endDate), [schedule.endDate]);
+  const dayEnd = useMemo(() => (start ? endOfEventDay(start) : null), [start]);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!start) return;
-    const closesAt = (end ?? start).getTime();
-    if (Date.now() > closesAt) return;
+    if (!start || !dayEnd) return;
+    if (Date.now() >= dayEnd.getTime()) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [start, end]);
+  }, [start, dayEnd]);
 
   if (!start) return null;
 
   const parts = getCountdown(start, now);
   const started = parts.total === 0;
-  const finished = now > (end ?? start).getTime();
-  const dateLabel = formatEventDates(
-    schedule.startDate,
-    schedule.endDate,
-    schedule.dateLabel,
-  );
+  const finished = Boolean(dayEnd && now >= dayEnd.getTime());
+  const dateLabel = formatEventDate(schedule.startDate, schedule.dateLabel);
 
   return (
     <section className="countdown" aria-label={schedule.countdownEyebrow}>

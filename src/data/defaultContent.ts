@@ -63,13 +63,6 @@ export type ScheduleItem = {
   text: string;
 };
 
-export type ScheduleDay = {
-  id: string;
-  label: string;
-  date: string;
-  items: ScheduleItem[];
-};
-
 export type RegistrationStatus = "soon" | "open" | "closed";
 
 export type RegistrationStep = {
@@ -145,13 +138,12 @@ export type SiteContent = {
     lead: string;
     /** Inicio del encuentro en hora de El Salvador, ej. 2026-08-15T08:00. Vacío oculta la cuenta regresiva. */
     startDate: string;
-    endDate: string;
     dateLabel: string;
     countdownEyebrow: string;
     countdownTitle: string;
     countdownLiveText: string;
     countdownDoneText: string;
-    days: ScheduleDay[];
+    items: ScheduleItem[];
   };
   registration: {
     eyebrow: string;
@@ -364,13 +356,12 @@ export const DEFAULT_CONTENT: SiteContent = {
     title: "El camino hacia el encuentro",
     lead: "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
     startDate: "",
-    endDate: "",
-    dateLabel: "Fechas por confirmar",
+    dateLabel: "Fecha por confirmar",
     countdownEyebrow: "Cuenta regresiva",
     countdownTitle: "Faltan",
     countdownLiveText: "¡Estamos viviendo la JDJ 2026!",
     countdownDoneText: "Gracias por caminar con nosotros en la JDJ 2026.",
-    days: [],
+    items: [],
   },
   registration: {
     eyebrow: "Inscripción",

@@ -30,14 +30,12 @@ function buildGraph(content: SiteContent, base: string) {
 
   const start = parseEventDate(schedule.startDate);
   if (start) {
-    const end = parseEventDate(schedule.endDate);
     graph.push({
       "@type": "Event",
       "@id": `${base}/#event`,
       name: eventName,
       description: site.metaDescription,
       startDate: start.toISOString(),
-      ...(end ? { endDate: end.toISOString() } : {}),
       eventStatus: "https://schema.org/EventScheduled",
       eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
       url: `${base}/`,

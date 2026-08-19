@@ -10,12 +10,6 @@ const dayFormatter = new Intl.DateTimeFormat("es-SV", {
   timeZone: SV_TIME_ZONE,
 });
 
-const shortDayFormatter = new Intl.DateTimeFormat("es-SV", {
-  day: "numeric",
-  month: "long",
-  timeZone: SV_TIME_ZONE,
-});
-
 const timeFormatter = new Intl.DateTimeFormat("es-SV", {
   hour: "numeric",
   minute: "2-digit",
@@ -55,36 +49,34 @@ export function getCountdown(target: Date, from: number = Date.now()) {
   } satisfies CountdownParts;
 }
 
-function sameDay(a: Date, b: Date) {
-  return dayFormatter.format(a) === dayFormatter.format(b);
-}
-
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** Texto legible de las fechas, con `fallback` cuando aún no hay fecha definida. */
-export function formatEventDates(
-  startDate: string,
-  endDate: string,
-  fallback: string,
-) {
+function calendarDayParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SV_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/** Inicio del día civil siguiente en El Salvador: el evento de un día ya cerró. */
+export function endOfEventDay(start: Date) {
+  const startOfDay = parseEventDate(calendarDayParts(start));
+  if (!startOfDay) return start;
+  return new Date(startOfDay.getTime() + 86400000);
+}
+
+/** Texto legible de la fecha de inicio, con `fallback` cuando aún no está definida. */
+export function formatEventDate(startDate: string, fallback: string) {
   const start = parseEventDate(startDate);
   if (!start) return fallback;
-  const end = parseEventDate(endDate);
-
-  if (!end || sameDay(start, end)) {
-    const day = capitalize(dayFormatter.format(start));
-    const hasTime = startDate.includes("T");
-    if (!hasTime) return day;
-    const time = end
-      ? `${timeFormatter.format(start)} – ${timeFormatter.format(end)}`
-      : timeFormatter.format(start);
-    return `${day} · ${time}`;
-  }
-
-  return `${capitalize(shortDayFormatter.format(start))} al ${shortDayFormatter.format(end)} de ${new Intl.DateTimeFormat(
-    "es-SV",
-    { year: "numeric", timeZone: SV_TIME_ZONE },
-  ).format(end)}`;
+  const day = capitalize(dayFormatter.format(start));
+  if (!startDate.includes("T")) return day;
+  return `${day} · ${timeFormatter.format(start)}`;
 }

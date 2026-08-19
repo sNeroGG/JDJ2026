@@ -49,6 +49,45 @@ que genera el build. `vite.config.ts` los escribe tomando los valores de
   y el icono de iOS a partir del logo configurado. Córrelo cuando cambies el logo.
 - `robots.txt` y `sitemap.xml` se generan en cada build.
 
+## Medición de visitas
+
+El sitio manda visitas a **Vercel Web Analytics** (`@vercel/analytics`, montado en
+`src/App.tsx`). No usa cookies, así que no hace falta banner de consentimiento.
+
+Falta un paso que no se puede hacer desde el código: en el panel de Vercel, entrar
+a **Analytics** y pulsar **Enable** para el proyecto. Sin eso el sitio envía datos
+pero el panel no los guarda.
+
+Los datos se ven en Vercel → proyecto → **Analytics**, y aparecen desde el momento
+del despliegue (no hay datos retroactivos). Las visitas a `/admin` se descartan
+para no ensuciar los números.
+
+El plan gratuito incluye 50,000 eventos al mes y un mes de historial. Los eventos
+personalizados (descargas de PDF, clics en el mapa o en inscripción) requieren plan
+Pro.
+
+### Historial largo: Cloudflare Web Analytics
+
+Como Vercel solo muestra el último mes, el sitio también puede mandar visitas a
+**Cloudflare Web Analytics**, que es gratis, sin límite de tráfico, sin cookies y
+guarda 6 meses de historial. Los dos conviven: Vercel para el día a día, Cloudflare
+para ver la evolución completa hasta el evento.
+
+Para activarlo:
+
+1. Crear cuenta gratuita en Cloudflare y entrar a **Web Analytics → Add a site**.
+2. Poner el dominio del sitio y copiar el token que genera.
+3. En Vercel → proyecto → **Settings → Environment Variables**, agregar
+   `VITE_CF_BEACON_TOKEN` con ese token, y volver a desplegar.
+
+El token no es secreto (viaja en el HTML público). Si la variable está vacía, el
+script no se inyecta y no cambia nada. El conteo de rutas del SPA viene activado por
+defecto en el beacon; los cambios de ruta se ven en **Page Views**, no en **Visits**.
+
+Un detalle a tener en cuenta: Cloudflare guarda los datos sin muestrear solo 7 días
+y después los agrega a cerca del 10% del volumen, así que los números de meses
+anteriores son estimaciones, no conteos exactos.
+
 ## Desarrollo local
 
 ```bash

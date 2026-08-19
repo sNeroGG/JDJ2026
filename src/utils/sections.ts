@@ -9,7 +9,7 @@ export function getVisibleAnchors(content: SiteContent) {
   const anchors = new Set(["#inicio", "#donde", "#auspiciadores", "#contacto"]);
   if (content.meaning.elements.length) anchors.add("#significado");
   if (content.event.items.length) anchors.add("#evento");
-  if (content.schedule.days.length) anchors.add("#agenda");
+  if (content.schedule.items.length) anchors.add("#agenda");
   if (content.registration.steps.length || content.registration.ctaHref) {
     anchors.add("#inscripcion");
   }

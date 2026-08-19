@@ -14,7 +14,6 @@ import {
   type CatechesisDoc,
   type PartnerLogo,
   type RegistrationStatus,
-  type ScheduleDay,
   type SiteContent,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
@@ -76,7 +75,7 @@ export function AdminPage() {
 
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
-  const dayCount = draft.schedule.days.length;
+  const itemCount = draft.schedule.items.length;
   const faqCount = draft.faq.items.length;
   const vicariateCount = draft.vicariates.items.length;
   const isDirty = useMemo(
@@ -94,8 +93,8 @@ export function AdminPage() {
       { id: "event", label: "Evento", full: "Evento" },
       {
         id: "schedule",
-        label: `Agenda${dayCount ? ` (${dayCount})` : ""}`,
-        full: "Fechas y agenda",
+        label: `Agenda${itemCount ? ` (${itemCount})` : ""}`,
+        full: "Fecha y agenda",
       },
       { id: "registration", label: "Inscripción", full: "Inscripción" },
       { id: "catechesis", label: `Catequesis${docCount ? ` (${docCount})` : ""}`, full: "Catequesis" },
@@ -112,7 +111,7 @@ export function AdminPage() {
       { id: "partners", label: `Logos${partnerCount ? ` (${partnerCount})` : ""}`, full: "Logos institucionales" },
       { id: "footer", label: "Footer", full: "Menú / Footer" },
     ],
-    [partnerCount, docCount, dayCount, faqCount, vicariateCount],
+    [partnerCount, docCount, itemCount, faqCount, vicariateCount],
   );
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
@@ -148,10 +147,13 @@ export function AdminPage() {
     setDraft({ ...draft, vicariates: { ...draft.vicariates, ...patch } });
   }
 
-  function patchDay(index: number, patch: Partial<ScheduleDay>) {
-    const days = [...draft.schedule.days];
-    days[index] = { ...days[index], ...patch };
-    patchSchedule({ days });
+  function patchScheduleItem(
+    index: number,
+    patch: Partial<SiteContent["schedule"]["items"][number]>,
+  ) {
+    const items = [...draft.schedule.items];
+    items[index] = { ...items[index], ...patch };
+    patchSchedule({ items });
   }
 
   async function persist(next: SiteContent = draft) {
@@ -1243,10 +1245,11 @@ export function AdminPage() {
 
         {section === "schedule" && (
           <section className="admin-panel">
-            <h2>Fechas y agenda</h2>
+            <h2>Fecha y agenda</h2>
             <p className="admin-panel__hint">
-              La cuenta regresiva aparece en la landing solo cuando hay fecha de
-              inicio. La agenda se muestra cuando agregas al menos un día. Las
+              La cuenta regresiva usa solo la fecha de inicio. Ese mismo día se
+              muestra el mensaje en vivo y, al día siguiente, el de cierre. La
+              agenda es de un solo día: agrégala actividad por actividad. Las
               horas se entienden en hora de El Salvador.
             </p>
             <div className="admin-grid">
@@ -1256,14 +1259,6 @@ export function AdminPage() {
                   type="datetime-local"
                   value={draft.schedule.startDate}
                   onChange={(e) => patchSchedule({ startDate: e.target.value })}
-                />
-              </label>
-              <label>
-                Fin del encuentro
-                <input
-                  type="datetime-local"
-                  value={draft.schedule.endDate}
-                  onChange={(e) => patchSchedule({ endDate: e.target.value })}
                 />
               </label>
               <label>
@@ -1341,146 +1336,83 @@ export function AdminPage() {
               />
             </label>
 
-            <h3>Programa</h3>
+            <h3>Programa del día</h3>
             <div className="admin-inline-actions">
               <button
                 type="button"
                 className="btn btn--ghost"
                 onClick={() =>
                   patchSchedule({
-                    days: [
-                      ...draft.schedule.days,
+                    items: [
+                      ...draft.schedule.items,
                       {
-                        id: createId("dia"),
-                        label: `Día ${draft.schedule.days.length + 1}`,
-                        date: "",
-                        items: [],
+                        id: createId("hora"),
+                        time: "",
+                        title: "Nueva actividad",
+                        text: "",
                       },
                     ],
                   })
                 }
               >
-                Agregar día
+                Agregar actividad
               </button>
             </div>
-            {draft.schedule.days.length === 0 ? (
+            {draft.schedule.items.length === 0 ? (
               <p className="admin-empty">
-                Sin días agregados la sección de agenda no se muestra en la
+                Sin actividades la sección de agenda no se muestra en la
                 landing.
               </p>
             ) : (
-              draft.schedule.days.map((day, dayIndex) => (
-                <div className="admin-card" key={day.id}>
-                  <div className="admin-grid">
+              <div className="admin-card">
+                {draft.schedule.items.map((item, itemIndex) => (
+                  <div className="admin-grid" key={item.id}>
                     <label>
-                      Nombre del día
+                      Hora
                       <input
-                        value={day.label}
+                        value={item.time}
                         onChange={(e) =>
-                          patchDay(dayIndex, { label: e.target.value })
+                          patchScheduleItem(itemIndex, { time: e.target.value })
                         }
+                        placeholder="08:00"
                       />
                     </label>
                     <label>
-                      Fecha visible
+                      Actividad
                       <input
-                        value={day.date}
+                        value={item.title}
                         onChange={(e) =>
-                          patchDay(dayIndex, { date: e.target.value })
-                        }
-                        placeholder="Sábado 15 de agosto"
-                      />
-                    </label>
-                  </div>
-
-                  {day.items.map((item, itemIndex) => (
-                    <div className="admin-grid" key={item.id}>
-                      <label>
-                        Hora
-                        <input
-                          value={item.time}
-                          onChange={(e) => {
-                            const items = [...day.items];
-                            items[itemIndex] = { ...item, time: e.target.value };
-                            patchDay(dayIndex, { items });
-                          }}
-                          placeholder="08:00"
-                        />
-                      </label>
-                      <label>
-                        Actividad
-                        <input
-                          value={item.title}
-                          onChange={(e) => {
-                            const items = [...day.items];
-                            items[itemIndex] = { ...item, title: e.target.value };
-                            patchDay(dayIndex, { items });
-                          }}
-                        />
-                      </label>
-                      <label>
-                        Detalle
-                        <input
-                          value={item.text}
-                          onChange={(e) => {
-                            const items = [...day.items];
-                            items[itemIndex] = { ...item, text: e.target.value };
-                            patchDay(dayIndex, { items });
-                          }}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="btn btn--danger"
-                        onClick={() =>
-                          patchDay(dayIndex, {
-                            items: day.items.filter(
-                              (entry) => entry.id !== item.id,
-                            ),
+                          patchScheduleItem(itemIndex, {
+                            title: e.target.value,
                           })
                         }
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-
-                  <div className="admin-inline-actions">
-                    <button
-                      type="button"
-                      className="btn btn--ghost"
-                      onClick={() =>
-                        patchDay(dayIndex, {
-                          items: [
-                            ...day.items,
-                            {
-                              id: createId("hora"),
-                              time: "",
-                              title: "Nueva actividad",
-                              text: "",
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      Agregar actividad
-                    </button>
+                      />
+                    </label>
+                    <label>
+                      Detalle
+                      <input
+                        value={item.text}
+                        onChange={(e) =>
+                          patchScheduleItem(itemIndex, { text: e.target.value })
+                        }
+                      />
+                    </label>
                     <button
                       type="button"
                       className="btn btn--danger"
                       onClick={() =>
                         patchSchedule({
-                          days: draft.schedule.days.filter(
-                            (entry) => entry.id !== day.id,
+                          items: draft.schedule.items.filter(
+                            (entry) => entry.id !== item.id,
                           ),
                         })
                       }
                     >
-                      Quitar día
+                      Quitar
                     </button>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </section>
         )}

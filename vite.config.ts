@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { IncomingMessage } from "node:http";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+// @ts-expect-error local ESM helper without types
+import { injectAnalytics } from "./scripts/analytics.mjs";
 // @ts-expect-error local ESM helper without types
 import { optimizeImage, toWebp } from "./scripts/optimize-image.mjs";
 // @ts-expect-error local ESM helper without types
@@ -52,14 +54,20 @@ function isAuthorized(req: IncomingMessage) {
   return token === ADMIN_PASSWORD;
 }
 
-function localMediaPlugin(): Plugin {
+type BuildEnv = Record<string, string | undefined>;
+
+function localMediaPlugin(env: BuildEnv): Plugin {
   return {
     name: "jdj-local-media",
     transformIndexHtml(html) {
-      return injectSeo(html, process.cwd()) as string;
+      const withSeo = injectSeo(html, process.cwd(), env) as string;
+      return injectAnalytics(withSeo, env) as string;
     },
     generateBundle() {
-      const siteUrl = resolveSiteUrl(readSavedContent(process.cwd())) as string;
+      const siteUrl = resolveSiteUrl(
+        readSavedContent(process.cwd()),
+        env,
+      ) as string;
       this.emitFile({
         type: "asset",
         fileName: "robots.txt",
@@ -186,6 +194,14 @@ export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
   };
 }
 
-export default defineConfig({
-  plugins: [react(), localMediaPlugin()],
+export default defineConfig(({ mode }) => {
+  // loadEnv lee los archivos .env; process.env trae lo que define Vercel.
+  const env: BuildEnv = {
+    ...loadEnv(mode, process.cwd(), ""),
+    ...process.env,
+  };
+
+  return {
+    plugins: [react(), localMediaPlugin(env)],
+  };
 });

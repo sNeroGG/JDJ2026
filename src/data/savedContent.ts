@@ -7,7 +7,9 @@ export const SAVED_CONTENT: SavedContent = {
     "name": "JDJ Jayaque",
     "year": "2026",
     "pageTitle": "JDJ Jayaque 2026",
-    "metaDescription": "JDJ Jayaque 2026 — Jornada Diocesana de la Juventud. Tengan valor y síganme. Arquidiócesis de San Salvador."
+    "metaDescription": "JDJ Jayaque 2026 — Jornada Diocesana de la Juventud. Tengan valor y síganme. Arquidiócesis de San Salvador.",
+    "url": "",
+    "ogImage": "/images/og-jdj-2026.jpg"
   },
   "hero": {
     "slogan": "Tengan valor y síganme",
@@ -59,7 +61,14 @@ export const SAVED_CONTENT: SavedContent = {
         "label": "Organiza",
         "value": "Pastoral Juvenil Arquidiocesana"
       }
-    ]
+    ],
+    "mapQuery": "Parroquia San Cristóbal, Jayaque, La Libertad, El Salvador",
+    "mapLat": "",
+    "mapLng": "",
+    "mapLabel": "Ver el mapa",
+    "mapNote": "El mapa se carga solo cuando lo pides, para no gastar tus datos de más.",
+    "directionsLabel": "Abrir en Google Maps",
+    "wazeLabel": "Abrir en Waze"
   },
   "meaning": {
     "eyebrow": "Identidad",
@@ -135,6 +144,86 @@ export const SAVED_CONTENT: SavedContent = {
       }
     ]
   },
+  "schedule": {
+    "eyebrow": "Agenda",
+    "title": "El camino hacia el encuentro",
+    "lead": "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
+    "startDate": "",
+    "dateLabel": "Fecha por confirmar",
+    "countdownEyebrow": "Cuenta regresiva",
+    "countdownTitle": "Faltan",
+    "countdownLiveText": "¡Estamos viviendo la JDJ 2026!",
+    "countdownDoneText": "Gracias por caminar con nosotros en la JDJ 2026.",
+    "items": []
+  },
+  "registration": {
+    "eyebrow": "Inscripción",
+    "title": "Prepara tu lugar en la JDJ 2026",
+    "lead": "La inscripción se hace acompañado de tu parroquia o vicaría. Así llegamos como comunidad y no como visitantes sueltos.",
+    "status": "soon",
+    "statusLabel": "Inscripciones pronto",
+    "ctaLabel": "",
+    "ctaHref": "",
+    "secondaryLabel": "",
+    "secondaryHref": "",
+    "note": "Cuando abramos la inscripción, el enlace aparecerá aquí y en nuestras redes oficiales.",
+    "steps": [
+      {
+        "id": "paso-parroquia",
+        "title": "Habla con tu Pastoral Juvenil",
+        "text": "Acércate al equipo de tu parroquia o vicaría para caminar con tu grupo hacia Jayaque."
+      },
+      {
+        "id": "paso-catequesis",
+        "title": "Vive las catequesis",
+        "text": "Descarga los materiales de preparación y trabájalos en comunidad antes del encuentro."
+      },
+      {
+        "id": "paso-datos",
+        "title": "Ten listos tus datos",
+        "text": "Nombre completo, edad, parroquia y un contacto de emergencia agilizan tu registro."
+      }
+    ]
+  },
+  "faq": {
+    "eyebrow": "Preguntas frecuentes",
+    "title": "Lo que más nos preguntan",
+    "lead": "Si tu duda no está aquí, escríbenos por nuestras redes oficiales.",
+    "items": [
+      {
+        "id": "faq-que-es",
+        "question": "¿Qué es la JDJ?",
+        "answer": "La Jornada Diocesana de la Juventud es el encuentro anual de la juventud de la Arquidiócesis de San Salvador: un día de oración, formación, fiesta y envío misionero."
+      },
+      {
+        "id": "faq-quien",
+        "question": "¿Quién puede participar?",
+        "answer": "Adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales de la Arquidiócesis."
+      },
+      {
+        "id": "faq-donde",
+        "question": "¿Dónde será la JDJ 2026?",
+        "answer": "En Jayaque, La Libertad, con la Parroquia San Cristóbal como sede del encuentro."
+      },
+      {
+        "id": "faq-cuando",
+        "question": "¿Ya hay fecha definida?",
+        "answer": "Aún no publicamos la fecha oficial. En cuanto se confirme aparecerá en esta página con su cuenta regresiva y en nuestras redes."
+      },
+      {
+        "id": "faq-preparar",
+        "question": "¿Cómo me preparo?",
+        "answer": "Descarga las catequesis de preparación y trabájalas con tu grupo. Cada material está pensado para vivirse en comunidad, no solo para leerse."
+      }
+    ]
+  },
+  "vicariates": {
+    "eyebrow": "Arquidiócesis",
+    "title": "Las 17 vicarías caminan juntas",
+    "lead": "Cada cuenta blanca del logo representa una vicaría de la Arquidiócesis de San Salvador.",
+    "note": "Agrega las vicarías desde el panel para mostrarlas aquí.",
+    "items": []
+  },
   "partners": {
     "eyebrow": "Acompañan",
     "title": "Logos institucionales",
@@ -198,6 +287,7 @@ export const SAVED_CONTENT: SavedContent = {
     ]
   },
   "footer": {
+    "logoUrl": "/images/LOGO-FINAL---OFICIAL-JDJ-26---AGO_Mesa-de-trabajo-1-03.webp",
     "org": "Pastoral Juvenil · Arquidiócesis de San Salvador",
     "exploreLabel": "Explorar",
     "socialLabel": "Redes oficiales",
@@ -264,7 +354,6 @@ export const SAVED_CONTENT: SavedContent = {
         "handle": "Arquidiócesis SS",
         "href": "https://www.youtube.com/results?search_query=Arquidi%C3%B3cesis+de+San+Salvador"
       }
-    ],
-    "logoUrl": "/images/LOGO-FINAL---OFICIAL-JDJ-26---AGO_Mesa-de-trabajo-1-03.webp"
+    ]
   }
 };

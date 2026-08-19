@@ -35,13 +35,13 @@ function trimSlashes(value) {
 }
 
 /** Dominio final: lo configurado en /admin, la variable de entorno o el de Vercel. */
-export function resolveSiteUrl(saved = {}) {
-  const explicit = trimSlashes(saved.site?.url || process.env.VITE_SITE_URL || "");
+export function resolveSiteUrl(saved = {}, env = process.env) {
+  const explicit = trimSlashes(saved.site?.url || env.VITE_SITE_URL || "");
   if (explicit) {
     return /^https?:\/\//i.test(explicit) ? explicit : `https://${explicit}`;
   }
   const vercel = trimSlashes(
-    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "",
+    env.VERCEL_PROJECT_PRODUCTION_URL || env.VERCEL_URL || "",
   );
   return vercel ? `https://${vercel}` : "";
 }
@@ -61,12 +61,12 @@ function escapeAttr(value) {
     .replace(/>/g, "&gt;");
 }
 
-export function buildSeo(root) {
+export function buildSeo(root, env = process.env) {
   const saved = readSavedContent(root);
   const site = saved.site ?? {};
   const title = site.pageTitle || FALLBACK_TITLE;
   const description = site.metaDescription || FALLBACK_DESCRIPTION;
-  const siteUrl = resolveSiteUrl(saved);
+  const siteUrl = resolveSiteUrl(saved, env);
   const image = absoluteUrl(site.ogImage || FALLBACK_OG_IMAGE, siteUrl);
   const siteName =
     [site.name, site.year].filter(Boolean).join(" ") || FALLBACK_TITLE;
@@ -103,8 +103,8 @@ export function buildSeo(root) {
   };
 }
 
-export function injectSeo(html, root) {
-  const { title, description, tags, heroLogo } = buildSeo(root);
+export function injectSeo(html, root, env = process.env) {
+  const { title, description, tags, heroLogo } = buildSeo(root, env);
   return html
     .replace(/<title>[\s\S]*?<\/title>/, () => `<title>${escapeAttr(title)}</title>`)
     .replace(

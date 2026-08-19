@@ -12,6 +12,7 @@ import {
   DEFAULT_CONTENT,
   type RegistrationStatus,
   type SavedContent,
+  type ScheduleItem,
   type SiteContent,
 } from "../data/defaultContent";
 import { SAVED_CONTENT } from "../data/savedContent";
@@ -43,6 +44,32 @@ function isHostedUrl(value: string) {
   return Boolean(value) && !value.startsWith("data:");
 }
 
+type LegacySchedule = NonNullable<SavedContent["schedule"]> & {
+  endDate?: string;
+  days?: { items?: ScheduleItem[] }[];
+};
+
+/** La agenda es de un día: usa `items` o aplana días viejos si todavía existían. */
+function resolveScheduleItems(parsed: SavedContent): ScheduleItem[] {
+  const schedule = parsed.schedule as LegacySchedule | undefined;
+  if (Array.isArray(schedule?.items)) return schedule.items;
+  if (schedule?.days?.length) {
+    return schedule.days.flatMap((day) => day.items ?? []);
+  }
+  return DEFAULT_CONTENT.schedule.items;
+}
+
+function mergeSchedule(parsed: SavedContent): SiteContent["schedule"] {
+  const raw = { ...(parsed.schedule as LegacySchedule | undefined) };
+  delete raw.days;
+  delete raw.endDate;
+  return {
+    ...DEFAULT_CONTENT.schedule,
+    ...raw,
+    items: resolveScheduleItems(parsed),
+  };
+}
+
 function mergeContent(parsed: SavedContent): SiteContent {
   return {
     ...DEFAULT_CONTENT,
@@ -68,11 +95,7 @@ function mergeContent(parsed: SavedContent): SiteContent {
         ? parsed.location.facts
         : DEFAULT_CONTENT.location.facts,
     },
-    schedule: {
-      ...DEFAULT_CONTENT.schedule,
-      ...parsed.schedule,
-      days: parsed.schedule?.days ?? DEFAULT_CONTENT.schedule.days,
-    },
+    schedule: mergeSchedule(parsed),
     registration: {
       ...DEFAULT_CONTENT.registration,
       ...parsed.registration,
