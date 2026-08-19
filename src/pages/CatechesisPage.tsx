@@ -4,6 +4,7 @@ import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
+import { useSeo } from "../hooks/useSeo";
 import "../components/Catechesis.css";
 import "./CatechesisPage.css";
 
@@ -12,10 +13,17 @@ export function CatechesisPage() {
   const { content } = useContent();
   const { catechesis, site } = content;
 
+  useSeo({
+    title: `${catechesis.title} · ${site.name} ${site.year}`,
+    description: catechesis.lead || site.metaDescription,
+    path: "/catequesis",
+    siteUrl: site.url,
+    image: site.ogImage,
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = `${catechesis.title} · ${site.year}`;
-  }, [catechesis.title, site.year]);
+  }, []);
 
   return (
     <div className="app">

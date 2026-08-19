@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CatechesisDoc } from "../data/defaultContent";
 
 export function fileKind(fileName: string, href: string) {
@@ -7,6 +8,42 @@ export function fileKind(fileName: string, href: string) {
   if (source.includes(".ppt")) return "PPT";
   if (source.includes("data:")) return "ARCHIVO";
   return "DOC";
+}
+
+export function coverForDoc(doc: CatechesisDoc) {
+  if (doc.coverUrl) return doc.coverUrl;
+  const source = `${doc.fileName} ${doc.href}`;
+  if (!/\.pdf($|\?)/i.test(source)) return "";
+  const file = doc.href.split("?")[0].split("/").pop() || "";
+  if (!file.toLowerCase().endsWith(".pdf")) return "";
+  return `/docs/covers/${file.replace(/\.pdf$/i, "")}.webp`;
+}
+
+function DocCover({ doc }: { doc: CatechesisDoc }) {
+  const [failed, setFailed] = useState(false);
+  const cover = coverForDoc(doc);
+  const kind = fileKind(doc.fileName, doc.href);
+
+  if (!cover || failed) {
+    return (
+      <div className="catechesis__cover catechesis__cover--empty" aria-hidden="true">
+        <span>{kind}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className="catechesis__cover"
+      src={cover}
+      alt={`Portada de ${doc.title}`}
+      width={240}
+      height={320}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function DocumentList({
@@ -35,6 +72,18 @@ export function DocumentList({
           key={doc.id}
           className={`catechesis__card reveal reveal-delay-${(index % 4) + 1}`}
         >
+          {doc.href ? (
+            <a
+              className="catechesis__cover-link"
+              href={doc.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <DocCover doc={doc} />
+            </a>
+          ) : (
+            <DocCover doc={doc} />
+          )}
           <span className="catechesis__kind">
             {fileKind(doc.fileName, doc.href)}
           </span>
@@ -44,8 +93,12 @@ export function DocumentList({
             <a
               className="catechesis__link"
               href={doc.href}
-              download={doc.fileName || undefined}
-              target={doc.href.startsWith("data:") ? undefined : "_blank"}
+              download={
+                /\.pdf($|\?)/i.test(doc.fileName || doc.href)
+                  ? undefined
+                  : doc.fileName || undefined
+              }
+              target="_blank"
               rel="noreferrer"
             >
               Abrir documento

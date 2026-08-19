@@ -24,15 +24,17 @@ export function Hero() {
       </div>
 
       <div className="hero__content">
-        <img
-          className="hero__logo"
-          src={logoUrl}
-          alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
-          width={720}
-          height={420}
-          fetchPriority="high"
-          decoding="async"
-        />
+        <div className="hero__logo-wrap">
+          <img
+            className="hero__logo"
+            src={logoUrl}
+            alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
+            width={840}
+            height={840}
+            fetchPriority="high"
+            decoding="sync"
+          />
+        </div>
         <p className="hero__slogan">{hero.slogan}</p>
         <p className="hero__tagline">{hero.tagline}</p>
         {hero.highlights?.length > 0 ? (

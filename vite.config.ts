@@ -3,6 +3,18 @@ import path from "node:path";
 import type { IncomingMessage } from "node:http";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+// @ts-expect-error local ESM helper without types
+import { optimizeImage, toWebp } from "./scripts/optimize-image.mjs";
+// @ts-expect-error local ESM helper without types
+import { renderPdfCover } from "./scripts/pdf-cover.mjs";
+import {
+  buildRobotsTxt,
+  buildSitemapXml,
+  injectSeo,
+  readSavedContent,
+  resolveSiteUrl,
+  // @ts-expect-error local ESM helper without types
+} from "./scripts/seo.mjs";
 
 const ADMIN_PASSWORD = process.env.VITE_ADMIN_PASSWORD || "jdj2026";
 
@@ -43,6 +55,25 @@ function isAuthorized(req: IncomingMessage) {
 function localMediaPlugin(): Plugin {
   return {
     name: "jdj-local-media",
+    transformIndexHtml(html) {
+      return injectSeo(html, process.cwd()) as string;
+    },
+    generateBundle() {
+      const siteUrl = resolveSiteUrl(readSavedContent(process.cwd())) as string;
+      this.emitFile({
+        type: "asset",
+        fileName: "robots.txt",
+        source: buildRobotsTxt(siteUrl) as string,
+      });
+      const sitemap = buildSitemapXml(siteUrl) as string;
+      if (sitemap) {
+        this.emitFile({
+          type: "asset",
+          fileName: "sitemap.xml",
+          source: sitemap,
+        });
+      }
+    },
     configureServer(server) {
       const root = server.config.root;
       const imagesDir = path.join(root, "public", "images");
@@ -57,6 +88,29 @@ function localMediaPlugin(): Plugin {
         }
 
         void (async () => {
+          if (url === "/__admin/files" && req.method === "GET") {
+            if (!isAuthorized(req)) {
+              sendJson(res, 401, { error: "No autorizado" });
+              return;
+            }
+            fs.mkdirSync(docsDir, { recursive: true });
+            const docs = fs
+              .readdirSync(docsDir)
+              .filter(
+                (name) =>
+                  name !== ".gitkeep" &&
+                  !name.startsWith(".") &&
+                  name !== "covers" &&
+                  fs.statSync(path.join(docsDir, name)).isFile(),
+              )
+              .map((name) => ({
+                name,
+                url: `/docs/${name}`,
+              }));
+            sendJson(res, 200, { docs });
+            return;
+          }
+
           if (req.method !== "POST") {
             sendJson(res, 405, { error: "Método no permitido" });
             return;
@@ -83,17 +137,37 @@ function localMediaPlugin(): Plugin {
               return;
             }
             fs.mkdirSync(destDir, { recursive: true });
-            fs.writeFileSync(path.join(destDir, filename), buffer);
-            sendJson(res, 200, { url: `/${folder}/${filename}` });
+            const dest = path.join(destDir, filename);
+            fs.writeFileSync(dest, buffer);
+            if (folder === "images") {
+              await optimizeImage(dest);
+              const webpPath = await toWebp(dest);
+              sendJson(res, 200, {
+                url: `/${folder}/${path.basename(webpPath)}`,
+              });
+              return;
+            }
+            sendJson(res, 200, {
+                url: `/${folder}/${filename}`,
+                coverUrl: filename.toLowerCase().endsWith(".pdf")
+                  ? await renderPdfCover(
+                      dest,
+                      path.join(destDir, "covers"),
+                    ).catch((error: unknown) => {
+                      console.warn("No se pudo crear la portada del PDF:", error);
+                      return undefined;
+                    })
+                  : undefined,
+              });
             return;
           }
 
           if (url === "/__admin/save") {
             const content = body.content ?? {};
-            const source = `import type { SiteContent } from "./defaultContent";
+            const source = `import type { SavedContent } from "./defaultContent";
 
 /** Overlay generado al guardar desde /admin en local (\`npm run dev\`). */
-export const SAVED_CONTENT: Partial<SiteContent> = ${JSON.stringify(content, null, 2)};
+export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
 `;
             fs.mkdirSync(path.dirname(contentFile), { recursive: true });
             fs.writeFileSync(contentFile, source);

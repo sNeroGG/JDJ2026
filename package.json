@@ -10,6 +10,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "optimize:images": "node scripts/optimize-image.mjs --all",
+    "optimize:covers": "node scripts/pdf-cover.mjs --all",
+    "optimize:og": "node scripts/og-image.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -19,11 +22,14 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.7",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "oxlint": "^1.75.0",
+    "pdfjs-dist": "^6.2.108",
+    "sharp": "^0.35.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
   }

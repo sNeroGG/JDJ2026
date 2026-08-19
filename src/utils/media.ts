@@ -47,11 +47,12 @@ export async function uploadMedia(
 
   const payload = (await remote.json().catch(() => null)) as {
     url?: string;
+    coverUrl?: string;
     error?: string;
   } | null;
 
   if (!remote.ok || !payload?.url) {
     throw new Error(payload?.error || `No se pudo guardar (${remote.status}).`);
   }
-  return payload.url;
+  return { url: payload.url, coverUrl: payload.coverUrl };
 }

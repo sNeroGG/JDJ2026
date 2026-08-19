@@ -47,12 +47,47 @@ export type CatechesisDoc = {
   description: string;
   fileName: string;
   href: string;
+  coverUrl?: string;
 };
 
 export type NavLink = {
   id: string;
   href: string;
   label: string;
+};
+
+export type ScheduleItem = {
+  id: string;
+  time: string;
+  title: string;
+  text: string;
+};
+
+export type ScheduleDay = {
+  id: string;
+  label: string;
+  date: string;
+  items: ScheduleItem[];
+};
+
+export type RegistrationStatus = "soon" | "open" | "closed";
+
+export type RegistrationStep = {
+  id: string;
+  title: string;
+  text: string;
+};
+
+export type FaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
+export type Vicariate = {
+  id: string;
+  name: string;
+  note: string;
 };
 
 export type SiteContent = {
@@ -62,6 +97,10 @@ export type SiteContent = {
     year: string;
     pageTitle: string;
     metaDescription: string;
+    /** Dominio final sin slash. Si queda vacío se usa el de Vercel al construir. */
+    url: string;
+    /** Imagen para compartir en WhatsApp y redes (1200×630). */
+    ogImage: string;
   };
   hero: {
     slogan: string;
@@ -79,6 +118,13 @@ export type SiteContent = {
     placeLine: string;
     note: string;
     facts: LocationFact[];
+    mapQuery: string;
+    mapLat: string;
+    mapLng: string;
+    mapLabel: string;
+    mapNote: string;
+    directionsLabel: string;
+    wazeLabel: string;
   };
   meaning: {
     eyebrow: string;
@@ -92,6 +138,46 @@ export type SiteContent = {
     title: string;
     lead: string;
     items: EventItem[];
+  };
+  schedule: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    /** Inicio del encuentro en hora de El Salvador, ej. 2026-08-15T08:00. Vacío oculta la cuenta regresiva. */
+    startDate: string;
+    endDate: string;
+    dateLabel: string;
+    countdownEyebrow: string;
+    countdownTitle: string;
+    countdownLiveText: string;
+    countdownDoneText: string;
+    days: ScheduleDay[];
+  };
+  registration: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    status: RegistrationStatus;
+    statusLabel: string;
+    ctaLabel: string;
+    ctaHref: string;
+    secondaryLabel: string;
+    secondaryHref: string;
+    note: string;
+    steps: RegistrationStep[];
+  };
+  faq: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    items: FaqItem[];
+  };
+  vicariates: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    note: string;
+    items: Vicariate[];
   };
   partners: {
     eyebrow: string;
@@ -115,6 +201,7 @@ export type SiteContent = {
     docs: CatechesisDoc[];
   };
   footer: {
+    logoUrl: string;
     org: string;
     exploreLabel: string;
     socialLabel: string;
@@ -125,17 +212,31 @@ export type SiteContent = {
   };
 };
 
+type DeepPartial<T> = T extends (infer _Item)[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+
+/**
+ * Forma del overlay que escribe /admin. Es parcial en profundidad para que
+ * agregar campos nuevos al contenido no invalide el archivo ya guardado.
+ */
+export type SavedContent = DeepPartial<SiteContent>;
+
 export const AUTH_KEY = "jdj2026-admin-auth";
 export const AUTH_SECRET_KEY = "jdj2026-admin-secret";
 
 export const DEFAULT_CONTENT: SiteContent = {
-  logoUrl: "/images/logo-principal.png",
+  logoUrl: "/images/logo-jdj-2026.webp",
   site: {
     name: "JDJ Jayaque",
     year: "2026",
     pageTitle: "JDJ Jayaque 2026",
     metaDescription:
       "JDJ Jayaque 2026 — Jornada Diocesana de la Juventud. Tengan valor y síganme. Arquidiócesis de San Salvador.",
+    url: "",
+    ogImage: "/images/og-jdj-2026.jpg",
   },
   hero: {
     slogan: "Tengan valor y síganme",
@@ -175,6 +276,14 @@ export const DEFAULT_CONTENT: SiteContent = {
         value: "Pastoral Juvenil Arquidiocesana",
       },
     ],
+    mapQuery: "Parroquia San Cristóbal, Jayaque, La Libertad, El Salvador",
+    mapLat: "",
+    mapLng: "",
+    mapLabel: "Ver el mapa",
+    mapNote:
+      "El mapa se carga solo cuando lo pides, para no gastar tus datos de más.",
+    directionsLabel: "Abrir en Google Maps",
+    wazeLabel: "Abrir en Waze",
   },
   meaning: {
     eyebrow: "Identidad",
@@ -250,6 +359,92 @@ export const DEFAULT_CONTENT: SiteContent = {
       },
     ],
   },
+  schedule: {
+    eyebrow: "Agenda",
+    title: "El camino hacia el encuentro",
+    lead: "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
+    startDate: "",
+    endDate: "",
+    dateLabel: "Fechas por confirmar",
+    countdownEyebrow: "Cuenta regresiva",
+    countdownTitle: "Faltan",
+    countdownLiveText: "¡Estamos viviendo la JDJ 2026!",
+    countdownDoneText: "Gracias por caminar con nosotros en la JDJ 2026.",
+    days: [],
+  },
+  registration: {
+    eyebrow: "Inscripción",
+    title: "Prepara tu lugar en la JDJ 2026",
+    lead: "La inscripción se hace acompañado de tu parroquia o vicaría. Así llegamos como comunidad y no como visitantes sueltos.",
+    status: "soon",
+    statusLabel: "Inscripciones pronto",
+    ctaLabel: "",
+    ctaHref: "",
+    secondaryLabel: "",
+    secondaryHref: "",
+    note: "Cuando abramos la inscripción, el enlace aparecerá aquí y en nuestras redes oficiales.",
+    steps: [
+      {
+        id: "paso-parroquia",
+        title: "Habla con tu Pastoral Juvenil",
+        text: "Acércate al equipo de tu parroquia o vicaría para caminar con tu grupo hacia Jayaque.",
+      },
+      {
+        id: "paso-catequesis",
+        title: "Vive las catequesis",
+        text: "Descarga los materiales de preparación y trabájalos en comunidad antes del encuentro.",
+      },
+      {
+        id: "paso-datos",
+        title: "Ten listos tus datos",
+        text: "Nombre completo, edad, parroquia y un contacto de emergencia agilizan tu registro.",
+      },
+    ],
+  },
+  faq: {
+    eyebrow: "Preguntas frecuentes",
+    title: "Lo que más nos preguntan",
+    lead: "Si tu duda no está aquí, escríbenos por nuestras redes oficiales.",
+    items: [
+      {
+        id: "faq-que-es",
+        question: "¿Qué es la JDJ?",
+        answer:
+          "La Jornada Diocesana de la Juventud es el encuentro anual de la juventud de la Arquidiócesis de San Salvador: un día de oración, formación, fiesta y envío misionero.",
+      },
+      {
+        id: "faq-quien",
+        question: "¿Quién puede participar?",
+        answer:
+          "Adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales de la Arquidiócesis.",
+      },
+      {
+        id: "faq-donde",
+        question: "¿Dónde será la JDJ 2026?",
+        answer:
+          "En Jayaque, La Libertad, con la Parroquia San Cristóbal como sede del encuentro.",
+      },
+      {
+        id: "faq-cuando",
+        question: "¿Ya hay fecha definida?",
+        answer:
+          "Aún no publicamos la fecha oficial. En cuanto se confirme aparecerá en esta página con su cuenta regresiva y en nuestras redes.",
+      },
+      {
+        id: "faq-preparar",
+        question: "¿Cómo me preparo?",
+        answer:
+          "Descarga las catequesis de preparación y trabájalas con tu grupo. Cada material está pensado para vivirse en comunidad, no solo para leerse.",
+      },
+    ],
+  },
+  vicariates: {
+    eyebrow: "Arquidiócesis",
+    title: "Las 17 vicarías caminan juntas",
+    lead: "Cada cuenta blanca del logo representa una vicaría de la Arquidiócesis de San Salvador.",
+    note: "Agrega las vicarías desde el panel para mostrarlas aquí.",
+    items: [],
+  },
   partners: {
     eyebrow: "Acompañan",
     title: "Logos institucionales",
@@ -263,6 +458,8 @@ export const DEFAULT_CONTENT: SiteContent = {
     nav: [
       { id: "nav-sede", href: "#donde", label: "Sede" },
       { id: "nav-evento", href: "#evento", label: "Evento" },
+      { id: "nav-agenda", href: "#agenda", label: "Agenda" },
+      { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
       { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
     ],
   },
@@ -277,6 +474,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     docs: [],
   },
   footer: {
+    logoUrl: "/images/logo-pja.webp",
     org: "Pastoral Juvenil · Arquidiócesis de San Salvador",
     exploreLabel: "Explorar",
     socialLabel: "Redes oficiales",
@@ -286,7 +484,10 @@ export const DEFAULT_CONTENT: SiteContent = {
       { id: "nav-sede", href: "#donde", label: "Sede" },
       { id: "nav-logo", href: "#significado", label: "Logo" },
       { id: "nav-evento", href: "#evento", label: "Evento" },
+      { id: "nav-agenda", href: "#agenda", label: "Agenda" },
+      { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
       { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
+      { id: "nav-faq", href: "#faq", label: "Preguntas" },
       { id: "nav-logos", href: "#auspiciadores", label: "Logos" },
     ],
     social: [

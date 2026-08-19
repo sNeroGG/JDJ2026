@@ -27,8 +27,14 @@ export function Meaning() {
         </div>
 
         <div className="meaning__layout">
-          <div className="meaning__visual reveal reveal-delay-1">
-            <img src={logoUrl} alt="Emblema JDJ Jayaque 2026" />
+          <div className="meaning__visual">
+            <img
+              src={logoUrl}
+              alt="Emblema JDJ Jayaque 2026"
+              width={400}
+              height={400}
+              decoding="async"
+            />
             <p className="meaning__quote">“{meaning.quote || hero.slogan}”</p>
           </div>
 

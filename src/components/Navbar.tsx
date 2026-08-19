@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
+import { filterNavLinks } from "../utils/sections";
 import "./Navbar.css";
 
 export function Navbar() {
@@ -11,7 +12,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const links = header.nav.filter((item) => item.href !== "#inicio");
+  const links = filterNavLinks(header.nav, content).filter(
+    (item) => item.href !== "#inicio",
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

@@ -31,6 +31,8 @@
 
 .meaning__visual img {
   width: min(100%, 400px);
+  height: auto;
+  object-fit: contain;
 }
 
 .meaning__quote {

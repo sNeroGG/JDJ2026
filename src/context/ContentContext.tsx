@@ -10,9 +10,13 @@ import {
   AUTH_KEY,
   AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
+  type RegistrationStatus,
+  type SavedContent,
   type SiteContent,
 } from "../data/defaultContent";
 import { SAVED_CONTENT } from "../data/savedContent";
+
+const REGISTRATION_STATUSES: RegistrationStatus[] = ["soon", "open", "closed"];
 
 type ContentContextValue = {
   content: SiteContent;
@@ -39,7 +43,7 @@ function isHostedUrl(value: string) {
   return Boolean(value) && !value.startsWith("data:");
 }
 
-function mergeContent(parsed: Partial<SiteContent>): SiteContent {
+function mergeContent(parsed: SavedContent): SiteContent {
   return {
     ...DEFAULT_CONTENT,
     ...parsed,
@@ -63,6 +67,31 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
       facts: parsed.location?.facts?.length
         ? parsed.location.facts
         : DEFAULT_CONTENT.location.facts,
+    },
+    schedule: {
+      ...DEFAULT_CONTENT.schedule,
+      ...parsed.schedule,
+      days: parsed.schedule?.days ?? DEFAULT_CONTENT.schedule.days,
+    },
+    registration: {
+      ...DEFAULT_CONTENT.registration,
+      ...parsed.registration,
+      status: REGISTRATION_STATUSES.includes(
+        parsed.registration?.status as RegistrationStatus,
+      )
+        ? (parsed.registration?.status as RegistrationStatus)
+        : DEFAULT_CONTENT.registration.status,
+      steps: parsed.registration?.steps ?? DEFAULT_CONTENT.registration.steps,
+    },
+    faq: {
+      ...DEFAULT_CONTENT.faq,
+      ...parsed.faq,
+      items: parsed.faq?.items ?? DEFAULT_CONTENT.faq.items,
+    },
+    vicariates: {
+      ...DEFAULT_CONTENT.vicariates,
+      ...parsed.vicariates,
+      items: parsed.vicariates?.items ?? DEFAULT_CONTENT.vicariates.items,
     },
     meaning: {
       ...DEFAULT_CONTENT.meaning,
@@ -108,6 +137,10 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
     footer: {
       ...DEFAULT_CONTENT.footer,
       ...parsed.footer,
+      logoUrl:
+        parsed.footer?.logoUrl && isHostedUrl(parsed.footer.logoUrl)
+          ? parsed.footer.logoUrl
+          : DEFAULT_CONTENT.footer.logoUrl,
       nav: withCatechesisRoute(
         parsed.footer?.nav?.length
           ? parsed.footer.nav

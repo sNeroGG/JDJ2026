@@ -17,11 +17,21 @@ export function Partners() {
           <p className="section__lead partners__lead">{partners.lead}</p>
         </div>
 
-        <div className="partners__grid reveal reveal-delay-1">
+        <div className="partners__grid">
           {hasLogos
             ? partners.logos.map((logo) => (
                 <div key={logo.id} className="partners__slot partners__slot--filled">
-                  <img src={logo.src} alt={logo.name} />
+                  <img
+                    src={logo.src}
+                    alt={logo.name}
+                    width={220}
+                    height={88}
+                    decoding="async"
+                    loading="lazy"
+                  />
+                  {logo.name ? (
+                    <p className="partners__name">{logo.name}</p>
+                  ) : null}
                 </div>
               ))
             : Array.from({ length: 4 }).map((_, index) => (

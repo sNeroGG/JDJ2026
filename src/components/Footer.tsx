@@ -1,10 +1,12 @@
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
+import { filterNavLinks } from "../utils/sections";
 import "./Footer.css";
 
 export function Footer() {
   const { content } = useContent();
-  const { footer, logoUrl, hero, site } = content;
+  const { footer, hero } = content;
+  const links = filterNavLinks(footer.nav, content);
 
   return (
     <footer className="footer" id="contacto">
@@ -12,9 +14,11 @@ export function Footer() {
         <div className="footer__brand">
           <SiteLink href="#inicio">
             <img
-              src={logoUrl}
-              alt={`${site.name} ${site.year}`}
+              src={footer.logoUrl}
+              alt={footer.org}
               className="footer__logo"
+              width={240}
+              height={240}
             />
           </SiteLink>
           <p className="footer__slogan">{hero.slogan}</p>
@@ -24,7 +28,7 @@ export function Footer() {
         <nav className="footer__nav" aria-label="Secciones">
           <p>{footer.exploreLabel}</p>
           <ul>
-            {footer.nav.map((item) => (
+            {links.map((item) => (
               <li key={item.id}>
                 <SiteLink href={item.href}>{item.label}</SiteLink>
               </li>
