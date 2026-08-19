@@ -13,17 +13,26 @@ function fileToBase64(file: File) {
   });
 }
 
-export async function uploadMedia(file: File) {
+export async function uploadMedia(
+  file: File,
+  folder: "images" | "docs" = "images",
+) {
+  if (!import.meta.env.DEV) {
+    throw new Error(
+      "Sube archivos en local (npm run dev). Se guardan en public/images o public/docs y viajan con el deploy.",
+    );
+  }
+
   const password = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
   if (!password) {
     throw new Error("Cierra sesión en /admin y vuelve a entrar, luego sube el archivo.");
   }
-  if (file.size > 3 * 1024 * 1024) {
-    throw new Error("El archivo supera 3 MB. Usa uno más liviano.");
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("El archivo supera 15 MB. Usa uno más liviano.");
   }
 
   const data = await fileToBase64(file);
-  const remote = await fetch("/api/upload", {
+  const remote = await fetch("/__admin/upload", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,7 +40,7 @@ export async function uploadMedia(file: File) {
     },
     body: JSON.stringify({
       filename: file.name,
-      contentType: file.type || "application/octet-stream",
+      folder,
       data,
     }),
   });
@@ -41,13 +50,8 @@ export async function uploadMedia(file: File) {
     error?: string;
   } | null;
 
-  if (remote.status === 404) {
-    throw new Error(
-      "La API de subida no está en este deploy. Sube el código nuevo a GitHub y espera el deploy.",
-    );
-  }
   if (!remote.ok || !payload?.url) {
-    throw new Error(payload?.error || `No se pudo subir (${remote.status}).`);
+    throw new Error(payload?.error || `No se pudo guardar (${remote.status}).`);
   }
   return payload.url;
 }

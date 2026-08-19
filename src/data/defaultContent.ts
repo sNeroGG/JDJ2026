@@ -125,7 +125,6 @@ export type SiteContent = {
   };
 };
 
-export const STORAGE_KEY = "jdj2026-site-content";
 export const AUTH_KEY = "jdj2026-admin-auth";
 export const AUTH_SECRET_KEY = "jdj2026-admin-secret";
 

@@ -6,21 +6,19 @@ Landing de la Jornada Diocesana de la Juventud — Arquidiócesis de San Salvado
 
 - React + TypeScript + Vite
 - Deploy en Vercel
-- Archivos (logo, PDFs) en **Vercel Blob** desde `/admin`
+- Imágenes y documentos en el repo (`public/images`, `public/docs`)
 
-## Admin en Vercel (subir logo y documentos)
+## Cómo agregar logo, imágenes y PDFs
 
-No hace falta pasar por GitHub cada vez. El panel `/admin` sube a Blob y el sitio lee esas URLs.
+Trabaja **en local**. Los archivos quedan en el proyecto y viajan con el deploy (sin Blob).
 
-1. En Vercel: **Storage → Create Database → Blob**
-2. Abre el store → **Connect Project** y elige este sitio
-3. Variables:
-   - `ADMIN_PASSWORD`
-   - `VITE_ADMIN_PASSWORD` (la misma)
-4. **Redeploy** (Deployments → ⋮ → Redeploy)
-5. En `/admin` cierra sesión, entra otra vez, sube el archivo y **Guardar cambios**
+1. `npm run dev`
+2. Entra a `/admin`
+3. Sube el logo, documentos o logos institucionales y pulsa **Guardar cambios**
+4. Revisa `public/images/`, `public/docs/` y `src/data/savedContent.ts`
+5. Commit y push a GitHub → Vercel publica todo junto a la web
 
-En local, sin Blob, puedes seguir usando archivos en `public/images` y `public/docs`.
+También puedes copiar archivos a esas carpetas y pegar la ruta en el admin, por ejemplo `/images/logo-principal.png` o `/docs/catequesis-1.pdf`.
 
 ## Desarrollo local
 
@@ -28,6 +26,8 @@ En local, sin Blob, puedes seguir usando archivos en `public/images` y `public/d
 npm install
 npm run dev
 ```
+
+Contraseña del admin: `VITE_ADMIN_PASSWORD` (por defecto `jdj2026`).
 
 ## Deploy
 

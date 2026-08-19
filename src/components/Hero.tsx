@@ -1,12 +1,10 @@
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
-import { DEFAULT_CONTENT } from "../data/defaultContent";
 import "./Hero.css";
 
 export function Hero() {
-  const { content, contentReady } = useContent();
+  const { content } = useContent();
   const { hero, logoUrl } = content;
-  const showLogo = contentReady || logoUrl !== DEFAULT_CONTENT.logoUrl;
 
   return (
     <header className="hero" id="inicio">
@@ -26,19 +24,15 @@ export function Hero() {
       </div>
 
       <div className="hero__content">
-        {showLogo ? (
-          <img
-            className="hero__logo"
-            src={logoUrl}
-            alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
-            width={720}
-            height={420}
-            fetchPriority="high"
-            decoding="async"
-          />
-        ) : (
-          <div className="hero__logo-slot" aria-hidden="true" />
-        )}
+        <img
+          className="hero__logo"
+          src={logoUrl}
+          alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
+          width={720}
+          height={420}
+          fetchPriority="high"
+          decoding="async"
+        />
         <p className="hero__slogan">{hero.slogan}</p>
         <p className="hero__tagline">{hero.tagline}</p>
         {hero.highlights?.length > 0 ? (

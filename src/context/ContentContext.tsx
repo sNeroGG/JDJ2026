@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -11,13 +10,12 @@ import {
   AUTH_KEY,
   AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
-  STORAGE_KEY,
   type SiteContent,
 } from "../data/defaultContent";
+import { SAVED_CONTENT } from "../data/savedContent";
 
 type ContentContextValue = {
   content: SiteContent;
-  contentReady: boolean;
   setContent: (next: SiteContent) => void;
   updateContent: (updater: (prev: SiteContent) => SiteContent) => void;
   saveContent: (next?: SiteContent) => Promise<void>;
@@ -123,13 +121,7 @@ function mergeContent(parsed: Partial<SiteContent>): SiteContent {
 }
 
 function loadContent(): SiteContent {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_CONTENT;
-    return mergeContent(JSON.parse(raw) as Partial<SiteContent>);
-  } catch {
-    return DEFAULT_CONTENT;
-  }
+  return mergeContent(SAVED_CONTENT);
 }
 
 function loadAuth(): boolean {
@@ -145,39 +137,31 @@ function authHeader() {
   return { Authorization: `Bearer ${password}` };
 }
 
+async function saveLocally(content: SiteContent) {
+  if (!import.meta.env.DEV) {
+    throw new Error(
+      "Los archivos se guardan en el proyecto en local. Corre npm run dev, guarda, y sube el commit a GitHub para Vercel.",
+    );
+  }
+  const remote = await fetch("/__admin/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader(),
+    },
+    body: JSON.stringify({ content }),
+  });
+  const payload = (await remote.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+  if (!remote.ok) {
+    throw new Error(payload?.error || "No se pudo guardar en el proyecto.");
+  }
+}
+
 export function ContentProvider({ children }: { children: ReactNode }) {
   const [content, setContentState] = useState<SiteContent>(loadContent);
-  const [contentReady, setContentReady] = useState(
-    () => loadContent().logoUrl !== DEFAULT_CONTENT.logoUrl,
-  );
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuth());
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function hydrate() {
-      try {
-        const remote = await fetch("/api/content", { cache: "no-store" });
-        if (remote.ok) {
-          const data = mergeContent(
-            (await remote.json()) as Partial<SiteContent>,
-          );
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          if (!cancelled) setContentState(data);
-          return;
-        }
-      } catch {
-        // local / sin Blob
-      } finally {
-        if (!cancelled) setContentReady(true);
-      }
-    }
-
-    void hydrate();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const setContent = useCallback((next: SiteContent) => {
     setContentState(next);
@@ -193,69 +177,16 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   const saveContent = useCallback(async (next?: SiteContent) => {
     const value = next ?? content;
     setContentState(value);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-    try {
-      const remote = await fetch("/api/content", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeader(),
-        },
-        body: JSON.stringify(value),
-      });
-      if (!remote.ok && remote.status !== 404) {
-        const payload = (await remote.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        if (remote.status === 401) {
-          throw new Error("No autorizado para guardar en Vercel.");
-        }
-        if (payload?.error && remote.status >= 500) {
-          throw new Error(
-            "No se pudo guardar en Vercel Blob. Revisa el Blob Store.",
-          );
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.startsWith("No ")) {
-        throw error;
-      }
-    }
+    await saveLocally(value);
   }, [content]);
 
   const resetContent = useCallback(async () => {
-    localStorage.removeItem(STORAGE_KEY);
     setContentState(DEFAULT_CONTENT);
-    try {
-      await fetch("/api/content", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeader(),
-        },
-        body: JSON.stringify(DEFAULT_CONTENT),
-      });
-    } catch {
-      // local
-    }
+    await saveLocally(DEFAULT_CONTENT);
   }, []);
 
   const login = useCallback(async (password: string) => {
-    let ok = password === getAdminPassword();
-    try {
-      const remote = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (remote.ok && remote.headers.get("content-type")?.includes("json")) {
-        ok = true;
-      } else if (remote.status === 401) {
-        ok = false;
-      }
-    } catch {
-      // sin API (local)
-    }
+    const ok = password === getAdminPassword();
     if (ok) {
       sessionStorage.setItem(AUTH_KEY, "1");
       sessionStorage.setItem(AUTH_SECRET_KEY, password);
@@ -273,7 +204,6 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       content,
-      contentReady,
       setContent,
       updateContent,
       saveContent,
@@ -284,7 +214,6 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     }),
     [
       content,
-      contentReady,
       setContent,
       updateContent,
       saveContent,

@@ -79,22 +79,24 @@ export function AdminPage() {
       setLogoNotice(
         error instanceof Error
           ? error.message
-          : "No se pudo guardar en Vercel.",
+          : "No se pudo guardar en el proyecto.",
       );
     }
   }
 
-  async function uploadOrWarn(file: File) {
+  async function uploadOrWarn(file: File, folder: "images" | "docs") {
     try {
-      setLogoNotice(`Subiendo ${file.name}…`);
-      const url = await uploadMedia(file);
-      setLogoNotice(`${file.name} se subió. Guarda los cambios.`);
+      setLogoNotice(`Guardando ${file.name} en public/${folder}…`);
+      const url = await uploadMedia(file, folder);
+      setLogoNotice(
+        `${file.name} quedó en public/${folder}. Guarda los cambios y súbelos a GitHub.`,
+      );
       return url;
     } catch (error) {
       setLogoNotice(
         error instanceof Error
           ? error.message
-          : "No se pudo subir. En Vercel conecta un Blob Store. En local usa una ruta de public/.",
+          : "No se pudo guardar el archivo. Usa npm run dev en local.",
       );
       return null;
     }
@@ -104,7 +106,7 @@ export function AdminPage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    const url = await uploadOrWarn(file);
+    const url = await uploadOrWarn(file, "images");
     if (!url) return;
     setDraft((prev) => ({ ...prev, logoUrl: url }));
   }
@@ -115,7 +117,7 @@ export function AdminPage() {
     if (!files?.length) return;
     const uploads: CatechesisDoc[] = [];
     for (const file of Array.from(files)) {
-      const href = await uploadOrWarn(file);
+      const href = await uploadOrWarn(file, "docs");
       if (!href) continue;
       uploads.push({
         id: createId("doc"),
@@ -141,7 +143,7 @@ export function AdminPage() {
     if (!files?.length) return;
     const uploads: PartnerLogo[] = [];
     for (const file of Array.from(files)) {
-      const src = await uploadOrWarn(file);
+      const src = await uploadOrWarn(file, "images");
       if (!src) continue;
       uploads.push({
         id: createId("logo"),
@@ -166,8 +168,9 @@ export function AdminPage() {
           <p className="admin-login__eyebrow">JDJ 2026</p>
           <h1>Panel de administración</h1>
           <p>
-            En Vercel puedes subir logos y documentos. Se guardan en Blob y se
-            ven en el sitio.
+            En local (`npm run dev`) puedes guardar logos y documentos en el
+            proyecto. Luego subes el commit a GitHub y Vercel los sirve con la
+            web.
           </p>
           <label>
             Contraseña
@@ -219,7 +222,8 @@ export function AdminPage() {
           <div>
             <h1>Contenido de la landing</h1>
             <p>
-              Guarda para publicar en Vercel (Blob) y en este navegador.
+              En local, Guardar escribe en el proyecto. Sube esos archivos a
+              GitHub para que Vercel los publique con el sitio.
             </p>
           </div>
           <div className="admin__actions">
@@ -444,8 +448,8 @@ export function AdminPage() {
           <section className="admin-panel">
             <h2>Logo principal</h2>
             <p className="admin-panel__hint">
-              En Vercel puedes subir el PNG aquí. En local también puedes usar
-              una ruta de <code>public/images/</code>.
+              Sube el PNG aquí en local: se guarda en{" "}
+              <code>public/images/</code>. También puedes pegar esa ruta a mano.
             </p>
             <div className="admin-logo-preview">
               <img src={draft.logoUrl} alt="Vista previa del logo" />
@@ -966,8 +970,8 @@ export function AdminPage() {
           <section className="admin-panel">
             <h2>Catequesis / documentos</h2>
             <p className="admin-panel__hint">
-              En Vercel sube el PDF aquí. También puedes pegar una ruta de{" "}
-              <code>public/docs/</code> o un enlace de Drive.
+              En local sube el PDF aquí: se guarda en <code>public/docs/</code>.
+              También puedes pegar esa ruta o un enlace de Drive.
             </p>
             <div className="admin-grid">
               <label>
@@ -1083,8 +1087,8 @@ export function AdminPage() {
             </div>
             {draft.catechesis.docs.length === 0 ? (
               <p className="admin-empty">
-                Aún no hay documentos. Agrega una ruta de <code>public/docs</code>{" "}
-                o un enlace.
+                Aún no hay documentos. Súbelos en local o pega una ruta de{" "}
+                <code>public/docs</code>.
               </p>
             ) : (
               draft.catechesis.docs.map((doc, index) => (
@@ -1227,8 +1231,8 @@ export function AdminPage() {
               />
             </label>
             <p className="admin-panel__hint">
-              En Vercel sube los logos aquí. También puedes pegar una ruta de{" "}
-              <code>public/images/</code>.
+              En local sube los logos aquí: se guardan en{" "}
+              <code>public/images/</code>. También puedes pegar esa ruta.
             </p>
             <label className="file-field">
               Subir logos
@@ -1266,7 +1270,8 @@ export function AdminPage() {
             <div className="admin-logos">
               {draft.partners.logos.length === 0 ? (
                 <p className="admin-empty">
-                  Aún no hay logos. Agrega rutas de <code>public/images</code>.
+                  Aún no hay logos. Súbelos en local o pega una ruta de{" "}
+                  <code>public/images</code>.
                 </p>
               ) : (
                 draft.partners.logos.map((logo, index) => (
