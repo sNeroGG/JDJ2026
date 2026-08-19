@@ -13,8 +13,12 @@ function adminPassword() {
   return process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || "jdj2026";
 }
 
-function hasBlobToken() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+function blobHelp(message: string) {
+  const lower = message.toLowerCase();
+  if (lower.includes("token") || lower.includes("oidc") || lower.includes("auth")) {
+    return "Blob no autenticó. En Vercel: Storage → Blob → Connect to Project, y Redeploy. Si hace falta, copia BLOB_READ_WRITE_TOKEN del store a Environment Variables.";
+  }
+  return message;
 }
 
 export default async function handler(
@@ -36,12 +40,32 @@ export default async function handler(
     });
   }
 
-  if (!hasBlobToken()) {
-    return response.status(500).json({
-      error:
-        "Falta BLOB_READ_WRITE_TOKEN. En Vercel crea un Blob Store y conéctalo al proyecto, luego haz Redeploy.",
-    });
+  const filename =
+    typeof request.body?.filename === "string" ? request.body.filename : "";
+  const contentType =
+    typeof request.body?.contentType === "string"
+      ? request.body.contentType
+      : "application/octet-stream";
+  const data = typeof request.body?.data === "string" ? request.body.data : "";
+
+  if (!filename || !data) {
+    return response.status(400).json({ error: "Archivo incompleto" });
   }
+
+  try {
+    const buffer = Buffer.from(data, "base64");
+    const blob = await put(`jdj/${Date.now()}-${filename}`, buffer, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType,
+    });
+    return response.status(200).json({ url: blob.url });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error al subir a Blob";
+    return response.status(500).json({ error: blobHelp(message) });
+  }
+}
 
   const filename =
     typeof request.body?.filename === "string" ? request.body.filename : "";

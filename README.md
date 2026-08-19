@@ -13,12 +13,12 @@ Landing de la Jornada Diocesana de la Juventud — Arquidiócesis de San Salvado
 No hace falta pasar por GitHub cada vez. El panel `/admin` sube a Blob y el sitio lee esas URLs.
 
 1. En Vercel: **Storage → Create Database → Blob**
-2. Conecta el Blob al proyecto (crea `BLOB_READ_WRITE_TOKEN`)
-3. Variables de entorno:
-   - `ADMIN_PASSWORD` (la del panel; no uses el prefijo `VITE_` para esta)
-   - `VITE_ADMIN_PASSWORD` igual, para el login en el navegador
-4. Redeploy
-5. Entra a `https://tu-dominio.vercel.app/admin`, sube el logo o los PDFs y pulsa **Guardar cambios**
+2. Abre el store → **Connect Project** y elige este sitio
+3. Variables:
+   - `ADMIN_PASSWORD`
+   - `VITE_ADMIN_PASSWORD` (la misma)
+4. **Redeploy** (Deployments → ⋮ → Redeploy)
+5. En `/admin` cierra sesión, entra otra vez, sube el archivo y **Guardar cambios**
 
 En local, sin Blob, puedes seguir usando archivos en `public/images` y `public/docs`.
 
