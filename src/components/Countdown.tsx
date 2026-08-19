@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useContent } from "../context/ContentContext";
-import {
-  endOfEventDay,
-  formatEventDate,
-  getCountdown,
-  parseEventDate,
-} from "../utils/dates";
+import { endOfEventDay, getCountdown, parseEventDate } from "../utils/dates";
 import "./Countdown.css";
 
 const UNITS = [
@@ -37,39 +32,34 @@ export function Countdown() {
   const parts = getCountdown(start, now);
   const started = parts.total === 0;
   const finished = Boolean(dayEnd && now >= dayEnd.getTime());
-  const dateLabel = formatEventDate(schedule.startDate, schedule.dateLabel);
 
   return (
-    <section className="countdown" aria-label={schedule.countdownEyebrow}>
-      <div className="countdown__inner">
-        <div className="countdown__intro">
-          <p className="countdown__eyebrow">{schedule.countdownEyebrow}</p>
-          <p className="countdown__date">{dateLabel}</p>
-        </div>
-
-        {finished ? (
-          <p className="countdown__message">{schedule.countdownDoneText}</p>
-        ) : started ? (
-          <p className="countdown__message">{schedule.countdownLiveText}</p>
-        ) : (
-          <div className="countdown__clock">
-            <span className="countdown__title">{schedule.countdownTitle}</span>
-            <div className="countdown__units" aria-hidden="true">
-              {UNITS.map((unit) => (
-                <div className="countdown__unit" key={unit.key}>
-                  <strong>{String(parts[unit.key]).padStart(2, "0")}</strong>
-                  <span>
-                    {parts[unit.key] === 1 ? unit.singular : unit.plural}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <span className="sr-only">
-              {`Faltan ${parts.days} ${parts.days === 1 ? "día" : "días"} para la ${content.site.name} ${content.site.year}.`}
-            </span>
+    <section
+      className="countdown countdown--hero"
+      aria-label={schedule.countdownEyebrow}
+    >
+      {finished ? (
+        <p className="countdown__message">{schedule.countdownDoneText}</p>
+      ) : started ? (
+        <p className="countdown__message">{schedule.countdownLiveText}</p>
+      ) : (
+        <div className="countdown__clock">
+          <span className="countdown__title">{schedule.countdownTitle}:</span>
+          <div className="countdown__units" aria-hidden="true">
+            {UNITS.map((unit) => (
+              <div className="countdown__unit" key={unit.key}>
+                <strong>{String(parts[unit.key]).padStart(2, "0")}</strong>
+                <span>
+                  {parts[unit.key] === 1 ? unit.singular : unit.plural}
+                </span>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+          <span className="sr-only">
+            {`Faltan ${parts.days} ${parts.days === 1 ? "día" : "días"} para la ${content.site.name} ${content.site.year}.`}
+          </span>
+        </div>
+      )}
     </section>
   );
 }

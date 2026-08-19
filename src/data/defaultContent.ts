@@ -146,6 +146,8 @@ export type SiteContent = {
     items: ScheduleItem[];
   };
   registration: {
+    /** Si es false, la sección y el enlace del menú no aparecen en la landing. */
+    enabled: boolean;
     eyebrow: string;
     title: string;
     lead: string;
@@ -244,10 +246,10 @@ export const DEFAULT_CONTENT: SiteContent = {
         href: "#donde",
       },
       {
-        id: "preparacion",
-        label: "Prepárate",
-        value: "Catequesis",
-        href: "/catequesis",
+        id: "fecha",
+        label: "Fecha",
+        value: "14 nov 2026",
+        href: "",
       },
     ],
   },
@@ -344,10 +346,10 @@ export const DEFAULT_CONTENT: SiteContent = {
         text: "Adolescentes y jóvenes de las 17 vicarias, grupos parroquiales, movimientos y comunidades eclesiales.",
       },
       {
-        id: "prepararte",
-        label: "Cómo prepararte",
-        title: "Camina con tu parroquia",
-        text: "Mantente atento a las convocatorias de tu Pastoral Juvenil parroquial y vicarial. Pronto compartiremos fechas e inscripción.",
+        id: "cuando",
+        label: "Cuándo",
+        title: "14 de noviembre de 2026",
+        text: "Un sábado para encontrarnos en Jayaque. La cuenta regresiva ya está en esta página.",
       },
     ],
   },
@@ -355,8 +357,8 @@ export const DEFAULT_CONTENT: SiteContent = {
     eyebrow: "Agenda",
     title: "El camino hacia el encuentro",
     lead: "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
-    startDate: "",
-    dateLabel: "Fecha por confirmar",
+    startDate: "2026-11-14T08:00",
+    dateLabel: "14 de noviembre de 2026",
     countdownEyebrow: "Cuenta regresiva",
     countdownTitle: "Faltan",
     countdownLiveText: "¡Estamos viviendo la JDJ 2026!",
@@ -364,6 +366,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     items: [],
   },
   registration: {
+    enabled: false,
     eyebrow: "Inscripción",
     title: "Prepara tu lugar en la JDJ 2026",
     lead: "La inscripción se hace acompañado de tu parroquia o vicaría. Así llegamos como comunidad y no como visitantes sueltos.",
@@ -417,9 +420,9 @@ export const DEFAULT_CONTENT: SiteContent = {
       },
       {
         id: "faq-cuando",
-        question: "¿Ya hay fecha definida?",
+        question: "¿Cuándo es la JDJ 2026?",
         answer:
-          "Aún no publicamos la fecha oficial. En cuanto se confirme aparecerá en esta página con su cuenta regresiva y en nuestras redes.",
+          "El sábado 14 de noviembre de 2026, en Jayaque, La Libertad, con la Parroquia San Cristóbal como sede.",
       },
       {
         id: "faq-preparar",

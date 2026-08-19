@@ -12,14 +12,16 @@ export function Footer() {
     <footer className="footer" id="contacto">
       <div className="footer__inner">
         <div className="footer__brand">
-          <SiteLink href="#inicio">
-            <img
-              src={footer.logoUrl}
-              alt={footer.org}
-              className="footer__logo"
-              width={240}
-              height={240}
-            />
+          <SiteLink className="footer__logo-link" href="#inicio">
+            <span className="footer__logo-disc">
+              <img
+                src={footer.logoUrl}
+                alt={footer.org}
+                className="footer__logo"
+                width={240}
+                height={240}
+              />
+            </span>
           </SiteLink>
           <p className="footer__slogan">{hero.slogan}</p>
           <p className="footer__org">{footer.org}</p>

@@ -127,10 +127,9 @@
 }
 
 .hero__logo {
-  width: auto;
+  width: min(86vw, 560px);
   height: auto;
-  max-width: min(86vw, 520px);
-  max-height: min(56vh, 520px);
+  max-width: 100%;
   object-fit: contain;
   object-position: center;
   filter: drop-shadow(0 18px 40px rgba(28, 35, 44, 0.12));
@@ -139,7 +138,7 @@
 }
 
 .hero__slogan {
-  margin-top: 1.2rem;
+  margin-top: 0.7rem;
   font-family: var(--font-script);
   font-size: clamp(2rem, 5vw, 2.85rem);
   font-weight: 600;
@@ -161,8 +160,12 @@
   animation: logo-in 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.34s both;
 }
 
+.hero:has(.countdown) {
+  padding-bottom: 5.5rem;
+}
+
 .hero__highlights {
-  margin-top: 1.35rem;
+  margin-top: 1.1rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -176,18 +179,19 @@
 }
 
 .hero__highlights li:nth-child(1) {
-  animation-delay: 0.42s;
-}
-
-.hero__highlights li:nth-child(2) {
-  animation-delay: 0.5s;
-}
-
-.hero__highlights li:nth-child(3) {
   animation-delay: 0.58s;
 }
 
-.hero__highlights a {
+.hero__highlights li:nth-child(2) {
+  animation-delay: 0.66s;
+}
+
+.hero__highlights li:nth-child(3) {
+  animation-delay: 0.74s;
+}
+
+.hero__highlights a,
+.hero__highlight {
   display: grid;
   gap: 0.12rem;
   min-width: 8.5rem;
@@ -224,35 +228,6 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--navy);
-}
-
-.hero__cta {
-  margin-top: 1.35rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.9rem 1.4rem;
-  border-radius: 999px;
-  background: var(--navy);
-  color: var(--white);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-  transition:
-    transform 0.25s ease,
-    background 0.25s ease;
-  animation: logo-in 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.66s both;
-}
-
-.hero__cta:hover {
-  background: var(--green-deep);
-  transform: translateY(-2px);
-}
-
-.hero__cta span {
-  display: inline-block;
-  animation: bounce-y 1.8s ease-in-out infinite;
 }
 
 @keyframes logo-in {
@@ -326,13 +301,18 @@
   }
 }
 
-@keyframes bounce-y {
-  0%,
-  100% {
-    transform: translateY(0);
+@media (min-width: 900px) {
+  .hero {
+    min-height: auto;
+    padding: 6.5rem 1.5rem 3.25rem;
   }
-  50% {
-    transform: translateY(4px);
+
+  .hero:has(.countdown) {
+    padding-bottom: 3.5rem;
+  }
+
+  .hero__hills {
+    height: 18vh;
   }
 }
 
@@ -351,12 +331,15 @@
   }
 
   .hero__logo {
-    max-width: min(84vw, 380px);
-    max-height: min(46vh, 380px);
+    width: min(88vw, 380px);
+  }
+
+  .hero:has(.countdown) {
+    padding-bottom: 5.25rem;
   }
 
   .hero__slogan {
-    margin-top: 0.85rem;
+    margin-top: 0.55rem;
     font-size: 1.55rem;
   }
 
@@ -368,7 +351,7 @@
   }
 
   .hero__highlights {
-    margin-top: 0.95rem;
+    margin-top: 0.85rem;
     display: grid;
     width: min(100%, 280px);
     gap: 0;
@@ -387,7 +370,8 @@
   .hero__highlights a:hover,
   .hero__highlights a:focus,
   .hero__highlights a:focus-visible,
-  .hero__highlights a:active {
+  .hero__highlights a:active,
+  .hero__highlight {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -412,11 +396,5 @@
   .hero__highlights strong {
     font-size: 0.8rem;
     font-weight: 700;
-  }
-
-  .hero__cta {
-    margin-top: 1rem;
-    padding: 0.7rem 1.1rem;
-    font-size: 0.85rem;
   }
 }

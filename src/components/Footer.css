@@ -2,7 +2,7 @@
   background:
     linear-gradient(180deg, #152028 0%, var(--navy) 45%, #0f1419 100%);
   color: rgba(247, 245, 240, 0.9);
-  padding: clamp(3.5rem, 7vw, 5rem) 0 1.5rem;
+  padding: clamp(2.75rem, 5vw, 3.5rem) 0 1.5rem;
 }
 
 .footer__inner {
@@ -15,14 +15,25 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.footer__logo {
+.footer__logo-link {
+  display: inline-block;
+  margin-bottom: 0.85rem;
+}
+
+.footer__logo-disc {
+  display: grid;
+  place-items: center;
   width: min(100%, 120px);
-  height: auto;
   aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.footer__logo {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   object-position: center;
-  margin-bottom: 0.85rem;
-  background: transparent;
 }
 
 .footer__slogan {

@@ -4,10 +4,10 @@ import sharp from "sharp";
 import { readSavedContent } from "./seo.mjs";
 
 /**
- * Genera la imagen que se ve al compartir el enlace (1200×630) y el icono para
- * iOS, tomando el logo oficial que esté configurado en /admin.
+ * Genera la imagen de compartir (1200×630), el favicon de la pestaña y el
+ * icono de iOS. El OG usa el logo del hero; la pestaña usa el emblema del footer.
  *
- *   node scripts/og-image.mjs [ruta-del-logo]
+ *   node scripts/og-image.mjs [ruta-del-logo-hero]
  */
 
 const ROOT = process.cwd();
@@ -15,11 +15,41 @@ const IMAGES_DIR = path.join(ROOT, "public", "images");
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
+function resolvePublicImage(url, fallback) {
+  const relative = String(url || fallback || "").replace(/^\//, "");
+  const abs = path.join(ROOT, "public", relative);
+  if (abs.toLowerCase().endsWith(".webp")) {
+    const png = abs.replace(/\.webp$/i, ".png");
+    if (fs.existsSync(png)) return png;
+  }
+  return abs;
+}
+
 function resolveLogoPath(explicit) {
   if (explicit) return path.resolve(ROOT, explicit);
   const saved = readSavedContent(ROOT);
-  const url = saved.logoUrl || "/images/logo-jdj-2026.webp";
-  return path.join(ROOT, "public", url.replace(/^\//, ""));
+  return resolvePublicImage(saved.logoUrl, "/images/logo-jdj-2026.webp");
+}
+
+function resolveFooterLogoPath() {
+  const saved = readSavedContent(ROOT);
+  return resolvePublicImage(
+    saved.footer?.logoUrl,
+    "/images/logo-pja.webp",
+  );
+}
+
+async function croppedLogo(logoPath, size, pad = 0) {
+  return sharp(logoPath)
+    .trim({ threshold: 10 })
+    .resize({
+      width: Math.max(1, size - pad * 2),
+      height: Math.max(1, size - pad * 2),
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
 }
 
 function background(width, height) {
@@ -73,18 +103,26 @@ async function buildOgImage(logoPath) {
   return out;
 }
 
+async function buildFavicon(logoPath, size) {
+  const logo = await croppedLogo(logoPath, size, Math.round(size * 0.04));
+  const out = path.join(IMAGES_DIR, `favicon-${size}.png`);
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: logo, gravity: "centre" }])
+    .png()
+    .toFile(out);
+  return out;
+}
+
 async function buildAppleIcon(logoPath) {
   const size = 180;
-  const logo = await sharp(logoPath)
-    .trim()
-    .resize({
-      width: Math.round(size * 0.84),
-      height: Math.round(size * 0.84),
-      fit: "inside",
-    })
-    .png()
-    .toBuffer();
-
+  const logo = await croppedLogo(logoPath, size, Math.round(size * 0.06));
   const out = path.join(IMAGES_DIR, "apple-touch-icon.png");
   await sharp({
     create: {
@@ -105,10 +143,18 @@ async function main() {
   if (!fs.existsSync(logoPath)) {
     throw new Error(`No se encontró el logo: ${logoPath}`);
   }
+  const footerLogoPath = resolveFooterLogoPath();
+  if (!fs.existsSync(footerLogoPath)) {
+    throw new Error(`No se encontró el logo del footer: ${footerLogoPath}`);
+  }
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
   const og = await buildOgImage(logoPath);
-  const icon = await buildAppleIcon(logoPath);
-  console.log(`Listo:\n  ${path.relative(ROOT, og)}\n  ${path.relative(ROOT, icon)}`);
+  const icon32 = await buildFavicon(footerLogoPath, 32);
+  const icon48 = await buildFavicon(footerLogoPath, 48);
+  const apple = await buildAppleIcon(footerLogoPath);
+  console.log(
+    `Listo:\n  ${path.relative(ROOT, og)}\n  ${path.relative(ROOT, icon32)}\n  ${path.relative(ROOT, icon48)}\n  ${path.relative(ROOT, apple)}`,
+  );
 }
 
 main().catch((error) => {

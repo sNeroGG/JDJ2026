@@ -10,9 +10,10 @@ const dayFormatter = new Intl.DateTimeFormat("es-SV", {
   timeZone: SV_TIME_ZONE,
 });
 
-const timeFormatter = new Intl.DateTimeFormat("es-SV", {
-  hour: "numeric",
-  minute: "2-digit",
+const compactDateFormatter = new Intl.DateTimeFormat("es-SV", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
   timeZone: SV_TIME_ZONE,
 });
 
@@ -71,6 +72,19 @@ export function endOfEventDay(start: Date) {
   if (!startOfDay) return start;
   return new Date(startOfDay.getTime() + 86400000);
 }
+
+/** Texto corto para tarjetas, p. ej. `14 nov 2026`. */
+export function formatEventDateCompact(startDate: string, fallback: string) {
+  const start = parseEventDate(startDate);
+  if (!start) return fallback;
+  return compactDateFormatter.format(start).replace(/\./g, "");
+}
+
+const timeFormatter = new Intl.DateTimeFormat("es-SV", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: SV_TIME_ZONE,
+});
 
 /** Texto legible de la fecha de inicio, con `fallback` cuando aún no está definida. */
 export function formatEventDate(startDate: string, fallback: string) {

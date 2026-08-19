@@ -3,7 +3,7 @@
 }
 
 .vicariates__intro {
-  margin-bottom: clamp(2rem, 5vw, 3rem);
+  margin-bottom: clamp(1.35rem, 3vw, 2rem);
 }
 
 .vicariates__grid {

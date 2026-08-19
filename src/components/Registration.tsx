@@ -12,6 +12,7 @@ export function Registration() {
   const { content } = useContent();
   const { registration } = content;
 
+  if (!registration.enabled) return null;
   if (!registration.steps.length && !registration.ctaHref) return null;
 
   return (

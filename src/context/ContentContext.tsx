@@ -99,6 +99,7 @@ function mergeContent(parsed: SavedContent): SiteContent {
     registration: {
       ...DEFAULT_CONTENT.registration,
       ...parsed.registration,
+      enabled: parsed.registration?.enabled ?? DEFAULT_CONTENT.registration.enabled,
       status: REGISTRATION_STATUSES.includes(
         parsed.registration?.status as RegistrationStatus,
       )

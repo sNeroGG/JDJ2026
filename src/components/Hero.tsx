@@ -1,10 +1,18 @@
+import { Countdown } from "./Countdown";
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
+import { formatEventDateCompact } from "../utils/dates";
 import "./Hero.css";
+
+const DATE_HIGHLIGHT_IDS = new Set(["fecha", "preparacion"]);
 
 export function Hero() {
   const { content } = useContent();
-  const { hero, logoUrl } = content;
+  const { hero, logoUrl, schedule } = content;
+  const eventDate = formatEventDateCompact(
+    schedule.startDate,
+    schedule.dateLabel,
+  );
 
   return (
     <header className="hero" id="inicio">
@@ -29,30 +37,39 @@ export function Hero() {
             className="hero__logo"
             src={logoUrl}
             alt="JDJ Jayaque 2026 — Arquidiócesis de San Salvador"
-            width={840}
-            height={840}
+            width={1200}
+            height={689}
             fetchPriority="high"
             decoding="sync"
           />
         </div>
         <p className="hero__slogan">{hero.slogan}</p>
         <p className="hero__tagline">{hero.tagline}</p>
+        <Countdown />
         {hero.highlights?.length > 0 ? (
           <ul className="hero__highlights">
-            {hero.highlights.map((item) => (
-              <li key={item.id}>
-                <SiteLink href={item.href}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </SiteLink>
-              </li>
-            ))}
+            {hero.highlights.map((item) => {
+              const isDate = DATE_HIGHLIGHT_IDS.has(item.id);
+              const value = isDate ? eventDate : item.value;
+              const href = isDate ? "" : item.href;
+              const inner = (
+                <>
+                  <span>{isDate ? "Fecha" : item.label}</span>
+                  <strong>{value}</strong>
+                </>
+              );
+              return (
+                <li key={item.id}>
+                  {href ? (
+                    <SiteLink href={href}>{inner}</SiteLink>
+                  ) : (
+                    <div className="hero__highlight">{inner}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : null}
-        <SiteLink className="hero__cta" href={hero.ctaHref}>
-          {hero.ctaLabel}
-          <span aria-hidden="true">↓</span>
-        </SiteLink>
       </div>
     </header>
   );

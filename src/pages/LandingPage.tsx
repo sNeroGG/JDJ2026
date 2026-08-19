@@ -1,5 +1,4 @@
-import { Catechesis } from "../components/Catechesis";
-import { Countdown } from "../components/Countdown";
+import { useEffect } from "react";
 import { EventInfo } from "../components/EventInfo";
 import { Faq } from "../components/Faq";
 import { Footer } from "../components/Footer";
@@ -27,11 +26,33 @@ export function LandingPage() {
   });
   useStructuredData(content);
 
+  useEffect(() => {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+
+    const nav = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const isReload = nav?.type === "reload";
+
+    if (isReload && window.location.hash) {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+
+    if (isReload || !window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   return (
     <div className="app">
       <Navbar />
       <Hero />
-      <Countdown />
       <main>
         <Location />
         <Meaning />
@@ -39,7 +60,6 @@ export function LandingPage() {
         <EventInfo />
         <Schedule />
         <Registration />
-        <Catechesis />
         <Faq />
         <Partners />
       </main>

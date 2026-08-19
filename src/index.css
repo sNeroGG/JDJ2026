@@ -21,7 +21,7 @@
   --font-script: "Caveat", cursive;
 
   --radius: 1.25rem;
-  --section-pad: clamp(4.5rem, 10vw, 7.5rem);
+  --section-pad: clamp(3rem, 5vw, 4.25rem);
   --content: min(1120px, calc(100% - 2.5rem));
 }
 
@@ -156,5 +156,11 @@ button {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+@media (min-width: 900px) {
+  :root {
+    --section-pad: 3.5rem;
   }
 }

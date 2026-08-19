@@ -6,7 +6,7 @@
 .location__grid {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
-  gap: clamp(2rem, 5vw, 4rem);
+  gap: clamp(1.5rem, 3vw, 2.25rem);
   align-items: start;
   position: relative;
   z-index: 1;
@@ -14,7 +14,7 @@
 
 @media (min-width: 861px) {
   .location.section {
-    padding-top: clamp(2.25rem, 4vw, 3.5rem);
+    padding-top: 2.25rem;
   }
 }
 
