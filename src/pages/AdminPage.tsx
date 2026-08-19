@@ -90,9 +90,11 @@ export function AdminPage() {
       const url = await uploadMedia(file);
       setLogoNotice(`${file.name} se subió. Guarda los cambios.`);
       return url;
-    } catch {
+    } catch (error) {
       setLogoNotice(
-        "No se pudo subir. En Vercel conecta un Blob Store. En local usa una ruta de public/.",
+        error instanceof Error
+          ? error.message
+          : "No se pudo subir. En Vercel conecta un Blob Store. En local usa una ruta de public/.",
       );
       return null;
     }
