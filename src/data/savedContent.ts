@@ -40,7 +40,7 @@ export const SAVED_CONTENT: SavedContent = {
   "location": {
     "eyebrow": "Sede 2026",
     "title": "Este año la JDJ camina hacia Jayaque",
-    "lead": "Un encuentro de fe, esperanza y comunidad en las montañas de la Arquidiócesis de San Salvador.",
+    "lead": "Un encuentro de fe, esperanza y comunidad en las montañas cafetaleras de la libertad en nuestra Arquidiocesis de San Salvador.",
     "parishLabel": "Parroquia sede",
     "parishName": "Parroquia San Cristóbal",
     "placeLine": "Jayaque, El Salvador",
