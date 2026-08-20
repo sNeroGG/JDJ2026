@@ -44,7 +44,7 @@ export const SAVED_CONTENT: SavedContent = {
     "parishLabel": "Parroquia sede",
     "parishName": "Parroquia San Cristóbal",
     "placeLine": "Jayaque, El Salvador",
-    "note": "La cúpula del logo evoca esta iglesia que abre sus puertas para acoger a la juventud diocesana. Los caminos verdes recuerdan la geografía montañosa del lugar y el itinerario del peregrino.",
+    "note": "La cúpula del logo evoca esta iglesia que abre sus puertas para acoger a la juventud Diocesana. Los caminos verdes recuerdan la geografía montañosa del lugar y el itinerario del peregrino.",
     "facts": [
       {
         "id": "municipio",
@@ -86,7 +86,7 @@ export const SAVED_CONTENT: SavedContent = {
   "meaning": {
     "eyebrow": "Identidad",
     "title": "Significado del logo",
-    "lead": "Cada elemento cuenta una parte del mensaje: Eucaristía, Iglesia, camino y unidad diocesana.",
+    "lead": "Cada elemento cuenta una parte del mensaje: Eucaristía, Iglesia, camino y unidad Diocesana.",
     "quote": "Tengan valor y síganme",
     "elements": [
       {
@@ -129,7 +129,7 @@ export const SAVED_CONTENT: SavedContent = {
   "event": {
     "eyebrow": "El encuentro",
     "title": "Información de la JDJ 2026",
-    "lead": "Lo esencial para empezar a prepararte y acompañar este camino diocesano.",
+    "lead": "Lo esencial para empezar a prepararte y acompañar este camino Diocesano.",
     "items": [
       {
         "id": "que-es",
@@ -146,7 +146,7 @@ export const SAVED_CONTENT: SavedContent = {
       {
         "id": "para-quien",
         "label": "Para quién",
-        "title": "Juventud arquidiocesana",
+        "title": "Juventud Arquidiocesana",
         "text": "Adolescentes y jóvenes de las 17 vicarias, grupos parroquiales, movimientos y comunidades eclesiales."
       },
       {
@@ -257,14 +257,48 @@ export const SAVED_CONTENT: SavedContent = {
     ]
   },
   "store": {
-    "logoUrl": "",
+    "logoUrl": "/images/LOGO-STORE-PJA_Mesa-de-trabajo-1-02.webp",
     "eyebrow": "Tienda JDJ",
     "title": "Lleva el encuentro contigo",
     "lead": "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
-    "whatsapp": "",
+    "whatsapp": "50379532973",
     "paymentNote": "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
     "ctaLabel": "Pedir por WhatsApp",
-    "products": []
+    "products": [
+      {
+        "id": "prod-4be0843b",
+        "title": "Camisa JDJ 2026",
+        "description": "",
+        "price": 13.99,
+        "imageUrl": "/images/LOGO-FINAL---OFICIAL-JDJ-26---AGO_Mesa-de-trabajo-1-03.webp",
+        "variants": [
+          {
+            "id": "prod-4be0843b--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 2
+          },
+          {
+            "id": "prod-4be0843b--unica--m",
+            "size": "M",
+            "color": "",
+            "stock": 2
+          },
+          {
+            "id": "prod-4be0843b--unica--l",
+            "size": "L",
+            "color": "",
+            "stock": 1
+          },
+          {
+            "id": "prod-4be0843b--unica--xl",
+            "size": "XL",
+            "color": "",
+            "stock": 1
+          }
+        ]
+      }
+    ]
   },
   "header": {
     "ctaLabel": "Catequesis",

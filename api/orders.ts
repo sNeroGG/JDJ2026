@@ -12,6 +12,7 @@ import {
   listProducts,
   persistKind,
   readOrders,
+  resolveOrderVariantId,
   storeWhatsapp,
   writeOrders,
 } from "./_lib/runtime.js";
@@ -49,7 +50,7 @@ export default async function handler(
         send(res, 409, order);
         return;
       }
-      const stock = adjustStock(product.id, -order.quantity);
+      const stock = adjustStock(product.id, order.variantId, -order.quantity);
       if ("error" in stock) {
         send(res, 409, stock);
         return;
@@ -59,6 +60,8 @@ export default async function handler(
         ok: true,
         order,
         stock: stock.stock,
+        total: stock.total,
+        variantId: stock.variantId,
         whatsappUrl: whatsappOrderUrl(storeWhatsapp(), order),
       });
       return;
@@ -83,23 +86,32 @@ export default async function handler(
         return;
       }
       const current = orders[index];
-      if (current.status !== status) {
+      const variantId = resolveOrderVariantId(current);
+      if (current.status !== status && variantId) {
         if (status === "cancelado" && current.status !== "cancelado") {
-          const restored = adjustStock(current.productId, current.quantity);
+          const restored = adjustStock(
+            current.productId,
+            variantId,
+            current.quantity,
+          );
           if ("error" in restored) {
             send(res, 409, restored);
             return;
           }
         }
         if (current.status === "cancelado" && status !== "cancelado") {
-          const taken = adjustStock(current.productId, -current.quantity);
+          const taken = adjustStock(
+            current.productId,
+            variantId,
+            -current.quantity,
+          );
           if ("error" in taken) {
             send(res, 409, taken);
             return;
           }
         }
       }
-      orders[index] = { ...current, status };
+      orders[index] = { ...current, status, variantId: current.variantId || variantId };
       writeOrders(orders);
       send(res, 200, { ok: true, order: orders[index] });
       return;

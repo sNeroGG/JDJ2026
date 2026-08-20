@@ -6,9 +6,17 @@ import { useReveal } from "../hooks/useReveal";
 import { useSeo } from "../hooks/useSeo";
 import type { StoreProduct } from "../data/defaultContent";
 import {
+  applyStockMap,
+  findVariant,
+  firstAvailableVariant,
   formatUsd,
   normalizeWhatsapp,
+  productColors,
+  productSizes,
+  productStock,
+  variantLabel,
   whatsappOrderUrl,
+  type StoreStockMap,
 } from "../utils/store";
 import "./StorePage.css";
 
@@ -18,6 +26,7 @@ type Checkout = {
   email: string;
   phone: string;
   size: string;
+  color: string;
   quantity: number;
   note: string;
 };
@@ -27,6 +36,7 @@ const EMPTY_CHECKOUT: Omit<Checkout, "product"> = {
   email: "",
   phone: "",
   size: "",
+  color: "",
   quantity: 1,
   note: "",
 };
@@ -35,9 +45,7 @@ export function StorePage() {
   const ref = useReveal<HTMLElement>();
   const { content, updateContent } = useContent();
   const { store, site } = content;
-  const [liveStock, setLiveStock] = useState<Record<string, number> | null>(
-    null,
-  );
+  const [liveStock, setLiveStock] = useState<StoreStockMap | null>(null);
   const [checkout, setCheckout] = useState<Checkout | null>(null);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
@@ -58,46 +66,80 @@ export function StorePage() {
     void fetch("/api/store")
       .then(async (remote) => {
         if (!remote.ok) return;
-        const payload = (await remote.json()) as {
-          stock?: Record<string, number>;
-        };
+        const payload = (await remote.json()) as { stock?: StoreStockMap };
         if (payload.stock) setLiveStock(payload.stock);
       })
       .catch(() => undefined);
   }, []);
 
   const products = useMemo(
-    () =>
-      store.products.map((product) => ({
-        ...product,
-        stock: liveStock?.[product.id] ?? product.stock,
-      })),
+    () => applyStockMap(store.products, liveStock),
     [liveStock, store.products],
   );
 
   const whatsappReady = Boolean(normalizeWhatsapp(store.whatsapp));
+  const selected = checkout
+    ? findVariant(checkout.product, checkout)
+    : undefined;
+  const selectedStock = selected?.stock ?? 0;
+  const checkoutColors = checkout ? productColors(checkout.product) : [];
+  const checkoutSizes = checkout
+    ? productSizes(checkout.product, checkout.color)
+    : [];
 
   function openCheckout(product: StoreProduct) {
+    const variant = firstAvailableVariant(product);
     setNotice("");
     setCheckout({
       product,
       ...EMPTY_CHECKOUT,
-      size: product.sizes[0] || "",
+      size: variant?.size || "",
+      color: variant?.color || "",
       quantity: 1,
     });
   }
 
-  function patchStock(productId: string, stock: number) {
-    setLiveStock((prev) => ({ ...(prev ?? {}), [productId]: stock }));
+  function patchVariantStock(
+    productId: string,
+    variantId: string,
+    stock: number,
+  ) {
+    setLiveStock((prev) => ({
+      ...(prev ?? {}),
+      [productId]: {
+        ...(prev?.[productId] ?? {}),
+        [variantId]: stock,
+      },
+    }));
     updateContent((prev) => ({
       ...prev,
       store: {
         ...prev.store,
         products: prev.store.products.map((item) =>
-          item.id === productId ? { ...item, stock } : item,
+          item.id === productId
+            ? {
+                ...item,
+                variants: item.variants.map((variant) =>
+                  variant.id === variantId ? { ...variant, stock } : variant,
+                ),
+              }
+            : item,
         ),
       },
     }));
+  }
+
+  function setCheckoutVariant(
+    patch: Partial<Pick<Checkout, "size" | "color" | "quantity">>,
+  ) {
+    if (!checkout) return;
+    const next = { ...checkout, ...patch };
+    const variant = findVariant(next.product, next);
+    const max = Math.max(1, variant?.stock ?? 1);
+    setCheckout({
+      ...next,
+      quantity: Math.min(Math.max(1, next.quantity), max),
+    });
   }
 
   async function submitOrder(event: FormEvent) {
@@ -106,6 +148,7 @@ export function StorePage() {
     setSending(true);
     setNotice("");
     try {
+      const variant = findVariant(checkout.product, checkout);
       const remote = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,7 +157,9 @@ export function StorePage() {
           email: checkout.email,
           phone: checkout.phone,
           productId: checkout.product.id,
+          variantId: variant?.id || "",
           size: checkout.size,
+          color: checkout.color,
           quantity: checkout.quantity,
           note: checkout.note,
         }),
@@ -123,14 +168,19 @@ export function StorePage() {
         error?: string;
         order?: Parameters<typeof whatsappOrderUrl>[1];
         stock?: number;
+        variantId?: string;
         whatsappUrl?: string;
       } | null;
       if (!remote.ok || !payload?.order) {
         setNotice(payload?.error || "No se pudo registrar el pedido.");
         return;
       }
-      if (typeof payload.stock === "number") {
-        patchStock(checkout.product.id, payload.stock);
+      if (typeof payload.stock === "number" && payload.variantId) {
+        patchVariantStock(
+          checkout.product.id,
+          payload.variantId,
+          payload.stock,
+        );
       }
       const url =
         payload.whatsappUrl ||
@@ -164,7 +214,7 @@ export function StorePage() {
                   src={store.logoUrl}
                   alt={`Logo de ${store.title}`}
                   width={280}
-                  height={160}
+                  height={141}
                 />
               ) : null}
               <p className="section__eyebrow">{store.eyebrow}</p>
@@ -182,7 +232,8 @@ export function StorePage() {
             ) : (
               <div className="store-page__grid">
                 {products.map((product) => {
-                  const soldOut = product.stock <= 0;
+                  const total = productStock(product);
+                  const soldOut = total <= 0;
                   return (
                     <article
                       className={`store-card reveal${soldOut ? " is-soldout" : ""}`}
@@ -203,14 +254,16 @@ export function StorePage() {
                           <span className="store-card__badge">Agotado</span>
                         ) : (
                           <span className="store-card__stock">
-                            {product.stock}{" "}
-                            {product.stock === 1 ? "disponible" : "disponibles"}
+                            {total} {total === 1 ? "disponible" : "disponibles"}
                           </span>
                         )}
                       </div>
                       <div className="store-card__body">
                         <h2>{product.title}</h2>
                         {product.description ? <p>{product.description}</p> : null}
+                        <p className="store-card__variants">
+                          {variantSummary(product)}
+                        </p>
                         <p className="store-card__price">
                           {formatUsd(product.price)}
                         </p>
@@ -299,21 +352,49 @@ export function StorePage() {
               />
             </label>
             <div className="store-modal__row">
-              {checkout.product.sizes.length ? (
+              {checkoutColors.length ? (
+                <label>
+                  Color
+                  <select
+                    value={checkout.color}
+                    onChange={(e) =>
+                      setCheckoutVariant({
+                        color: e.target.value,
+                        size:
+                          productSizes(checkout.product, e.target.value)[0] || "",
+                      })
+                    }
+                    required
+                  >
+                    {checkoutColors.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {checkoutSizes.length ? (
                 <label>
                   Talla
                   <select
                     value={checkout.size}
-                    onChange={(e) =>
-                      setCheckout({ ...checkout, size: e.target.value })
-                    }
+                    onChange={(e) => setCheckoutVariant({ size: e.target.value })}
                     required
                   >
-                    {checkout.product.sizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
+                    {checkoutSizes.map((size) => {
+                      const variant = findVariant(checkout.product, {
+                        size,
+                        color: checkout.color,
+                      });
+                      const left = variant?.stock ?? 0;
+                      return (
+                        <option key={size} value={size} disabled={left <= 0}>
+                          {size}
+                          {left <= 0 ? " (agotada)" : ` (${left})`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
               ) : null}
@@ -322,11 +403,10 @@ export function StorePage() {
                 <input
                   type="number"
                   min={1}
-                  max={Math.max(1, checkout.product.stock)}
+                  max={Math.max(1, selectedStock)}
                   value={checkout.quantity}
                   onChange={(e) =>
-                    setCheckout({
-                      ...checkout,
+                    setCheckoutVariant({
                       quantity: Number(e.target.value) || 1,
                     })
                   }
@@ -334,6 +414,13 @@ export function StorePage() {
                 />
               </label>
             </div>
+            {selected ? (
+              <p className="store-modal__stock">
+                {selectedStock > 0
+                  ? `${selectedStock} disponible(s) en ${variantLabel(selected)}.`
+                  : `${variantLabel(selected)} está agotada.`}
+              </p>
+            ) : null}
             <label>
               Nota (opcional)
               <textarea
@@ -358,7 +445,11 @@ export function StorePage() {
               >
                 Cancelar
               </button>
-              <button type="submit" className="store-card__cta" disabled={sending}>
+              <button
+                type="submit"
+                className="store-card__cta"
+                disabled={sending || selectedStock < checkout.quantity}
+              >
                 {sending ? "Enviando…" : "Enviar por WhatsApp"}
               </button>
             </div>
@@ -367,4 +458,12 @@ export function StorePage() {
       ) : null}
     </div>
   );
+}
+
+function variantSummary(product: StoreProduct) {
+  const available = product.variants.filter((item) => item.stock > 0);
+  if (!available.length) return "Sin unidades por talla";
+  return available
+    .map((item) => `${variantLabel(item)} ${item.stock}`)
+    .join(" · ");
 }

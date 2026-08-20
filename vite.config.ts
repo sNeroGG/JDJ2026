@@ -23,10 +23,11 @@ import {
 } from "./src/server/instagramFeed.ts";
 import type { StoreOrder } from "./src/data/defaultContent.ts";
 import {
-  adjustProductStock,
+  adjustVariantStock,
   listStoreProducts,
   readSavedContent as readStoreContent,
   readSavedOrders,
+  resolveOrderVariantId,
   stockMap,
   writeSavedContent,
   writeSavedOrders,
@@ -314,7 +315,12 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
               sendJson(res, 409, order);
               return;
             }
-            const stock = adjustProductStock(root, product.id, -order.quantity);
+            const stock = adjustVariantStock(
+              root,
+              product.id,
+              order.variantId,
+              -order.quantity,
+            );
             if ("error" in stock) {
               sendJson(res, 409, stock);
               return;
@@ -326,6 +332,8 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
               ok: true,
               order,
               stock: stock.stock,
+              total: stock.total,
+              variantId: stock.variantId,
               whatsappUrl: whatsappOrderUrl(
                 String(store?.whatsapp || ""),
                 order,
@@ -353,11 +361,13 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
               return;
             }
             const current = orders[index];
-            if (current.status !== status) {
+            const variantId = resolveOrderVariantId(root, current);
+            if (current.status !== status && variantId) {
               if (status === "cancelado" && current.status !== "cancelado") {
-                const restored = adjustProductStock(
+                const restored = adjustVariantStock(
                   root,
                   current.productId,
+                  variantId,
                   current.quantity,
                 );
                 if ("error" in restored) {
@@ -366,9 +376,10 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
                 }
               }
               if (current.status === "cancelado" && status !== "cancelado") {
-                const taken = adjustProductStock(
+                const taken = adjustVariantStock(
                   root,
                   current.productId,
+                  variantId,
                   -current.quantity,
                 );
                 if ("error" in taken) {
@@ -377,7 +388,11 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
                 }
               }
             }
-            orders[index] = { ...current, status };
+            orders[index] = {
+              ...current,
+              status,
+              variantId: current.variantId || variantId,
+            };
             writeSavedOrders(root, orders);
             sendJson(res, 200, { ok: true, order: orders[index] });
             return;

@@ -19,11 +19,20 @@ import {
   type StoreOrder,
   type StoreOrderStatus,
   type StoreProduct,
+  type StoreVariant,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
 import { instagramPermalink, normalizeInstagramPosts } from "../utils/instagram";
 import { uploadMedia } from "../utils/media";
-import { formatOrderDate, formatUsd } from "../utils/store";
+import {
+  buildOrderReport,
+  defaultProductVariants,
+  findVariant,
+  formatOrderDate,
+  formatUsd,
+  productStock,
+  variantLabel,
+} from "../utils/store";
 import "./AdminPage.css";
 
 const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
@@ -85,7 +94,7 @@ export function AdminPage() {
   }, [isAuthenticated, section, draft.catechesis.docs.length]);
 
   useEffect(() => {
-    if (!isAuthenticated || section !== "orders") return;
+    if (!isAuthenticated) return;
     const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
     void fetch("/api/orders", {
       headers: { Authorization: `Bearer ${secret}` },
@@ -107,13 +116,18 @@ export function AdminPage() {
       .catch(() => {
         setOrdersNotice("No se pudieron cargar los pedidos.");
       });
-  }, [isAuthenticated, section]);
+  }, [isAuthenticated]);
 
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
   const itemCount = draft.schedule.items.length;
   const faqCount = draft.faq.items.length;
   const productCount = draft.store.products.length;
+  const orderReport = useMemo(
+    () => buildOrderReport(orders, draft.store.products),
+    [draft.store.products, orders],
+  );
+
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(content),
     [draft, content],
@@ -375,11 +389,30 @@ export function AdminPage() {
     }
   }
 
-  function applyProductStock(productId: string, delta: number) {
+  function patchVariant(
+    productIndex: number,
+    variantIndex: number,
+    patch: Partial<StoreVariant>,
+  ) {
+    const product = draft.store.products[productIndex];
+    const variants = product.variants.map((item, index) =>
+      index === variantIndex ? { ...item, ...patch } : item,
+    );
+    patchProduct(productIndex, { variants });
+  }
+
+  function applyVariantStock(productId: string, variantId: string, delta: number) {
     const apply = (products: StoreProduct[]) =>
       products.map((item) =>
         item.id === productId
-          ? { ...item, stock: Math.max(0, item.stock + delta) }
+          ? {
+              ...item,
+              variants: item.variants.map((variant) =>
+                variant.id === variantId
+                  ? { ...variant, stock: Math.max(0, variant.stock + delta) }
+                  : variant,
+              ),
+            }
           : item,
       );
     setDraft((prev) => ({
@@ -417,11 +450,21 @@ export function AdminPage() {
       setOrders((prev) =>
         prev.map((item) => (item.id === id ? payload.order! : item)),
       );
-      if (status === "cancelado" && current.status !== "cancelado") {
-        applyProductStock(current.productId, current.quantity);
-      }
-      if (current.status === "cancelado" && status !== "cancelado") {
-        applyProductStock(current.productId, -current.quantity);
+      const variantId =
+        current.variantId ||
+        findVariant(
+          draft.store.products.find((item) => item.id === current.productId) || {
+            variants: [],
+          },
+          current,
+        )?.id;
+      if (variantId) {
+        if (status === "cancelado" && current.status !== "cancelado") {
+          applyVariantStock(current.productId, variantId, current.quantity);
+        }
+        if (current.status === "cancelado" && status !== "cancelado") {
+          applyVariantStock(current.productId, variantId, -current.quantity);
+        }
       }
       setOrdersNotice("Pedido actualizado.");
     } catch {
@@ -1381,29 +1424,30 @@ export function AdminPage() {
             <section className="admin-panel">
               <h2>Productos{productCount ? ` (${productCount})` : ""}</h2>
               <p className="admin-panel__hint">
-                Stock 0 se muestra como AGOTADO. Las tallas van separadas por
-                coma, por ejemplo S, M, L, XL.
+                El stock se descuenta por talla y color al hacer un pedido. Si
+                hay 5 camisas S, cada compra de S baja ese número. Color es
+                opcional.
               </p>
               <div className="admin-inline-actions">
                 <button
                   type="button"
                   className="btn btn--ghost"
-                  onClick={() =>
+                  onClick={() => {
+                    const id = createId("prod");
                     patchStore({
                       products: [
                         ...draft.store.products,
                         {
-                          id: createId("prod"),
+                          id,
                           title: "Camisa JDJ 2026",
                           description: "",
                           price: 10,
                           imageUrl: "",
-                          stock: 0,
-                          sizes: ["S", "M", "L", "XL"],
+                          variants: defaultProductVariants(id),
                         },
                       ],
-                    })
-                  }
+                    });
+                  }}
                 >
                   Agregar producto
                 </button>
@@ -1462,35 +1506,86 @@ export function AdminPage() {
                         />
                       </label>
                       <label>
-                        Stock (0 = agotado)
+                        Stock total
                         <input
-                          type="number"
-                          min={0}
-                          step="1"
-                          value={product.stock}
-                          onChange={(e) =>
-                            patchProduct(index, {
-                              stock: Math.max(0, Number(e.target.value) || 0),
-                            })
-                          }
+                          value={productStock(product)}
+                          readOnly
                         />
                       </label>
                     </div>
-                    <label>
-                      Tallas
-                      <input
-                        value={product.sizes.join(", ")}
-                        onChange={(e) =>
-                          patchProduct(index, {
-                            sizes: e.target.value
-                              .split(",")
-                              .map((item) => item.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        placeholder="S, M, L, XL"
-                      />
-                    </label>
+                    <div className="admin-variants">
+                      <div className="admin-variants__head">
+                        <span>Talla</span>
+                        <span>Color</span>
+                        <span>Stock</span>
+                        <span />
+                      </div>
+                      {product.variants.map((variant, variantIndex) => (
+                        <div className="admin-variants__row" key={variant.id}>
+                          <input
+                            value={variant.size}
+                            placeholder="S"
+                            onChange={(e) =>
+                              patchVariant(index, variantIndex, {
+                                size: e.target.value,
+                              })
+                            }
+                          />
+                          <input
+                            value={variant.color}
+                            placeholder="Azul"
+                            onChange={(e) =>
+                              patchVariant(index, variantIndex, {
+                                color: e.target.value,
+                              })
+                            }
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={variant.stock}
+                            onChange={(e) =>
+                              patchVariant(index, variantIndex, {
+                                stock: Math.max(0, Number(e.target.value) || 0),
+                              })
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn btn--danger"
+                            onClick={() =>
+                              patchProduct(index, {
+                                variants: product.variants.filter(
+                                  (item) => item.id !== variant.id,
+                                ),
+                              })
+                            }
+                          >
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() =>
+                        patchProduct(index, {
+                          variants: [
+                            ...product.variants,
+                            {
+                              id: createId("var"),
+                              size: "",
+                              color: "",
+                              stock: 0,
+                            },
+                          ],
+                        })
+                      }
+                    >
+                      Agregar talla o color
+                    </button>
                     <button
                       type="button"
                       className="btn btn--danger"
@@ -1516,13 +1611,59 @@ export function AdminPage() {
             <h2>Pedidos{orders.length ? ` (${orders.length})` : ""}</h2>
             <p className="admin-panel__hint">
               Cada compra llega aquí y se abre WhatsApp con el pedido. El pago
-              es por transferencia.
+              es por transferencia. El stock se descuenta por talla y color;
+              si cancelas, se devuelve a esa variante.
               {ordersPersist === "memory"
                 ? " En producción, configura GITHUB_TOKEN si quieres conservarlos entre deploys."
                 : ordersPersist === "file"
                   ? " En local se guardan en src/data/savedOrders.ts."
                   : ""}
             </p>
+            <div className="admin-report">
+              <article className="admin-report__card">
+                <p>Pedidos</p>
+                <strong>{orderReport.total}</strong>
+                <span>
+                  {orderReport.byStatus.nuevo} nuevos ·{" "}
+                  {orderReport.byStatus.atendido} atendidos ·{" "}
+                  {orderReport.byStatus.cancelado} cancelados
+                </span>
+              </article>
+              <article className="admin-report__card">
+                <p>Unidades vendidas</p>
+                <strong>{orderReport.units}</strong>
+                <span>Sin contar cancelados</span>
+              </article>
+              <article className="admin-report__card">
+                <p>Total</p>
+                <strong>{formatUsd(orderReport.revenue)}</strong>
+                <span>Transferencias registradas</span>
+              </article>
+            </div>
+            {orderReport.lines.length ? (
+              <div className="admin-stock-table-wrap">
+                <table className="admin-stock-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Variante</th>
+                      <th>Vendidas</th>
+                      <th>Quedan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderReport.lines.map((line) => (
+                      <tr key={`${line.productId}-${line.variantId}`}>
+                        <td>{line.productTitle}</td>
+                        <td>{variantLabel(line)}</td>
+                        <td>{line.sold}</td>
+                        <td>{line.remaining}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
             <div className="admin-inline-actions">
               <button
                 type="button"
@@ -1552,6 +1693,7 @@ export function AdminPage() {
                   </p>
                   <p>
                     {order.productTitle}
+                    {order.color ? ` · ${order.color}` : ""}
                     {order.size ? ` · Talla ${order.size}` : ""} ·{" "}
                     {order.quantity} {order.quantity === 1 ? "unidad" : "unidades"}{" "}
                     · {formatUsd(order.total)} · {order.payment}

@@ -2,6 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import type { StoreOrder, StoreProduct } from "../data/defaultContent.ts";
 import { serializeSavedContent } from "./contentFile.ts";
+import {
+  normalizeStoreProducts,
+  orderVariantId,
+  stockMapFromProducts,
+  withAdjustedVariantStock,
+} from "../utils/store.ts";
 
 type SavedFile = {
   store?: {
@@ -68,30 +74,43 @@ export function writeSavedContent(root: string, content: SavedFile) {
 
 export function listStoreProducts(root: string): StoreProduct[] {
   const content = readSavedContent(root);
-  return Array.isArray(content.store?.products) ? content.store.products : [];
+  return normalizeStoreProducts(content.store?.products);
 }
 
 export function stockMap(products: StoreProduct[]) {
-  return Object.fromEntries(products.map((item) => [item.id, item.stock]));
+  return stockMapFromProducts(products);
 }
 
-export function adjustProductStock(
+export function adjustVariantStock(
   root: string,
   productId: string,
+  variantId: string,
   delta: number,
 ) {
   const content = readSavedContent(root);
   const store = { ...(content.store ?? {}) };
-  const products = Array.isArray(store.products) ? [...store.products] : [];
+  const products = normalizeStoreProducts(
+    Array.isArray(store.products) ? store.products : [],
+  );
   const index = products.findIndex((item) => item.id === productId);
   if (index < 0) return { error: "Producto no encontrado." };
-  const nextStock = (Number(products[index].stock) || 0) + delta;
-  if (nextStock < 0) {
-    return { error: "No hay suficientes unidades." };
-  }
-  products[index] = { ...products[index], stock: nextStock };
+  const adjusted = withAdjustedVariantStock(products[index], variantId, delta);
+  if ("error" in adjusted) return adjusted;
+  products[index] = adjusted.product;
   store.products = products;
   content.store = store;
   writeSavedContent(root, content);
-  return { stock: nextStock, products };
+  return {
+    stock: adjusted.stock,
+    total: adjusted.total,
+    variantId,
+    products,
+  };
+}
+
+export function resolveOrderVariantId(root: string, order: StoreOrder) {
+  const product = listStoreProducts(root).find(
+    (item) => item.id === order.productId,
+  );
+  return orderVariantId(order, product);
 }

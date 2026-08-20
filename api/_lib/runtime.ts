@@ -3,6 +3,14 @@ import { SAVED_CONTENT } from "../../src/data/savedContent.js";
 import { SAVED_ORDERS } from "../../src/data/savedOrders.js";
 import type { StoreOrder, StoreProduct } from "../../src/data/defaultContent.js";
 import { commitFile } from "./github.js";
+import {
+  applyStockMap,
+  normalizeStoreProducts,
+  orderVariantId,
+  stockMapFromProducts,
+  withAdjustedVariantStock,
+  type StoreStockMap,
+} from "../../src/utils/store.js";
 
 export { persistKind } from "./github.js";
 
@@ -15,7 +23,7 @@ function productsFromContent(): StoreProduct[] {
       store?: { products?: StoreProduct[]; whatsapp?: string };
     }
   ).store;
-  return Array.isArray(store?.products) ? store.products : [];
+  return normalizeStoreProducts(store?.products);
 }
 
 export function storeWhatsapp() {
@@ -24,16 +32,11 @@ export function storeWhatsapp() {
 }
 
 export function listProducts(): StoreProduct[] {
-  const products = productsFromContent().map((item) => ({ ...item }));
-  const overlay = readStockOverlay();
-  return products.map((item) => ({
-    ...item,
-    stock: overlay[item.id] ?? item.stock,
-  }));
+  return applyStockMap(productsFromContent(), readStockOverlay());
 }
 
 export function stockMap() {
-  return Object.fromEntries(listProducts().map((item) => [item.id, item.stock]));
+  return stockMapFromProducts(listProducts());
 }
 
 function readJsonFile<T>(file: string, fallback: T): T {
@@ -48,8 +51,14 @@ function writeJsonFile(file: string, value: unknown) {
   fs.writeFileSync(file, JSON.stringify(value));
 }
 
-function readStockOverlay() {
-  return readJsonFile<Record<string, number>>(STOCK_PATH, {});
+function readStockOverlay(): StoreStockMap {
+  const raw = readJsonFile<StoreStockMap | Record<string, number>>(
+    STOCK_PATH,
+    {},
+  );
+  const first = Object.values(raw)[0];
+  if (typeof first === "number") return {};
+  return raw as StoreStockMap;
 }
 
 export function readOrders(): StoreOrder[] {
@@ -69,17 +78,30 @@ export const SAVED_ORDERS: StoreOrder[] = ${JSON.stringify(orders, null, 2)};
   );
 }
 
-export function writeStock(productId: string, stock: number) {
+export function writeStock(productId: string, variantId: string, stock: number) {
   const overlay = readStockOverlay();
-  overlay[productId] = stock;
+  overlay[productId] = { ...(overlay[productId] ?? {}), [variantId]: stock };
   writeJsonFile(STOCK_PATH, overlay);
 }
 
-export function adjustStock(productId: string, delta: number) {
+export function adjustStock(
+  productId: string,
+  variantId: string,
+  delta: number,
+) {
   const product = listProducts().find((item) => item.id === productId);
   if (!product) return { error: "Producto no encontrado." };
-  const next = product.stock + delta;
-  if (next < 0) return { error: "No hay suficientes unidades." };
-  writeStock(productId, next);
-  return { stock: next };
+  const adjusted = withAdjustedVariantStock(product, variantId, delta);
+  if ("error" in adjusted) return adjusted;
+  writeStock(productId, variantId, adjusted.stock);
+  return {
+    stock: adjusted.stock,
+    total: adjusted.total,
+    variantId,
+  };
+}
+
+export function resolveOrderVariantId(order: StoreOrder) {
+  const product = listProducts().find((item) => item.id === order.productId);
+  return orderVariantId(order, product);
 }

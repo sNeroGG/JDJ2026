@@ -88,15 +88,21 @@ export type Vicariate = {
   note: string;
 };
 
+export type StoreVariant = {
+  id: string;
+  size: string;
+  color: string;
+  /** Unidades de esta talla/color. 0 = agotada. */
+  stock: number;
+};
+
 export type StoreProduct = {
   id: string;
   title: string;
   description: string;
   price: number;
   imageUrl: string;
-  /** 0 = agotado. */
-  stock: number;
-  sizes: string[];
+  variants: StoreVariant[];
 };
 
 export type StoreOrderStatus = "nuevo" | "atendido" | "cancelado";
@@ -109,7 +115,9 @@ export type StoreOrder = {
   phone: string;
   productId: string;
   productTitle: string;
+  variantId: string;
   size: string;
+  color: string;
   quantity: number;
   unitPrice: number;
   total: number;
@@ -316,7 +324,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     parishLabel: "Parroquia sede",
     parishName: "Parroquia San Cristóbal",
     placeLine: "Jayaque, El Salvador",
-    note: "La cúpula del logo evoca esta iglesia que abre sus puertas para acoger a la juventud diocesana. Los caminos verdes recuerdan la geografía montañosa del lugar y el itinerario del peregrino.",
+    note: "La cúpula del logo evoca esta iglesia que abre sus puertas para acoger a la juventud Diocesana. Los caminos verdes recuerdan la geografía montañosa del lugar y el itinerario del peregrino.",
     facts: [
       { id: "municipio", label: "Municipio", value: "Jayaque" },
       { id: "departamento", label: "Departamento", value: "La Libertad" },
@@ -346,7 +354,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   meaning: {
     eyebrow: "Identidad",
     title: "Significado del logo",
-    lead: "Cada elemento cuenta una parte del mensaje: Eucaristía, Iglesia, camino y unidad diocesana.",
+    lead: "Cada elemento cuenta una parte del mensaje: Eucaristía, Iglesia, camino y unidad Diocesana.",
     quote: "Tengan valor y síganme",
     elements: [
       {
@@ -389,7 +397,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   event: {
     eyebrow: "El encuentro",
     title: "Información de la JDJ 2026",
-    lead: "Lo esencial para empezar a prepararte y acompañar este camino diocesano.",
+    lead: "Lo esencial para empezar a prepararte y acompañar este camino Diocesano.",
     items: [
       {
         id: "que-es",
@@ -406,7 +414,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       {
         id: "para-quien",
         label: "Para quién",
-        title: "Juventud arquidiocesana",
+        title: "Juventud Arquidiocesana",
         text: "Adolescentes y jóvenes de las 17 vicarias, grupos parroquiales, movimientos y comunidades eclesiales.",
       },
       {

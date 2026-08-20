@@ -1,0 +1,26 @@
+---
+description: Capitalizar Arquidiócesis, Diócesis y adjetivos
+alwaysApply: true
+---
+
+# Arquidiócesis, Diócesis y adjetivos
+
+En todo el copy del sitio (contenido, admin, SEO, alt, README):
+
+- Escribe **Arquidiócesis** y **Diócesis** con la primera letra en mayúscula, también a mitad de frase.
+- Usa siempre la tilde: `Arquidiócesis`, `Diócesis`.
+- Capitaliza también los adjetivos: **Diocesana**, **Diocesano**, **Arquidiocesana**, **Arquidiocesano** (y sus plurales).
+
+```
+✅ la juventud de la Arquidiócesis de San Salvador
+✅ una Diócesis hermana
+✅ juventud Diocesana
+✅ unidad Diocesana
+✅ camino Diocesano
+✅ Juventud Arquidiocesana
+✅ Pastoral Juvenil Arquidiocesana
+❌ la juventud de la arquidiócesis
+❌ una diócesis hermana
+❌ juventud diocesana
+❌ Juventud arquidiocesana
+```

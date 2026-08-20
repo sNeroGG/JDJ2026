@@ -18,7 +18,9 @@ import {
   type SiteContent,
 } from "../data/defaultContent";
 import { SAVED_CONTENT } from "../data/savedContent";
+import { capitalizeDioceseTermsIn } from "../utils/copy";
 import { normalizeInstagramPosts } from "../utils/instagram";
+import { normalizeStoreProducts } from "../utils/store";
 
 const REGISTRATION_STATUSES: RegistrationStatus[] = ["soon", "open", "closed"];
 
@@ -101,7 +103,7 @@ function mergeSchedule(parsed: SavedContent): SiteContent["schedule"] {
 }
 
 function mergeContent(parsed: SavedContent): SiteContent {
-  return {
+  const merged: SiteContent = {
     ...DEFAULT_CONTENT,
     ...parsed,
     logoUrl:
@@ -190,8 +192,10 @@ function mergeContent(parsed: SavedContent): SiteContent {
           : parsed.store?.logoUrl === ""
             ? ""
             : DEFAULT_CONTENT.store.logoUrl,
-      products: (parsed.store?.products ?? DEFAULT_CONTENT.store.products).filter(
-        (product) => !product.imageUrl || isHostedUrl(product.imageUrl),
+      products: normalizeStoreProducts(
+        (parsed.store?.products ?? DEFAULT_CONTENT.store.products).filter(
+          (product) => !product.imageUrl || isHostedUrl(product.imageUrl),
+        ),
       ),
     },
     header: {
@@ -235,6 +239,7 @@ function mergeContent(parsed: SavedContent): SiteContent {
         : DEFAULT_CONTENT.footer.social,
     },
   };
+  return capitalizeDioceseTermsIn(merged);
 }
 
 function loadContent(): SiteContent {
@@ -290,7 +295,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   );
 
   const saveContent = useCallback(async (next?: SiteContent) => {
-    const value = next ?? content;
+    const value = capitalizeDioceseTermsIn(next ?? content);
     setContentState(value);
     return persistContent(value);
   }, [content]);
