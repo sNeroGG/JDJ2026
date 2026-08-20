@@ -1,13 +1,19 @@
+import {
+  instagramPermalink,
+  normalizeInstagramPosts,
+} from "../utils/instagram.ts";
+
 export type InstagramPost = {
   permalink: string;
   caption?: string;
+  thumbnailUrl?: string;
 };
 
 export type InstagramFeedPayload = {
   handle: string;
   profileUrl: string;
   posts: InstagramPost[];
-  profileHtml?: string;
+  source: "graph" | "admin";
 };
 
 const CACHE_MS = 15 * 60 * 1000;
@@ -32,24 +38,8 @@ export function profileUrlFor(handle: string) {
   return `https://www.instagram.com/${normalizeHandle(handle)}/`;
 }
 
-export function postEmbedUrl(permalink: string) {
-  const clean = String(permalink || "")
-    .trim()
-    .split("?")[0]
-    .replace(/\/+$/, "");
-  if (!clean) return "";
-  return `${clean}/embed`;
-}
-
 function normalizePostUrl(value: string) {
-  const clean = String(value || "")
-    .trim()
-    .split("?")[0]
-    .replace(/\/+$/, "");
-  if (!/^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels)\//i.test(clean)) {
-    return "";
-  }
-  return `${clean}/`;
+  return instagramPermalink(value);
 }
 
 async function fetchJson(url: string, timeoutMs = 8000) {
@@ -73,7 +63,7 @@ async function fetchFromGraph(): Promise<InstagramPost[]> {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN;
   if (!token) return [];
   const userId = process.env.INSTAGRAM_USER_ID || "me";
-  const fields = "permalink,caption,media_type,timestamp";
+  const fields = "permalink,caption,media_type,timestamp,thumbnail_url,media_url";
   const endpoints = [
     `https://graph.instagram.com/v21.0/${encodeURIComponent(userId)}/media?fields=${fields}&limit=3&access_token=${encodeURIComponent(token)}`,
     `https://graph.facebook.com/v21.0/${encodeURIComponent(userId)}/media?fields=${fields}&limit=3&access_token=${encodeURIComponent(token)}`,
@@ -84,11 +74,22 @@ async function fetchFromGraph(): Promise<InstagramPost[]> {
     const data = Array.isArray(payload?.data) ? payload.data : [];
     const posts = data
       .map((item) => {
-        const row = item as { permalink?: string; caption?: string };
+        const row = item as {
+          permalink?: string;
+          caption?: string;
+          thumbnail_url?: string;
+          media_url?: string;
+        };
         const permalink = normalizePostUrl(String(row.permalink || ""));
         if (!permalink) return null;
         const caption = String(row.caption || "").trim();
-        const post: InstagramPost = caption ? { permalink, caption } : { permalink };
+        const thumbnailUrl =
+          String(row.thumbnail_url || row.media_url || "").trim() || undefined;
+        const post: InstagramPost = {
+          permalink,
+          ...(caption ? { caption } : {}),
+          ...(thumbnailUrl ? { thumbnailUrl } : {}),
+        };
         return post;
       })
       .filter((item): item is InstagramPost => item !== null);
@@ -97,16 +98,22 @@ async function fetchFromGraph(): Promise<InstagramPost[]> {
   return [];
 }
 
-async function fetchProfileEmbed(handle: string) {
-  const url = `${OEMBED}?url=${encodeURIComponent(profileUrlFor(handle))}&omitscript=true&hidecaption=false&maxwidth=400`;
+async function attachPreview(post: InstagramPost): Promise<InstagramPost> {
+  if (post.thumbnailUrl) return post;
+  const url = `${OEMBED}?url=${encodeURIComponent(post.permalink)}&omitscript=true&hidecaption=true&maxwidth=400`;
   const payload = await fetchJson(url);
-  const html = String(payload?.html || "").trim();
-  return html || undefined;
+  const thumbnailUrl = String(payload?.thumbnail_url || "").trim();
+  const title = String(payload?.title || "").trim();
+  return {
+    ...post,
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    ...(title && !post.caption ? { caption: title } : {}),
+  };
 }
 
 export async function loadInstagramFeed(
   handle: string,
-  fallbackPosts: string[] = [],
+  fallbackPosts: Array<string | { url?: string; imageUrl?: string }> = [],
 ): Promise<InstagramFeedPayload> {
   const normalized = normalizeHandle(handle) || "pjarqui_ss";
   const cached = memory.get(normalized);
@@ -115,21 +122,18 @@ export async function loadInstagramFeed(
   }
 
   const fromGraph = await fetchFromGraph();
-  const fromAdmin = fallbackPosts
-    .map(normalizePostUrl)
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((permalink) => ({ permalink }));
-  const posts = (fromGraph.length ? fromGraph : fromAdmin).slice(0, 3);
-  const profileHtml = posts.length
-    ? undefined
-    : await fetchProfileEmbed(normalized);
+  const fromAdmin = normalizeInstagramPosts(fallbackPosts).map((item) => ({
+    permalink: item.url,
+    thumbnailUrl: item.imageUrl || undefined,
+  }));
+  const raw = (fromGraph.length ? fromGraph : fromAdmin).slice(0, 3);
+  const posts = await Promise.all(raw.map(attachPreview));
 
   const payload: InstagramFeedPayload = {
     handle: normalized,
     profileUrl: profileUrlFor(normalized),
     posts,
-    profileHtml,
+    source: fromGraph.length ? "graph" : "admin",
   };
   memory.set(normalized, { at: Date.now(), payload });
   return payload;

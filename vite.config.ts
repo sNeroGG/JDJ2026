@@ -28,6 +28,7 @@ import {
   readSavedContent as readStoreContent,
   readSavedOrders,
   stockMap,
+  writeSavedContent,
   writeSavedOrders,
 } from "./src/server/storePersist.ts";
 import {
@@ -35,8 +36,6 @@ import {
   parseCreateOrder,
   whatsappOrderUrl,
 } from "./src/utils/store.ts";
-
-const ADMIN_PASSWORD = process.env.VITE_ADMIN_PASSWORD || "jdj2026";
 
 function safeFileName(name: string) {
   const base = path.basename(name).replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/gi, "-");
@@ -66,13 +65,18 @@ function sendJson(
   res.end(JSON.stringify(data));
 }
 
-function isAuthorized(req: IncomingMessage) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return token === ADMIN_PASSWORD;
+type BuildEnv = Record<string, string | undefined>;
+
+/** Igual que api/_lib/auth.ts, pero leyendo los .env que resuelve loadEnv. */
+function adminPassword(env: BuildEnv) {
+  return env.ADMIN_PASSWORD || env.VITE_ADMIN_PASSWORD || "jdj2026";
 }
 
-type BuildEnv = Record<string, string | undefined>;
+function isAuthorized(req: IncomingMessage, password: string) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  return token === password;
+}
 
 function localMediaPlugin(env: BuildEnv): Plugin {
   return {
@@ -104,7 +108,7 @@ function localMediaPlugin(env: BuildEnv): Plugin {
       const root = server.config.root;
       const imagesDir = path.join(root, "public", "images");
       const docsDir = path.join(root, "public", "docs");
-      const contentFile = path.join(root, "src", "data", "savedContent.ts");
+      const password = adminPassword(env);
 
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] || "";
@@ -115,7 +119,7 @@ function localMediaPlugin(env: BuildEnv): Plugin {
 
         void (async () => {
           if (url === "/__admin/files" && req.method === "GET") {
-            if (!isAuthorized(req)) {
+            if (!isAuthorized(req, password)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -141,7 +145,7 @@ function localMediaPlugin(env: BuildEnv): Plugin {
             sendJson(res, 405, { error: "Método no permitido" });
             return;
           }
-          if (!isAuthorized(req)) {
+          if (!isAuthorized(req, password)) {
             sendJson(res, 401, { error: "No autorizado" });
             return;
           }
@@ -188,19 +192,6 @@ function localMediaPlugin(env: BuildEnv): Plugin {
             return;
           }
 
-          if (url === "/__admin/save") {
-            const content = body.content ?? {};
-            const source = `import type { SavedContent } from "./defaultContent";
-
-/** Overlay generado al guardar desde /admin en local (\`npm run dev\`). */
-export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
-`;
-            fs.mkdirSync(path.dirname(contentFile), { recursive: true });
-            fs.writeFileSync(contentFile, source);
-            sendJson(res, 200, { ok: true });
-            return;
-          }
-
           sendJson(res, 404, { error: "No encontrado" });
         })().catch((error) => {
           const message =
@@ -212,28 +203,72 @@ export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
   };
 }
 
-function localStoreApiPlugin(): Plugin {
+const LOCAL_API_ROUTES = [
+  "/api/store",
+  "/api/orders",
+  "/api/instagram",
+  "/api/login",
+  "/api/content",
+];
+
+function localStoreApiPlugin(env: BuildEnv): Plugin {
   return {
     name: "jdj-store-api",
     configureServer(server) {
       const root = server.config.root;
+      const password = adminPassword(env);
 
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] || "";
-        if (url !== "/api/store" && url !== "/api/orders" && url !== "/api/instagram") {
+        if (!LOCAL_API_ROUTES.includes(url)) {
           next();
           return;
         }
 
         void (async () => {
+          if (url === "/api/login") {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Método no permitido" });
+              return;
+            }
+            const body = await readJsonBody(req);
+            if (String(body.password || "") !== password) {
+              sendJson(res, 401, { error: "Contraseña incorrecta" });
+              return;
+            }
+            sendJson(res, 200, { ok: true, canPublish: false });
+            return;
+          }
+
+          if (url === "/api/content") {
+            if (req.method !== "POST") {
+              sendJson(res, 405, { error: "Método no permitido" });
+              return;
+            }
+            if (!isAuthorized(req, password)) {
+              sendJson(res, 401, { error: "No autorizado" });
+              return;
+            }
+            const body = await readJsonBody(req);
+            const content = body.content;
+            if (!content || typeof content !== "object" || Array.isArray(content)) {
+              sendJson(res, 400, { error: "El contenido enviado no es válido." });
+              return;
+            }
+            writeSavedContent(root, content as Record<string, unknown>);
+            sendJson(res, 200, { ok: true, mode: "local" });
+            return;
+          }
+
           if (url === "/api/instagram" && req.method === "GET") {
             const requestUrl = new URL(req.url || "/", "http://localhost");
             const handle = requestUrl.searchParams.get("handle") || "pjarqui_ss";
             const saved = readStoreContent(root);
             const fallback = Array.isArray(
-              (saved as { instagram?: { posts?: string[] } }).instagram?.posts,
+              (saved as { instagram?: { posts?: unknown[] } }).instagram?.posts,
             )
-              ? (saved as { instagram?: { posts?: string[] } }).instagram!.posts!
+              ? ((saved as { instagram?: { posts?: unknown[] } }).instagram
+                  ?.posts as Array<string | { url?: string; imageUrl?: string }>)
               : [];
             const feed = await loadInstagramFeed(
               normalizeHandle(handle),
@@ -250,7 +285,7 @@ function localStoreApiPlugin(): Plugin {
           }
 
           if (url === "/api/orders" && req.method === "GET") {
-            if (!isAuthorized(req)) {
+            if (!isAuthorized(req, password)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -300,7 +335,7 @@ function localStoreApiPlugin(): Plugin {
           }
 
           if (url === "/api/orders" && req.method === "PATCH") {
-            if (!isAuthorized(req)) {
+            if (!isAuthorized(req, password)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -367,6 +402,6 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-    plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
+    plugins: [react(), localMediaPlugin(env), localStoreApiPlugin(env)],
   };
 });

@@ -21,7 +21,9 @@ function queryHandle(req: IncomingMessage) {
 
 function savedPosts() {
   const posts = (
-    SAVED_CONTENT as { instagram?: { posts?: string[] } }
+    SAVED_CONTENT as {
+      instagram?: { posts?: Array<string | { url?: string; imageUrl?: string }> };
+    }
   ).instagram?.posts;
   return Array.isArray(posts) ? posts : [];
 }

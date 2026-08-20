@@ -363,6 +363,11 @@
   color: #7a4a12;
 }
 
+.admin-notice.is-warning {
+  background: #fdecec;
+  color: #8c2b2b;
+}
+
 .admin-spinner {
   width: 1rem;
   height: 1rem;

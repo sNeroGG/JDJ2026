@@ -50,6 +50,11 @@ export type CatechesisDoc = {
   coverUrl?: string;
 };
 
+export type InstagramPostItem = {
+  url: string;
+  imageUrl: string;
+};
+
 export type NavLink = {
   id: string;
   href: string;
@@ -155,8 +160,8 @@ export type SiteContent = {
     title: string;
     lead: string;
     handle: string;
-    /** URLs de hasta 3 publicaciones. Si está vacío se muestra el perfil embebido. */
-    posts: string[];
+    /** 1 a 3 publicaciones: enlace de Instagram e imagen subida en /admin. */
+    posts: InstagramPostItem[];
   };
   meaning: {
     eyebrow: string;
@@ -270,6 +275,7 @@ export type SavedContent = DeepPartial<SiteContent>;
 
 export const AUTH_KEY = "jdj2026-admin-auth";
 export const AUTH_SECRET_KEY = "jdj2026-admin-secret";
+export const AUTH_PUBLISH_KEY = "jdj2026-admin-publish";
 
 export const DEFAULT_CONTENT: SiteContent = {
   logoUrl: "/images/logo-jdj-2026.webp",

@@ -1,14 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import {
-  persistKind,
-  stockMap,
-} from "./_lib/runtime.ts";
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify(data));
-}
+import { send } from "./_lib/http.ts";
+import { persistKind, stockMap } from "./_lib/runtime.ts";
 
 export default function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "GET") {

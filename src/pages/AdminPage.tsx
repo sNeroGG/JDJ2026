@@ -12,6 +12,7 @@ import {
   DEFAULT_CONTENT,
   type AccentTone,
   type CatechesisDoc,
+  type InstagramPostItem,
   type PartnerLogo,
   type RegistrationStatus,
   type SiteContent,
@@ -20,6 +21,7 @@ import {
   type StoreProduct,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
+import { instagramPermalink, normalizeInstagramPosts } from "../utils/instagram";
 import { uploadMedia } from "../utils/media";
 import { formatOrderDate, formatUsd } from "../utils/store";
 import "./AdminPage.css";
@@ -40,6 +42,7 @@ export function AdminPage() {
     saveContent,
     resetContent,
     isAuthenticated,
+    canPublish,
     login,
     logout,
   } = useContent();
@@ -170,6 +173,11 @@ export function AdminPage() {
   function patchInstagram(patch: Partial<SiteContent["instagram"]>) {
     setDraft({ ...draft, instagram: { ...draft.instagram, ...patch } });
   }
+  function patchInstagramPost(index: number, patch: Partial<InstagramPostItem>) {
+    const posts = [...draft.instagram.posts];
+    posts[index] = { ...posts[index], ...patch };
+    patchInstagram({ posts });
+  }
   function patchSchedule(patch: Partial<SiteContent["schedule"]>) {
     setDraft({ ...draft, schedule: { ...draft.schedule, ...patch } });
   }
@@ -225,16 +233,28 @@ export function AdminPage() {
   }
 
   async function persist(next: SiteContent = draft) {
-    setContent(next);
+    const value: SiteContent = {
+      ...next,
+      instagram: {
+        ...next.instagram,
+        posts: normalizeInstagramPosts(next.instagram.posts),
+      },
+    };
+    setDraft(value);
+    setContent(value);
     try {
-      await saveContent(next);
+      const mode = await saveContent(value);
       setSavedAt(new Date().toLocaleTimeString("es-SV"));
-      setLogoNotice("Cambios guardados en el proyecto.");
+      setLogoNotice(
+        mode === "github"
+          ? "Publicado. Vercel está reconstruyendo el sitio: el cambio se ve en vivo en un par de minutos."
+          : "Cambios guardados en el proyecto.",
+      );
     } catch (error) {
       setLogoNotice(
         error instanceof Error
           ? error.message
-          : "No se pudo guardar en el proyecto.",
+          : "No se pudo guardar el contenido.",
       );
       throw error;
     }
@@ -324,6 +344,30 @@ export function AdminPage() {
       const products = [...draft.store.products];
       products[index] = { ...products[index], imageUrl: uploaded.url };
       const next = { ...draft, store: { ...draft.store, products } };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onInstagramImageChange(
+    index: number,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const posts = [...draft.instagram.posts];
+      posts[index] = { ...posts[index], imageUrl: uploaded.url };
+      const next = {
+        ...draft,
+        instagram: { ...draft.instagram, posts },
+      };
       setDraft(next);
       await persist(next);
     } finally {
@@ -514,11 +558,20 @@ export function AdminPage() {
           <button
             type="button"
             onClick={() => {
-              if (confirm("¿Restablecer todo al contenido original?")) {
-                void resetContent();
-                setDraft(DEFAULT_CONTENT);
-                setSavedAt(new Date().toLocaleTimeString("es-SV"));
-              }
+              if (!confirm("¿Restablecer todo al contenido original?")) return;
+              setDraft(DEFAULT_CONTENT);
+              void resetContent()
+                .then(() => {
+                  setSavedAt(new Date().toLocaleTimeString("es-SV"));
+                  setLogoNotice("Contenido restablecido.");
+                })
+                .catch((error: unknown) => {
+                  setLogoNotice(
+                    error instanceof Error
+                      ? error.message
+                      : "No se pudo restablecer el contenido.",
+                  );
+                });
             }}
           >
             Restablecer
@@ -556,10 +609,17 @@ export function AdminPage() {
               disabled={uploading}
               onClick={() => void persist().catch(() => undefined)}
             >
-              Guardar
+              {import.meta.env.DEV ? "Guardar" : "Publicar"}
             </button>
           </div>
         </header>
+
+        {canPublish ? null : (
+          <p className="admin-notice is-warning" role="status">
+            Falta configurar GITHUB_TOKEN en Vercel: los cambios no se podrán
+            publicar desde aquí.
+          </p>
+        )}
 
         {uploading || logoNotice ? (
           <p
@@ -968,10 +1028,10 @@ export function AdminPage() {
             </label>
             <h2>Instagram</h2>
             <p className="admin-panel__hint">
-              Se muestra en la sede, antes del mapa. Sin URLs se embebe el
-              perfil de @{draft.instagram.handle || "pjarqui_ss"}. Para que las
-              3 últimas salgan solas, configura{" "}
-              <code>INSTAGRAM_ACCESS_TOKEN</code> en Vercel.
+              Empieza con 1 publicación y puedes agregar hasta 3. Instagram no
+              deja mostrar la foto sin su texto: sube aquí la imagen (captura o
+              descarga) y pega el enlace. En la landing se ve tu imagen; el clic
+              abre Instagram.
             </p>
             <div className="admin-grid">
               <label>
@@ -999,22 +1059,79 @@ export function AdminPage() {
                 onChange={(e) => patchInstagram({ lead: e.target.value })}
               />
             </label>
-            {[0, 1, 2].map((index) => (
-              <label key={index}>
-                Publicación {index + 1} (URL de Instagram)
-                <input
-                  value={draft.instagram.posts[index] || ""}
-                  onChange={(e) => {
-                    const posts = [0, 1, 2].map(
-                      (slot) => draft.instagram.posts[slot] || "",
-                    );
-                    posts[index] = e.target.value.trim();
-                    patchInstagram({ posts });
-                  }}
-                  placeholder="https://www.instagram.com/p/…"
-                />
-              </label>
-            ))}
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={draft.instagram.posts.length >= 3}
+                onClick={() =>
+                  patchInstagram({
+                    posts: [
+                      ...draft.instagram.posts,
+                      { url: "", imageUrl: "" },
+                    ],
+                  })
+                }
+              >
+                Agregar publicación
+              </button>
+            </div>
+            {draft.instagram.posts.length === 0 ? (
+              <p className="admin-empty">
+                Aún no hay publicaciones. Agrega 1 para mostrarla en Sede.
+              </p>
+            ) : (
+              draft.instagram.posts.map((post, index) => (
+                <div className="admin-card" key={`ig-${index}`}>
+                  <p className="admin-panel__kicker">
+                    Publicación {index + 1} de {draft.instagram.posts.length}
+                  </p>
+                  {post.imageUrl ? (
+                    <div className="admin-product-preview">
+                      <img src={post.imageUrl} alt="" />
+                    </div>
+                  ) : null}
+                  <label className={`file-field${uploading ? " is-busy" : ""}`}>
+                    {uploading ? "Copiando…" : "Subir imagen"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                      disabled={uploading}
+                      onChange={(e) => void onInstagramImageChange(index, e)}
+                    />
+                  </label>
+                  <label>
+                    Enlace de Instagram
+                    <input
+                      value={post.url}
+                      onChange={(e) =>
+                        patchInstagramPost(index, { url: e.target.value })
+                      }
+                      onBlur={() => {
+                        const permalink = instagramPermalink(post.url);
+                        if (permalink && permalink !== post.url) {
+                          patchInstagramPost(index, { url: permalink });
+                        }
+                      }}
+                      placeholder="https://www.instagram.com/p/…"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() =>
+                      patchInstagram({
+                        posts: draft.instagram.posts.filter(
+                          (_, itemIndex) => itemIndex !== index,
+                        ),
+                      })
+                    }
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))
+            )}
             <label>
               Dirección para el mapa
               <input

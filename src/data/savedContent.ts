@@ -1,6 +1,6 @@
 import type { SavedContent } from "./defaultContent";
 
-/** Overlay generado al guardar desde /admin en local (`npm run dev`). */
+/** Overlay generado al guardar desde /admin. */
 export const SAVED_CONTENT: SavedContent = {
   "logoUrl": "/images/logo-jdj-2026.webp",
   "site": {
@@ -76,7 +76,12 @@ export const SAVED_CONTENT: SavedContent = {
     "title": "Últimas publicaciones",
     "lead": "Lo más reciente de Pastoral Juvenil Arquidiocesana.",
     "handle": "pjarqui_ss",
-    "posts": []
+    "posts": [
+      {
+        "url": "https://www.instagram.com/p/Dbno7vMFqb3/",
+        "imageUrl": ""
+      }
+    ]
   },
   "meaning": {
     "eyebrow": "Identidad",

@@ -8,13 +8,31 @@ Landing de la Jornada Diocesana de la Juventud — Arquidiócesis de San Salvado
 - Deploy en Vercel
 - Imágenes y documentos en el repo (`public/images`, `public/docs`)
 
+## Editar textos desde el sitio publicado
+
+Los textos, las preguntas frecuentes y demás contenido se editan en `/admin`
+**directamente en el sitio de Vercel**, sin tocar la terminal. Al pulsar
+**Publicar**, el sitio commitea `src/data/savedContent.ts` al repo con la API de
+GitHub; Vercel detecta el push y reconstruye solo. El cambio se ve en vivo en un
+par de minutos y queda en el historial de git por si hay que revertirlo.
+
+Para habilitarlo hay que crear un **fine-grained PAT** en GitHub
+(*Settings → Developer settings → Personal access tokens*) limitado a este repo
+y con permiso **Contents: read and write**, y guardarlo en Vercel →
+**Settings → Environment Variables** como `GITHUB_TOKEN`. Sin esa variable el
+panel avisa que no puede publicar y `/admin` solo sirve para editar en local.
+
+Ojo con los deploys: cada publicación genera uno, y el plan Hobby de Vercel tiene
+tope diario. Conviene juntar los cambios y publicar una sola vez.
+
 ## Cómo agregar logo, imágenes y PDFs
 
-Trabaja **en local**. Los archivos quedan en el proyecto y viajan con el deploy (sin Blob).
+Los archivos sí se suben **en local**. Quedan en el proyecto y viajan con el
+deploy (sin Blob).
 
 1. `npm run dev`
 2. Entra a `/admin`
-3. Sube el logo, documentos o logos institucionales y pulsa **Guardar cambios**
+3. Sube el logo, documentos o logos institucionales y pulsa **Guardar**
 4. Revisa `public/images/`, `public/docs/` y `src/data/savedContent.ts`
 5. Commit y push a GitHub → Vercel publica todo junto a la web
 
@@ -95,7 +113,11 @@ npm install
 npm run dev
 ```
 
-Contraseña del admin: `VITE_ADMIN_PASSWORD` (por defecto `jdj2026`).
+Contraseña del admin: `ADMIN_PASSWORD` (por defecto `jdj2026`). Se valida en el
+servidor, así que **no** lleva prefijo `VITE_` y no queda expuesta en el
+JavaScript del navegador. Si tu proyecto todavía tiene `VITE_ADMIN_PASSWORD` en
+Vercel, sigue funcionando como respaldo, pero conviene renombrarla y borrar la
+vieja.
 
 ## Deploy
 

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { StoreOrder, StoreProduct } from "../data/defaultContent.ts";
+import { serializeSavedContent } from "./contentFile.ts";
 
 type SavedFile = {
   store?: {
@@ -62,12 +63,7 @@ export const SAVED_ORDERS: StoreOrder[] = ${JSON.stringify(orders, null, 2)};
 }
 
 export function writeSavedContent(root: string, content: SavedFile) {
-  const source = `import type { SavedContent } from "./defaultContent";
-
-/** Overlay generado al guardar desde /admin en local (\`npm run dev\`). */
-export const SAVED_CONTENT: SavedContent = ${JSON.stringify(content, null, 2)};
-`;
-  fs.writeFileSync(contentFile(root), source);
+  fs.writeFileSync(contentFile(root), serializeSavedContent(content));
 }
 
 export function listStoreProducts(root: string): StoreProduct[] {

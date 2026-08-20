@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   AUTH_KEY,
+  AUTH_PUBLISH_KEY,
   AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
   type NavLink,
@@ -17,16 +18,21 @@ import {
   type SiteContent,
 } from "../data/defaultContent";
 import { SAVED_CONTENT } from "../data/savedContent";
+import { normalizeInstagramPosts } from "../utils/instagram";
 
 const REGISTRATION_STATUSES: RegistrationStatus[] = ["soon", "open", "closed"];
+
+/** `local` escribe el archivo del repo; `github` lo commitea y dispara el redeploy. */
+export type SaveMode = "local" | "github";
 
 type ContentContextValue = {
   content: SiteContent;
   setContent: (next: SiteContent) => void;
   updateContent: (updater: (prev: SiteContent) => SiteContent) => void;
-  saveContent: (next?: SiteContent) => Promise<void>;
-  resetContent: () => Promise<void>;
+  saveContent: (next?: SiteContent) => Promise<SaveMode>;
+  resetContent: () => Promise<SaveMode>;
   isAuthenticated: boolean;
+  canPublish: boolean;
   login: (password: string) => Promise<boolean>;
   logout: () => void;
 };
@@ -122,15 +128,15 @@ function mergeContent(parsed: SavedContent): SiteContent {
     instagram: {
       ...DEFAULT_CONTENT.instagram,
       ...parsed.instagram,
-      posts: (
+      posts: normalizeInstagramPosts(
         Array.isArray(parsed.instagram?.posts)
           ? parsed.instagram.posts
-          : DEFAULT_CONTENT.instagram.posts
-      )
-        .filter((url): url is string => typeof url === "string")
-        .map((url) => url.trim())
-        .filter(Boolean)
-        .slice(0, 3),
+          : DEFAULT_CONTENT.instagram.posts,
+      ).map((post) => ({
+        ...post,
+        imageUrl:
+          post.imageUrl && isHostedUrl(post.imageUrl) ? post.imageUrl : "",
+      })),
     },
     schedule: mergeSchedule(parsed),
     registration: {
@@ -239,8 +245,8 @@ function loadAuth(): boolean {
   return sessionStorage.getItem(AUTH_KEY) === "1";
 }
 
-function getAdminPassword() {
-  return import.meta.env.VITE_ADMIN_PASSWORD || "jdj2026";
+function loadCanPublish(): boolean {
+  return import.meta.env.DEV || sessionStorage.getItem(AUTH_PUBLISH_KEY) !== "0";
 }
 
 function authHeader() {
@@ -248,13 +254,8 @@ function authHeader() {
   return { Authorization: `Bearer ${password}` };
 }
 
-async function saveLocally(content: SiteContent) {
-  if (!import.meta.env.DEV) {
-    throw new Error(
-      "Los archivos se guardan en el proyecto en local. Corre npm run dev, guarda, y sube el commit a GitHub para Vercel.",
-    );
-  }
-  const remote = await fetch("/__admin/save", {
+async function persistContent(content: SiteContent): Promise<SaveMode> {
+  const remote = await fetch("/api/content", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -264,15 +265,18 @@ async function saveLocally(content: SiteContent) {
   });
   const payload = (await remote.json().catch(() => null)) as {
     error?: string;
+    mode?: SaveMode;
   } | null;
   if (!remote.ok) {
-    throw new Error(payload?.error || "No se pudo guardar en el proyecto.");
+    throw new Error(payload?.error || "No se pudo guardar el contenido.");
   }
+  return payload?.mode === "github" ? "github" : "local";
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
   const [content, setContentState] = useState<SiteContent>(loadContent);
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuth());
+  const [canPublish, setCanPublish] = useState(() => loadCanPublish());
 
   const setContent = useCallback((next: SiteContent) => {
     setContentState(next);
@@ -288,27 +292,38 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   const saveContent = useCallback(async (next?: SiteContent) => {
     const value = next ?? content;
     setContentState(value);
-    await saveLocally(value);
+    return persistContent(value);
   }, [content]);
 
   const resetContent = useCallback(async () => {
     setContentState(DEFAULT_CONTENT);
-    await saveLocally(DEFAULT_CONTENT);
+    return persistContent(DEFAULT_CONTENT);
   }, []);
 
   const login = useCallback(async (password: string) => {
-    const ok = password === getAdminPassword();
-    if (ok) {
-      sessionStorage.setItem(AUTH_KEY, "1");
-      sessionStorage.setItem(AUTH_SECRET_KEY, password);
-      setIsAuthenticated(true);
-    }
-    return ok;
+    const remote = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    }).catch(() => null);
+    if (!remote?.ok) return false;
+
+    const payload = (await remote.json().catch(() => null)) as {
+      canPublish?: boolean;
+    } | null;
+    const publishable = import.meta.env.DEV || payload?.canPublish === true;
+    sessionStorage.setItem(AUTH_KEY, "1");
+    sessionStorage.setItem(AUTH_SECRET_KEY, password);
+    sessionStorage.setItem(AUTH_PUBLISH_KEY, publishable ? "1" : "0");
+    setIsAuthenticated(true);
+    setCanPublish(publishable);
+    return true;
   }, []);
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(AUTH_KEY);
     sessionStorage.removeItem(AUTH_SECRET_KEY);
+    sessionStorage.removeItem(AUTH_PUBLISH_KEY);
     setIsAuthenticated(false);
   }, []);
 
@@ -320,6 +335,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       saveContent,
       resetContent,
       isAuthenticated,
+      canPublish,
       login,
       logout,
     }),
@@ -330,6 +346,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       saveContent,
       resetContent,
       isAuthenticated,
+      canPublish,
       login,
       logout,
     ],

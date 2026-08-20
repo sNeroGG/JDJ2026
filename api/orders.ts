@@ -5,6 +5,8 @@ import {
   parseCreateOrder,
   whatsappOrderUrl,
 } from "../src/utils/store.ts";
+import { isAuthorized } from "./_lib/auth.ts";
+import { readBody, send } from "./_lib/http.ts";
 import {
   adjustStock,
   listProducts,
@@ -13,32 +15,6 @@ import {
   storeWhatsapp,
   writeOrders,
 } from "./_lib/runtime.ts";
-
-const ADMIN_PASSWORD = process.env.VITE_ADMIN_PASSWORD || "jdj2026";
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify(data));
-}
-
-function isAuthorized(req: IncomingMessage) {
-  const header = String(req.headers.authorization || "");
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return token === ADMIN_PASSWORD;
-}
-
-async function readBody(req: IncomingMessage & { body?: unknown }) {
-  if (req.body && typeof req.body === "object") {
-    return req.body as Record<string, unknown>;
-  }
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-}
 
 export default async function handler(
   req: IncomingMessage,
