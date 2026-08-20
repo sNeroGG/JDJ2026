@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { SAVED_CONTENT } from "../src/data/savedContent.ts";
-import { loadInstagramFeed } from "../src/server/instagramFeed.ts";
+import { SAVED_CONTENT } from "../src/data/savedContent.js";
+import { loadInstagramFeed } from "../src/server/instagramFeed.js";
 
 function send(res: ServerResponse, status: number, data: unknown) {
   res.statusCode = status;

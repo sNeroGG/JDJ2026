@@ -1,4 +1,4 @@
-import type { StoreOrder, StoreProduct } from "../data/defaultContent.ts";
+import type { StoreOrder, StoreProduct } from "../data/defaultContent.js";
 
 export type CreateOrderInput = {
   name: string;

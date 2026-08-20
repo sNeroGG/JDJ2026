@@ -1,10 +1,10 @@
 import fs from "node:fs";
-import { SAVED_CONTENT } from "../../src/data/savedContent.ts";
-import { SAVED_ORDERS } from "../../src/data/savedOrders.ts";
-import type { StoreOrder, StoreProduct } from "../../src/data/defaultContent.ts";
-import { commitFile } from "./github.ts";
+import { SAVED_CONTENT } from "../../src/data/savedContent.js";
+import { SAVED_ORDERS } from "../../src/data/savedOrders.js";
+import type { StoreOrder, StoreProduct } from "../../src/data/defaultContent.js";
+import { commitFile } from "./github.js";
 
-export { persistKind } from "./github.ts";
+export { persistKind } from "./github.js";
 
 const ORDERS_PATH = "/tmp/jdj-orders.json";
 const STOCK_PATH = "/tmp/jdj-stock.json";

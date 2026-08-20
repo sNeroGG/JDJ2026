@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { StoreOrder } from "../src/data/defaultContent.ts";
+import type { StoreOrder } from "../src/data/defaultContent.js";
 import {
   buildStoreOrder,
   parseCreateOrder,
   whatsappOrderUrl,
-} from "../src/utils/store.ts";
-import { isAuthorized } from "./_lib/auth.ts";
-import { readBody, send } from "./_lib/http.ts";
+} from "../src/utils/store.js";
+import { isAuthorized } from "./_lib/auth.js";
+import { readBody, send } from "./_lib/http.js";
 import {
   adjustStock,
   listProducts,
@@ -14,7 +14,7 @@ import {
   readOrders,
   storeWhatsapp,
   writeOrders,
-} from "./_lib/runtime.ts";
+} from "./_lib/runtime.js";
 
 export default async function handler(
   req: IncomingMessage,

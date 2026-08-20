@@ -2,10 +2,10 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   SAVED_CONTENT_FILE,
   serializeSavedContent,
-} from "../src/server/contentFile.ts";
-import { isAuthorized } from "./_lib/auth.ts";
-import { commitFile } from "./_lib/github.ts";
-import { readBody, send } from "./_lib/http.ts";
+} from "../src/server/contentFile.js";
+import { isAuthorized } from "./_lib/auth.js";
+import { commitFile } from "./_lib/github.js";
+import { readBody, send } from "./_lib/http.js";
 
 const MAX_CONTENT_BYTES = 1024 * 1024;
 

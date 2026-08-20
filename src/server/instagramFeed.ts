@@ -1,7 +1,7 @@
 import {
   instagramPermalink,
   normalizeInstagramPosts,
-} from "../utils/instagram.ts";
+} from "../utils/instagram.js";
 
 export type InstagramPost = {
   permalink: string;

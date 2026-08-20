@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { send } from "./_lib/http.ts";
-import { persistKind, stockMap } from "./_lib/runtime.ts";
+import { send } from "./_lib/http.js";
+import { persistKind, stockMap } from "./_lib/runtime.js";
 
 export default function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "GET") {

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { matchesAdminPassword } from "./_lib/auth.ts";
-import { isGithubConfigured } from "./_lib/github.ts";
-import { readBody, send } from "./_lib/http.ts";
+import { matchesAdminPassword } from "./_lib/auth.js";
+import { isGithubConfigured } from "./_lib/github.js";
+import { readBody, send } from "./_lib/http.js";
 
 export default async function handler(
   req: IncomingMessage,
