@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
@@ -12,6 +12,7 @@ import {
   formatUsd,
   normalizeWhatsapp,
   productColors,
+  productImages,
   productSizes,
   productStock,
   variantLabel,
@@ -47,6 +48,9 @@ export function StorePage() {
   const { store, site } = content;
   const [liveStock, setLiveStock] = useState<StoreStockMap | null>(null);
   const [checkout, setCheckout] = useState<Checkout | null>(null);
+  const [gallery, setGallery] = useState<{ product: StoreProduct; index: number } | null>(
+    null,
+  );
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -86,6 +90,15 @@ export function StorePage() {
   const checkoutSizes = checkout
     ? productSizes(checkout.product, checkout.color)
     : [];
+
+  function openGallery(product: StoreProduct, index = 0) {
+    const images = productImages(product);
+    if (!images.length) return;
+    setGallery({
+      product,
+      index: Math.min(Math.max(0, index), images.length - 1),
+    });
+  }
 
   function openCheckout(product: StoreProduct) {
     const variant = firstAvailableVariant(product);
@@ -234,19 +247,37 @@ export function StorePage() {
                 {products.map((product) => {
                   const total = productStock(product);
                   const soldOut = total <= 0;
+                  const images = productImages(product);
+                  const cover = images[0];
                   return (
                     <article
                       className={`store-card reveal${soldOut ? " is-soldout" : ""}`}
                       key={product.id}
                     >
                       <div className="store-card__media">
-                        {product.imageUrl ? (
-                          <img
-                            src={product.imageUrl}
-                            alt={product.title}
-                            width={640}
-                            height={640}
-                          />
+                        {cover ? (
+                          <button
+                            type="button"
+                            className="store-card__photos"
+                            onClick={() => openGallery(product)}
+                            aria-label={
+                              images.length > 1
+                                ? `Ver ${images.length} fotos de ${product.title}`
+                                : `Ver foto de ${product.title}`
+                            }
+                          >
+                            <img
+                              src={cover}
+                              alt={product.title}
+                              width={640}
+                              height={640}
+                            />
+                            {images.length > 1 ? (
+                              <span className="store-card__photos-count">
+                                {images.length} fotos
+                              </span>
+                            ) : null}
+                          </button>
                         ) : (
                           <div className="store-card__placeholder">JDJ</div>
                         )}
@@ -296,6 +327,15 @@ export function StorePage() {
         </section>
       </main>
       <Footer />
+
+      {gallery ? (
+        <ProductGallery
+          product={gallery.product}
+          index={gallery.index}
+          onIndex={(index) => setGallery({ ...gallery, index })}
+          onClose={() => setGallery(null)}
+        />
+      ) : null}
 
       {checkout ? (
         <div
@@ -466,4 +506,122 @@ function variantSummary(product: StoreProduct) {
   return available
     .map((item) => `${variantLabel(item)} ${item.stock}`)
     .join(" · ");
+}
+
+function ProductGallery({
+  product,
+  index,
+  onIndex,
+  onClose,
+}: {
+  product: StoreProduct;
+  index: number;
+  onIndex: (index: number) => void;
+  onClose: () => void;
+}) {
+  const images = productImages(product);
+  const total = images.length;
+  const current = images[index] || images[0];
+  const touchStart = useRef<number | null>(null);
+
+  function go(delta: number) {
+    if (total < 2) return;
+    onIndex((index + delta + total) % total);
+  }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (total < 2) return;
+      if (event.key === "ArrowRight") onIndex((index + 1) % total);
+      if (event.key === "ArrowLeft") onIndex((index - 1 + total) % total);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, total, onClose, onIndex]);
+
+  return (
+    <div
+      className="store-gallery"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Fotos de ${product.title}`}
+    >
+      <button
+        type="button"
+        className="store-gallery__backdrop"
+        aria-label="Cerrar"
+        onClick={onClose}
+      />
+      <div
+        className="store-gallery__card"
+        onTouchStart={(event) => {
+          touchStart.current = event.changedTouches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={(event) => {
+          const start = touchStart.current;
+          const end = event.changedTouches[0]?.clientX;
+          touchStart.current = null;
+          if (start == null || end == null) return;
+          const delta = end - start;
+          if (delta > 40) go(-1);
+          if (delta < -40) go(1);
+        }}
+      >
+        <p className="store-gallery__eyebrow">
+          {total > 1 ? `${index + 1} / ${total}` : "Foto"}
+        </p>
+        <h2>{product.title}</h2>
+        <div className="store-gallery__stage">
+          {current ? (
+            <img
+              src={current}
+              alt={`${product.title}, foto ${index + 1} de ${total}`}
+            />
+          ) : null}
+          {total > 1 ? (
+            <>
+              <button
+                type="button"
+                className="store-gallery__nav is-prev"
+                aria-label="Foto anterior"
+                onClick={() => go(-1)}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="store-gallery__nav is-next"
+                aria-label="Foto siguiente"
+                onClick={() => go(1)}
+              >
+                ›
+              </button>
+            </>
+          ) : null}
+        </div>
+        {total > 1 ? (
+          <div className="store-gallery__dots" role="tablist" aria-label="Fotos">
+            {images.map((url, i) => (
+              <button
+                key={`${url}-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                className={i === index ? "is-active" : ""}
+                aria-label={`Foto ${i + 1}`}
+                onClick={() => onIndex(i)}
+              />
+            ))}
+          </div>
+        ) : null}
+        <button type="button" className="store-gallery__close" onClick={onClose}>
+          Cerrar
+        </button>
+      </div>
+    </div>
+  );
 }

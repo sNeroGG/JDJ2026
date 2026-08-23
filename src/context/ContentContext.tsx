@@ -193,9 +193,7 @@ function mergeContent(parsed: SavedContent): SiteContent {
             ? ""
             : DEFAULT_CONTENT.store.logoUrl,
       products: normalizeStoreProducts(
-        (parsed.store?.products ?? DEFAULT_CONTENT.store.products).filter(
-          (product) => !product.imageUrl || isHostedUrl(product.imageUrl),
-        ),
+        parsed.store?.products ?? DEFAULT_CONTENT.store.products,
       ),
     },
     header: {

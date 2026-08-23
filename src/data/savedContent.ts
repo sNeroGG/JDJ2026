@@ -40,7 +40,7 @@ export const SAVED_CONTENT: SavedContent = {
   "location": {
     "eyebrow": "Sede 2026",
     "title": "Este año la JDJ camina hacia Jayaque",
-    "lead": "Un encuentro de fe, esperanza y comunidad en las montañas cafetaleras de la libertad en nuestra Arquidiocesis de San Salvador.",
+    "lead": "Un encuentro de fe, esperanza y comunidad en las montañas cafetaleras de la libertad en nuestra Arquidiócesis de San Salvador.",
     "parishLabel": "Parroquia sede",
     "parishName": "Parroquia San Cristóbal",
     "placeLine": "Jayaque, El Salvador",
@@ -270,13 +270,17 @@ export const SAVED_CONTENT: SavedContent = {
         "title": "Camisa JDJ 2026",
         "description": "",
         "price": 13.99,
-        "imageUrl": "/images/LOGO-FINAL---OFICIAL-JDJ-26---AGO_Mesa-de-trabajo-1-03.webp",
+        "imageUrl": "/images/CAMISAS-STORE-PJA-02.jpg.webp",
+        "imageUrls": [
+          "/images/CAMISAS-STORE-PJA-02.jpg.webp",
+          "/images/CAMISAS-STORE-PJA-03.jpg.webp"
+        ],
         "variants": [
           {
             "id": "prod-4be0843b--unica--s",
             "size": "S",
             "color": "",
-            "stock": 2
+            "stock": 3
           },
           {
             "id": "prod-4be0843b--unica--m",
@@ -288,10 +292,47 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-4be0843b--unica--l",
             "size": "L",
             "color": "",
-            "stock": 1
+            "stock": 2
           },
           {
             "id": "prod-4be0843b--unica--xl",
+            "size": "XL",
+            "color": "",
+            "stock": 1
+          }
+        ]
+      },
+      {
+        "id": "prod-077167ec",
+        "title": "Camisa Divino Salvador del Mundo",
+        "description": "",
+        "price": 10,
+        "imageUrl": "/images/CAMISAS-STORE-PJA-04.jpg.webp",
+        "imageUrls": [
+          "/images/CAMISAS-STORE-PJA-04.jpg.webp",
+          "/images/CAMISAS-STORE-PJA-05.jpg.webp"
+        ],
+        "variants": [
+          {
+            "id": "prod-077167ec--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 1
+          },
+          {
+            "id": "prod-077167ec--unica--m",
+            "size": "M",
+            "color": "",
+            "stock": 1
+          },
+          {
+            "id": "prod-077167ec--unica--l",
+            "size": "L",
+            "color": "",
+            "stock": 1
+          },
+          {
+            "id": "prod-077167ec--unica--xl",
             "size": "XL",
             "color": "",
             "stock": 1

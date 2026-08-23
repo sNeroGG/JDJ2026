@@ -196,6 +196,25 @@ export function withAdjustedVariantStock(
   return { product: next, stock: nextStock, total: productStock(next) };
 }
 
+export function productImages(
+  product: Pick<StoreProduct, "imageUrl" | "imageUrls"> | StoreProductInput,
+) {
+  const listed = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+  return unique(
+    [...listed, product.imageUrl]
+      .map((item) => String(item || "").trim())
+      .filter((item) => item && !item.startsWith("data:")),
+  );
+}
+
+export function withProductGallery(
+  product: StoreProduct,
+  imageUrls: string[],
+): StoreProduct {
+  const urls = productImages({ imageUrl: "", imageUrls });
+  return { ...product, imageUrls: urls, imageUrl: urls[0] || "" };
+}
+
 export function normalizeStoreProduct(
   raw: LegacyProduct,
   fallbackId = "prod",
@@ -204,7 +223,8 @@ export function normalizeStoreProduct(
   const title = String(raw.title || "Producto");
   const description = String(raw.description || "");
   const price = Number(raw.price) || 0;
-  const imageUrl = String(raw.imageUrl || "");
+  const imageUrls = productImages(raw);
+  const imageUrl = imageUrls[0] || "";
 
   if (Array.isArray(raw.variants) && raw.variants.length) {
     return {
@@ -213,6 +233,7 @@ export function normalizeStoreProduct(
       description,
       price,
       imageUrl,
+      imageUrls,
       variants: raw.variants.map((variant, index) =>
         normalizeVariant(id, variant, index),
       ),
@@ -232,6 +253,7 @@ export function normalizeStoreProduct(
     description,
     price,
     imageUrl,
+    imageUrls,
     variants: sizes.map((size, index) => ({
       id: makeVariantId(id, size, ""),
       size,

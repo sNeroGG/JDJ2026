@@ -18,7 +18,7 @@ export const SAVED_ORDERS: StoreOrder[] = [
     "total": 13.99,
     "payment": "Transferencia",
     "note": "Parroquia El Buen Pastor",
-    "status": "nuevo"
+    "status": "cancelado"
   },
   {
     "id": "JDJ-MT1TYVTD",
@@ -36,6 +36,24 @@ export const SAVED_ORDERS: StoreOrder[] = [
     "total": 13.99,
     "payment": "Transferencia",
     "note": "",
-    "status": "nuevo"
+    "status": "cancelado"
+  },
+  {
+    "id": "JDJ-MT4JAEER",
+    "createdAt": "2026-08-22T15:29:20.499Z",
+    "name": "bryan",
+    "email": "bryanmn62@gmail.com",
+    "phone": "721421948912",
+    "productId": "prod-4be0843b",
+    "productTitle": "Camisa JDJ 2026",
+    "variantId": "prod-4be0843b--unica--s",
+    "size": "S",
+    "color": "",
+    "quantity": 1,
+    "unitPrice": 13.99,
+    "total": 13.99,
+    "payment": "Transferencia",
+    "note": "",
+    "status": "cancelado"
   }
 ];

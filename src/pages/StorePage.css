@@ -72,6 +72,29 @@
   object-fit: cover;
 }
 
+.store-card__photos {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+.store-card__photos-count {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(28, 35, 44, 0.82);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .store-card__placeholder {
   display: grid;
   place-items: center;
@@ -265,4 +288,110 @@
   .store-modal__actions {
     grid-template-columns: 1fr;
   }
+}
+
+.store-gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.store-gallery__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 35, 44, 0.72);
+}
+
+.store-gallery__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 560px);
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.15rem 1.15rem 1.25rem;
+  border-radius: 1.2rem;
+  background: var(--white);
+  box-shadow: 0 24px 60px rgba(28, 35, 44, 0.28);
+}
+
+.store-gallery__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.store-gallery__card h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.store-gallery__stage {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: #eef3ef;
+}
+
+.store-gallery__stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #eef3ef;
+}
+
+.store-gallery__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy);
+  font-size: 1.6rem;
+  line-height: 1;
+  box-shadow: 0 6px 16px rgba(28, 35, 44, 0.16);
+}
+
+.store-gallery__nav.is-prev {
+  left: 0.65rem;
+}
+
+.store-gallery__nav.is-next {
+  right: 0.65rem;
+}
+
+.store-gallery__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.store-gallery__dots button {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border-radius: 999px;
+  background: #c5d0c8;
+}
+
+.store-gallery__dots button.is-active {
+  background: var(--teal);
+  transform: scale(1.15);
+}
+
+.store-gallery__close {
+  justify-self: center;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 700;
 }

@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useContent } from "../context/ContentContext";
 import {
   AUTH_SECRET_KEY,
@@ -30,12 +30,31 @@ import {
   findVariant,
   formatOrderDate,
   formatUsd,
+  normalizeStoreProducts,
+  productImages,
   productStock,
   variantLabel,
+  withProductGallery,
 } from "../utils/store";
 import "./AdminPage.css";
 
 const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
+
+const ADMIN_SECTIONS = [
+  "site",
+  "event",
+  "location",
+  "catechesis",
+  "store",
+  "orders",
+  "page",
+] as const;
+
+type AdminSection = (typeof ADMIN_SECTIONS)[number];
+
+function isAdminSection(value: string | null): value is AdminSection {
+  return ADMIN_SECTIONS.includes(value as AdminSection);
+}
 
 const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
   soon: "Próximamente",
@@ -55,11 +74,43 @@ export function AdminPage() {
     login,
     logout,
   } = useContent();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [draft, setDraft] = useState<SiteContent>(content);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [section, setSection] = useState("site");
+  const sectionParam = searchParams.get("seccion");
+  const section: AdminSection = isAdminSection(sectionParam)
+    ? sectionParam
+    : "site";
+
+  function setSection(id: AdminSection) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === "site") next.delete("seccion");
+        else next.set("seccion", id);
+        if (id !== "store") next.delete("producto");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const openProductId = searchParams.get("producto");
+
+  function setOpenProduct(id: string | null) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("seccion", "store");
+        if (id) next.set("producto", id);
+        else next.delete("producto");
+        return next;
+      },
+      { replace: true },
+    );
+  }
   const [logoNotice, setLogoNotice] = useState("");
   const [uploading, setUploading] = useState(false);
   const [projectDocs, setProjectDocs] = useState<{ name: string; url: string }[]>(
@@ -134,7 +185,7 @@ export function AdminPage() {
   );
 
   const navItems = useMemo(
-    () => [
+    (): { id: AdminSection; label: string; full: string }[] => [
       { id: "site", label: "Portada", full: "Logos y portada" },
       {
         id: "event",
@@ -253,6 +304,10 @@ export function AdminPage() {
         ...next.instagram,
         posts: normalizeInstagramPosts(next.instagram.posts),
       },
+      store: {
+        ...next.store,
+        products: normalizeStoreProducts(next.store.products),
+      },
     };
     setDraft(value);
     setContent(value);
@@ -344,19 +399,26 @@ export function AdminPage() {
     }
   }
 
-  async function onProductImageChange(
+  async function onProductImagesChange(
     index: number,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0];
+    const files = event.target.files;
     event.target.value = "";
-    if (!file) return;
+    if (!files?.length) return;
     setUploading(true);
     try {
-      const uploaded = await uploadOrWarn(file, "images");
-      if (!uploaded) return;
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const result = await uploadOrWarn(file, "images");
+        if (result) uploaded.push(result.url);
+      }
+      if (!uploaded.length) return;
       const products = [...draft.store.products];
-      products[index] = { ...products[index], imageUrl: uploaded.url };
+      products[index] = withProductGallery(products[index], [
+        ...productImages(products[index]),
+        ...uploaded,
+      ]);
       const next = { ...draft, store: { ...draft.store, products } };
       setDraft(next);
       await persist(next);
@@ -1426,7 +1488,8 @@ export function AdminPage() {
               <p className="admin-panel__hint">
                 El stock se descuenta por talla y color al hacer un pedido. Si
                 hay 5 camisas S, cada compra de S baja ese número. Color es
-                opcional.
+                opcional. Puedes subir varias fotos: en la tienda, al tocar el
+                producto se abre el carrusel.
               </p>
               <div className="admin-inline-actions">
                 <button
@@ -1443,10 +1506,12 @@ export function AdminPage() {
                           description: "",
                           price: 10,
                           imageUrl: "",
+                          imageUrls: [],
                           variants: defaultProductVariants(id),
                         },
                       ],
                     });
+                    setOpenProduct(id);
                   }}
                 >
                   Agregar producto
@@ -1455,20 +1520,128 @@ export function AdminPage() {
               {draft.store.products.length === 0 ? (
                 <p className="admin-empty">Aún no hay productos.</p>
               ) : (
-                draft.store.products.map((product, index) => (
-                  <div className="admin-card" key={product.id}>
-                    {product.imageUrl ? (
-                      <div className="admin-product-preview">
-                        <img src={product.imageUrl} alt={product.title} />
+                draft.store.products.map((product, index) => {
+                  const photos = productImages(product);
+                  const isOpen = openProductId === product.id;
+                  const total = productStock(product);
+                  return (
+                  <div
+                    className={`admin-card admin-product${isOpen ? " is-open" : ""}`}
+                    key={product.id}
+                  >
+                    <button
+                      type="button"
+                      className="admin-product__toggle"
+                      aria-expanded={isOpen}
+                      onClick={() =>
+                        setOpenProduct(isOpen ? null : product.id)
+                      }
+                    >
+                      {photos[0] ? (
+                        <img
+                          className="admin-product__thumb"
+                          src={photos[0]}
+                          alt=""
+                        />
+                      ) : (
+                        <span className="admin-product__thumb is-empty">
+                          JDJ
+                        </span>
+                      )}
+                      <span className="admin-product__meta">
+                        <strong>{product.title || "Producto sin título"}</strong>
+                        <span>
+                          {formatUsd(product.price)}
+                          {" · "}
+                          {total} {total === 1 ? "disponible" : "disponibles"}
+                          {photos.length
+                            ? ` · ${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`
+                            : ""}
+                        </span>
+                      </span>
+                      <span className="admin-product__arrow" aria-hidden="true">
+                        ▾
+                      </span>
+                    </button>
+                    {isOpen ? (
+                    <div className="admin-product__body">
+                    {photos.length ? (
+                      <div className="admin-product-gallery">
+                        {photos.map((url, photoIndex) => (
+                          <div
+                            className={`admin-product-gallery__item${photoIndex === 0 ? " is-cover" : ""}`}
+                            key={`${product.id}-${photoIndex}`}
+                          >
+                            <img src={url} alt="" />
+                            {photoIndex === 0 ? (
+                              <span>Portada</span>
+                            ) : null}
+                            <div className="admin-product-gallery__actions">
+                              <button
+                                type="button"
+                                disabled={photoIndex === 0}
+                                aria-label="Mover a la izquierda"
+                                onClick={() =>
+                                  patchProduct(
+                                    index,
+                                    withProductGallery(product, [
+                                      ...photos.slice(0, photoIndex - 1),
+                                      photos[photoIndex],
+                                      photos[photoIndex - 1],
+                                      ...photos.slice(photoIndex + 1),
+                                    ]),
+                                  )
+                                }
+                              >
+                                ‹
+                              </button>
+                              <button
+                                type="button"
+                                disabled={photoIndex === photos.length - 1}
+                                aria-label="Mover a la derecha"
+                                onClick={() =>
+                                  patchProduct(
+                                    index,
+                                    withProductGallery(product, [
+                                      ...photos.slice(0, photoIndex),
+                                      photos[photoIndex + 1],
+                                      photos[photoIndex],
+                                      ...photos.slice(photoIndex + 2),
+                                    ]),
+                                  )
+                                }
+                              >
+                                ›
+                              </button>
+                              <button
+                                type="button"
+                                className="is-remove"
+                                aria-label="Quitar foto"
+                                onClick={() =>
+                                  patchProduct(
+                                    index,
+                                    withProductGallery(
+                                      product,
+                                      photos.filter((item) => item !== url),
+                                    ),
+                                  )
+                                }
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : null}
                     <label className={`file-field${uploading ? " is-busy" : ""}`}>
-                      {uploading ? "Copiando…" : "Imagen del producto"}
+                      {uploading ? "Copiando…" : "Agregar fotos"}
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                        multiple
                         disabled={uploading}
-                        onChange={(e) => void onProductImageChange(index, e)}
+                        onChange={(e) => void onProductImagesChange(index, e)}
                       />
                     </label>
                     <label>
@@ -1589,18 +1762,22 @@ export function AdminPage() {
                     <button
                       type="button"
                       className="btn btn--danger"
-                      onClick={() =>
+                      onClick={() => {
                         patchStore({
                           products: draft.store.products.filter(
                             (item) => item.id !== product.id,
                           ),
-                        })
-                      }
+                        });
+                        if (openProductId === product.id) setOpenProduct(null);
+                      }}
                     >
                       Quitar producto
                     </button>
+                    </div>
+                    ) : null}
                   </div>
-                ))
+                  );
+                })
               )}
             </section>
           </div>

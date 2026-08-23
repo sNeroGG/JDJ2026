@@ -101,7 +101,9 @@ export type StoreProduct = {
   title: string;
   description: string;
   price: number;
+  /** Portada: la primera foto del carrusel. */
   imageUrl: string;
+  imageUrls: string[];
   variants: StoreVariant[];
 };
 
