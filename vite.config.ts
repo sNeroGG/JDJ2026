@@ -37,6 +37,8 @@ import {
   parseCreateOrder,
   whatsappOrderUrl,
 } from "./src/utils/store.ts";
+import donationsHandler from "./api/donations.ts";
+import donationsWebhookHandler from "./api/donations-webhook.ts";
 
 function safeFileName(name: string) {
   const base = path.basename(name).replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/gi, "-");
@@ -210,7 +212,17 @@ const LOCAL_API_ROUTES = [
   "/api/instagram",
   "/api/login",
   "/api/content",
+  "/api/donations",
+  "/api/donations/webhook",
 ];
+
+const DONATION_ENV_KEYS = [
+  "WOMPI_APP_ID",
+  "WOMPI_API_SECRET",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "PUBLIC_SITE_URL",
+] as const;
 
 function localStoreApiPlugin(env: BuildEnv): Plugin {
   return {
@@ -227,6 +239,15 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
         }
 
         void (async () => {
+          if (url === "/api/donations" || url === "/api/donations/webhook") {
+            const handler =
+              url === "/api/donations/webhook"
+                ? donationsWebhookHandler
+                : donationsHandler;
+            await handler(req, res);
+            return;
+          }
+
           if (url === "/api/login") {
             if (req.method !== "POST") {
               sendJson(res, 405, { error: "Método no permitido" });
@@ -415,6 +436,9 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, process.cwd(), ""),
     ...process.env,
   };
+  for (const key of DONATION_ENV_KEYS) {
+    if (env[key]) process.env[key] = env[key];
+  }
 
   return {
     plugins: [react(), localMediaPlugin(env), localStoreApiPlugin(env)],

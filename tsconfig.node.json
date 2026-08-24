@@ -20,5 +20,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "api", "src/server", "src/utils/store.ts", "src/utils/instagram.ts", "src/data/defaultContent.ts"]
+  "include": ["vite.config.ts", "api", "src/server", "src/utils/store.ts", "src/utils/donations.ts", "src/utils/instagram.ts", "src/data/defaultContent.ts"]
 }

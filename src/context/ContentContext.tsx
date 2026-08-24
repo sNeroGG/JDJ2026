@@ -55,6 +55,12 @@ const STORE_NAV: NavLink = {
   label: "Tienda",
 };
 
+const DONATE_NAV: NavLink = {
+  id: "nav-donar",
+  href: "/donar",
+  label: "Donar",
+};
+
 function withStoreNav<T extends NavLink>(items: T[]) {
   if (items.some((item) => item.href === "/tienda" || item.id === "nav-tienda")) {
     return items;
@@ -70,6 +76,23 @@ function withStoreNav<T extends NavLink>(items: T[]) {
     ];
   }
   return [...items, STORE_NAV as T];
+}
+
+function withDonateNav<T extends NavLink>(items: T[]) {
+  if (items.some((item) => item.href === "/donar" || item.id === "nav-donar")) {
+    return items;
+  }
+  const storeAt = items.findIndex(
+    (item) => item.href === "/tienda" || item.id === "nav-tienda",
+  );
+  if (storeAt >= 0) {
+    return [
+      ...items.slice(0, storeAt + 1),
+      DONATE_NAV as T,
+      ...items.slice(storeAt + 1),
+    ];
+  }
+  return [...items, DONATE_NAV as T];
 }
 
 function isHostedUrl(value: string) {
@@ -202,12 +225,14 @@ function mergeContent(parsed: SavedContent): SiteContent {
       ctaHref: catechesisPath(
         parsed.header?.ctaHref ?? DEFAULT_CONTENT.header.ctaHref,
       ),
-      nav: withStoreNav(
-        withCatechesisRoute(
-          parsed.header?.nav?.length &&
-            !parsed.header.nav.some((item) => item.id === "nav-inicio")
-            ? parsed.header.nav
-            : DEFAULT_CONTENT.header.nav,
+      nav: withDonateNav(
+        withStoreNav(
+          withCatechesisRoute(
+            parsed.header?.nav?.length &&
+              !parsed.header.nav.some((item) => item.id === "nav-inicio")
+              ? parsed.header.nav
+              : DEFAULT_CONTENT.header.nav,
+          ),
         ),
       ),
     },
@@ -225,11 +250,13 @@ function mergeContent(parsed: SavedContent): SiteContent {
         parsed.footer?.logoUrl && isHostedUrl(parsed.footer.logoUrl)
           ? parsed.footer.logoUrl
           : DEFAULT_CONTENT.footer.logoUrl,
-      nav: withStoreNav(
-        withCatechesisRoute(
-          parsed.footer?.nav?.length
-            ? parsed.footer.nav
-            : DEFAULT_CONTENT.footer.nav,
+      nav: withDonateNav(
+        withStoreNav(
+          withCatechesisRoute(
+            parsed.footer?.nav?.length
+              ? parsed.footer.nav
+              : DEFAULT_CONTENT.footer.nav,
+          ),
         ),
       ),
       social: parsed.footer?.social?.length

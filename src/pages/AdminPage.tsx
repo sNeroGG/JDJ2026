@@ -25,6 +25,11 @@ import { createId, downloadJson } from "../utils/files";
 import { instagramPermalink, normalizeInstagramPosts } from "../utils/instagram";
 import { uploadMedia } from "../utils/media";
 import {
+  donationStatusLabel,
+  type DonationRecord,
+  type DonationStatus,
+} from "../utils/donations";
+import {
   buildOrderReport,
   defaultProductVariants,
   findVariant,
@@ -47,6 +52,7 @@ const ADMIN_SECTIONS = [
   "catechesis",
   "store",
   "orders",
+  "donations",
   "page",
 ] as const;
 
@@ -119,6 +125,12 @@ export function AdminPage() {
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [ordersNotice, setOrdersNotice] = useState("");
   const [ordersPersist, setOrdersPersist] = useState("");
+  const [donations, setDonations] = useState<DonationRecord[]>([]);
+  const [donationsNotice, setDonationsNotice] = useState("");
+  const [donationsTotal, setDonationsTotal] = useState(0);
+  const [donationFilter, setDonationFilter] = useState<"all" | DonationStatus>(
+    "all",
+  );
 
   useEffect(() => {
     setDraft(content);
@@ -169,6 +181,33 @@ export function AdminPage() {
       });
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    void fetch("/api/donations", {
+      headers: { Authorization: `Bearer ${secret}` },
+    })
+      .then(async (remote) => {
+        const payload = (await remote.json().catch(() => null)) as {
+          donations?: DonationRecord[];
+          totalPaid?: number;
+          error?: string;
+        } | null;
+        if (!remote.ok) {
+          setDonationsNotice(
+            payload?.error || "No se pudieron cargar las donaciones.",
+          );
+          return;
+        }
+        setDonations(payload?.donations ?? []);
+        setDonationsTotal(payload?.totalPaid ?? 0);
+        setDonationsNotice("");
+      })
+      .catch(() => {
+        setDonationsNotice("No se pudieron cargar las donaciones.");
+      });
+  }, [isAuthenticated]);
+
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
   const itemCount = draft.schedule.items.length;
@@ -209,12 +248,17 @@ export function AdminPage() {
         full: "Pedidos de la tienda",
       },
       {
+        id: "donations",
+        label: `Donaciones${donations.length ? ` (${donations.length})` : ""}`,
+        full: "Donaciones Wompi",
+      },
+      {
         id: "page",
         label: "Página",
         full: "Textos, logos y pie",
       },
     ],
-    [itemCount, docCount, productCount, orders.length],
+    [itemCount, docCount, productCount, orders.length, donations.length],
   );
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
@@ -654,6 +698,7 @@ export function AdminPage() {
         <div className="admin__side-actions">
           <Link to="/">Ver landing</Link>
           <Link to="/tienda">Ver tienda</Link>
+          <Link to="/donar">Ver donar</Link>
           <button
             type="button"
             onClick={() => downloadJson("jdj2026-content.json", draft)}
@@ -1912,6 +1957,103 @@ export function AdminPage() {
                   </div>
                 </article>
               ))
+            )}
+          </section>
+        )}
+
+        {section === "donations" && (
+          <section className="admin-panel">
+            <h2>Donaciones{donations.length ? ` (${donations.length})` : ""}</h2>
+            <p className="admin-panel__hint">
+              Cada aporte queda pendiente hasta que Wompi confirma el pago por
+              webhook. El total solo suma donaciones pagadas ($5 a $25).
+            </p>
+            <div className="admin-report">
+              <article className="admin-report__card">
+                <p>Registros</p>
+                <strong>{donations.length}</strong>
+                <span>
+                  {donations.filter((item) => item.status === "pending").length}{" "}
+                  pendientes ·{" "}
+                  {donations.filter((item) => item.status === "paid").length}{" "}
+                  pagadas
+                </span>
+              </article>
+              <article className="admin-report__card">
+                <p>Recaudado</p>
+                <strong>{formatUsd(donationsTotal)}</strong>
+                <span>Solo pagos confirmados</span>
+              </article>
+            </div>
+            <div className="admin-inline-actions">
+              <label>
+                Estado
+                <select
+                  value={donationFilter}
+                  onChange={(e) =>
+                    setDonationFilter(e.target.value as "all" | DonationStatus)
+                  }
+                >
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendiente</option>
+                  <option value="paid">Pagada</option>
+                  <option value="failed">Fallida</option>
+                  <option value="expired">Vencida</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={!donations.length}
+                onClick={() =>
+                  downloadJson("jdj2026-donaciones.json", donations)
+                }
+              >
+                Exportar JSON
+              </button>
+            </div>
+            {donationsNotice ? (
+              <p className="admin-panel__hint">{donationsNotice}</p>
+            ) : null}
+            {donations.filter(
+              (item) =>
+                donationFilter === "all" || item.status === donationFilter,
+            ).length === 0 ? (
+              <p className="admin-empty">Aún no hay donaciones en este filtro.</p>
+            ) : (
+              donations
+                .filter(
+                  (item) =>
+                    donationFilter === "all" || item.status === donationFilter,
+                )
+                .map((donation) => (
+                  <article className="admin-order" key={donation.id}>
+                    <div className="admin-order__top">
+                      <strong>{formatUsd(Number(donation.amount))}</strong>
+                      <span
+                        className={`admin-order__status is-${donation.status}`}
+                      >
+                        {donationStatusLabel(donation.status)}
+                      </span>
+                    </div>
+                    <p>
+                      {donation.full_name} · DUI {donation.dui}
+                    </p>
+                    <p>
+                      {donation.email} · {donation.phone}
+                    </p>
+                    <p>{donation.parish}</p>
+                    {donation.wompi_transaction_id ? (
+                      <p>Wompi: {donation.wompi_transaction_id}</p>
+                    ) : null}
+                    <p className="admin-order__date">
+                      {formatOrderDate(donation.created_at)}
+                      {donation.paid_at
+                        ? ` · pagada ${formatOrderDate(donation.paid_at)}`
+                        : ""}
+                    </p>
+                  </article>
+                ))
             )}
           </section>
         )}

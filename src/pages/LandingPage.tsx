@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { DonateInvite } from "../components/DonateInvite";
 import { EventInfo } from "../components/EventInfo";
 import { Faq } from "../components/Faq";
 import { Footer } from "../components/Footer";
@@ -60,6 +61,7 @@ export function LandingPage() {
         <EventInfo />
         <Schedule />
         <Registration />
+        <DonateInvite />
         <Faq />
         <Partners />
       </main>
