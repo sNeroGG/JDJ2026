@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAuthorized } from "./_lib/auth.js";
-import { readBody, send } from "./_lib/http.js";
+import { readBody, send, sendReadError } from "./_lib/http.js";
 import {
-  getDonation,
   insertDonation,
   listDonations,
   updateDonation,
 } from "./_lib/supabase.js";
 import { createDonationLink, siteUrlFromRequest } from "./_lib/wompi.js";
 import { parseDonationInput } from "../src/utils/donations.js";
+import { clientKey, rateLimit } from "./_lib/safe.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -33,6 +33,11 @@ export default async function handler(
 
     if (req.method !== "POST") {
       send(res, 405, { error: "Método no permitido" });
+      return;
+    }
+
+    if (!rateLimit(`donate:${clientKey(req)}`, 8, 10 * 60 * 1000)) {
+      send(res, 429, { error: "Demasiados intentos. Espera unos minutos." });
       return;
     }
 
@@ -75,7 +80,6 @@ export default async function handler(
         ok: true,
         id,
         redirectUrl: link.urlEnlace,
-        donation: await getDonation(id),
       });
     } catch (error) {
       await updateDonation(id, { status: "failed" }).catch(() => undefined);
@@ -84,6 +88,7 @@ export default async function handler(
       send(res, 502, { error: message });
     }
   } catch (error) {
+    if (sendReadError(res, error)) return;
     const message =
       error instanceof Error ? error.message : "Error al registrar la donación.";
     send(res, 500, { error: message });

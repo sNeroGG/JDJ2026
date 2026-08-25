@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readRawBody, send } from "./_lib/http.js";
 import { getDonation, updateDonation } from "./_lib/supabase.js";
 import { verifyWompiWebhook, wompiHashHeader } from "./_lib/wompi.js";
+import { isUuid } from "./_lib/safe.js";
 
 type WompiWebhook = {
   IdTransaccion?: string;
@@ -31,8 +32,8 @@ export default async function handler(
 
     const payload = JSON.parse(raw) as WompiWebhook;
     const id = String(payload.EnlacePago?.IdentificadorEnlaceComercio || "");
-    if (!id) {
-      send(res, 400, { error: "Falta el identificador de la donación." });
+    if (!isUuid(id)) {
+      send(res, 400, { error: "Identificador de donación no válido." });
       return;
     }
 

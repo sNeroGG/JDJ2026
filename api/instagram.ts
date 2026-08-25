@@ -1,19 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { SAVED_CONTENT } from "../src/data/savedContent.js";
 import { loadInstagramFeed } from "../src/server/instagramFeed.js";
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json");
-  res.setHeader("Cache-Control", "public, max-age=300");
-  res.end(JSON.stringify(data));
-}
+import { send } from "./_lib/http.js";
+import { safeInstagramHandle } from "./_lib/safe.js";
 
 function queryHandle(req: IncomingMessage) {
   try {
     const host = req.headers.host || "localhost";
     const url = new URL(req.url || "/", `http://${host}`);
-    return url.searchParams.get("handle") || "pjarqui_ss";
+    return safeInstagramHandle(url.searchParams.get("handle") || "");
   } catch {
     return "pjarqui_ss";
   }

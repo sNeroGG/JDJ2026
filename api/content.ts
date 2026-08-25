@@ -5,7 +5,12 @@ import {
 } from "../src/server/contentFile.js";
 import { isAuthorized } from "./_lib/auth.js";
 import { commitFile } from "./_lib/github.js";
-import { readBody, send } from "./_lib/http.js";
+import {
+  CONTENT_BODY_LIMIT,
+  readBody,
+  send,
+  sendReadError,
+} from "./_lib/http.js";
 
 const MAX_CONTENT_BYTES = 1024 * 1024;
 
@@ -23,7 +28,7 @@ export default async function handler(
   }
 
   try {
-    const body = await readBody(req);
+    const body = await readBody(req, CONTENT_BODY_LIMIT);
     const content = body.content;
     if (!content || typeof content !== "object" || Array.isArray(content)) {
       send(res, 400, { error: "El contenido enviado no es válido." });
@@ -59,6 +64,7 @@ export default async function handler(
 
     send(res, 200, { ok: true, mode: "github", commit: result.sha });
   } catch (error) {
+    if (sendReadError(res, error)) return;
     send(res, 500, {
       error:
         error instanceof Error ? error.message : "No se pudo guardar el contenido.",

@@ -7,6 +7,7 @@ import { DonatePage } from "./pages/DonatePage";
 import { DonateThanksPage } from "./pages/DonateThanksPage";
 import { LandingPage } from "./pages/LandingPage";
 import { StorePage } from "./pages/StorePage";
+import { ADMIN_ROUTE, isAdminPath } from "./utils/adminRoute";
 
 function App() {
   return (
@@ -18,13 +19,12 @@ function App() {
           <Route path="/tienda" element={<StorePage />} />
           <Route path="/donar" element={<DonatePage />} />
           <Route path="/donar/gracias" element={<DonateThanksPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path={ADMIN_ROUTE} element={<AdminPage />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Analytics
-          beforeSend={(event) =>
-            event.url.includes("/admin") ? null : event
-          }
+          beforeSend={(event) => (isAdminPath(event.url) ? null : event)}
         />
       </BrowserRouter>
     </ContentProvider>

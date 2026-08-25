@@ -35,7 +35,7 @@ type ContentContextValue = {
   resetContent: () => Promise<SaveMode>;
   isAuthenticated: boolean;
   canPublish: boolean;
-  login: (password: string) => Promise<boolean>;
+  login: (password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 };
 
@@ -336,18 +336,25 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     }).catch(() => null);
-    if (!remote?.ok) return false;
-
+    if (!remote) return { ok: false, error: "No se pudo conectar." };
     const payload = (await remote.json().catch(() => null)) as {
+      error?: string;
+      token?: string;
       canPublish?: boolean;
     } | null;
-    const publishable = import.meta.env.DEV || payload?.canPublish === true;
+    if (!remote.ok || !payload?.token) {
+      return {
+        ok: false,
+        error: payload?.error || "Contraseña incorrecta",
+      };
+    }
+    const publishable = import.meta.env.DEV || payload.canPublish === true;
     sessionStorage.setItem(AUTH_KEY, "1");
-    sessionStorage.setItem(AUTH_SECRET_KEY, password);
+    sessionStorage.setItem(AUTH_SECRET_KEY, payload.token);
     sessionStorage.setItem(AUTH_PUBLISH_KEY, publishable ? "1" : "0");
     setIsAuthenticated(true);
     setCanPublish(publishable);
-    return true;
+    return { ok: true };
   }, []);
 
   const logout = useCallback(() => {

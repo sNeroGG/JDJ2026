@@ -119,7 +119,13 @@ export function injectSeo(html, root, env = process.env) {
 }
 
 export function buildRobotsTxt(siteUrl) {
-  const lines = ["User-agent: *", "Allow: /", "Disallow: /admin"];
+  const lines = [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "Disallow: /jdj-cms",
+    "Disallow: /api/",
+  ];
   if (siteUrl) lines.push("", `Sitemap: ${siteUrl}/sitemap.xml`);
   return `${lines.join("\n")}\n`;
 }

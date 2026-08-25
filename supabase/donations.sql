@@ -26,3 +26,6 @@ create index if not exists donations_status_idx
   on public.donations (status);
 
 alter table public.donations enable row level security;
+
+revoke all on public.donations from anon, authenticated;
+grant all on public.donations to service_role;

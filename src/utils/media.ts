@@ -25,7 +25,9 @@ export async function uploadMedia(
 
   const password = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
   if (!password) {
-    throw new Error("Cierra sesión en /admin y vuelve a entrar, luego sube el archivo.");
+    throw new Error(
+      "Cierra sesión en el panel y vuelve a entrar, luego sube el archivo.",
+    );
   }
   if (file.size > 15 * 1024 * 1024) {
     throw new Error("El archivo supera 15 MB. Usa uno más liviano.");

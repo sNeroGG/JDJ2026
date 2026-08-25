@@ -4,13 +4,15 @@ import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
 import { useSeo } from "../hooks/useSeo";
+import { isUuid } from "../utils/ids";
 import "./DonatePage.css";
 
 export function DonateThanksPage() {
   const { content } = useContent();
   const { site } = content;
   const [params] = useSearchParams();
-  const id = params.get("id");
+  const rawId = params.get("id") || "";
+  const id = isUuid(rawId) ? rawId : "";
 
   useSeo({
     title: `Gracias · ${site.name} ${site.year}`,

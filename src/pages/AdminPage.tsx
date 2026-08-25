@@ -7,6 +7,8 @@ import {
 } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useContent } from "../context/ContentContext";
+import { useSeo } from "../hooks/useSeo";
+import { ADMIN_ROUTE } from "../utils/adminRoute";
 import {
   AUTH_SECRET_KEY,
   DEFAULT_CONTENT,
@@ -80,6 +82,15 @@ export function AdminPage() {
     login,
     logout,
   } = useContent();
+
+  useSeo({
+    title: "Panel",
+    description: "",
+    path: ADMIN_ROUTE,
+    siteUrl: content.site.url,
+    image: content.site.ogImage,
+    robots: "noindex, nofollow, noarchive",
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const [draft, setDraft] = useState<SiteContent>(content);
   const [password, setPassword] = useState("");
@@ -265,9 +276,9 @@ export function AdminPage() {
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
-    const ok = await login(password);
-    setError(ok ? "" : "Contraseña incorrecta");
-    if (ok) setPassword("");
+    const result = await login(password);
+    setError(result.ok ? "" : result.error || "Contraseña incorrecta");
+    if (result.ok) setPassword("");
   }
 
   function patchSite(patch: Partial<SiteContent["site"]>) {
@@ -651,8 +662,8 @@ export function AdminPage() {
       <div className="admin-login">
         <form className="admin-login__card" onSubmit={handleLogin}>
           <p className="admin-login__eyebrow">JDJ 2026</p>
-          <h1>Panel de administración</h1>
-          <p>Guarda en local y luego sube el commit a GitHub para publicarlo.</p>
+          <h1>Acceso restringido</h1>
+          <p>Solo el equipo de la Pastoral Juvenil puede entrar aquí.</p>
           <label>
             Contraseña
             <input

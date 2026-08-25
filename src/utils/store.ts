@@ -288,7 +288,15 @@ export function parseCreateOrder(
     return { error: "Escribe un correo válido." };
   }
   if (phone.length < 8) return { error: "Escribe un número de teléfono." };
-  if (!productId) return { error: "Falta el producto." };
+  if (!productId || !/^[a-z0-9][a-z0-9_-]{1,79}$/i.test(productId)) {
+    return { error: "Falta el producto." };
+  }
+  if (variantId && !/^[a-z0-9][a-z0-9_-]{1,79}$/i.test(variantId)) {
+    return { error: "La variante no es válida." };
+  }
+  if (size.length > 24 || color.length > 40 || note.length > 280) {
+    return { error: "Hay un dato demasiado largo." };
+  }
   if (!Number.isInteger(quantity) || quantity < 1) {
     return { error: "La cantidad debe ser al menos 1." };
   }

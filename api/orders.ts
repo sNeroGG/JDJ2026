@@ -6,7 +6,7 @@ import {
   whatsappOrderUrl,
 } from "../src/utils/store.js";
 import { isAuthorized } from "./_lib/auth.js";
-import { readBody, send } from "./_lib/http.js";
+import { readBody, send, sendReadError } from "./_lib/http.js";
 import {
   adjustStock,
   listProducts,
@@ -16,6 +16,7 @@ import {
   storeWhatsapp,
   writeOrders,
 } from "./_lib/runtime.js";
+import { clientKey, isOrderId, rateLimit } from "./_lib/safe.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -35,6 +36,10 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
+      if (!rateLimit(`order:${clientKey(req)}`, 12, 10 * 60 * 1000)) {
+        send(res, 429, { error: "Demasiados intentos. Espera unos minutos." });
+        return;
+      }
       const parsed = parseCreateOrder(await readBody(req));
       if ("error" in parsed) {
         send(res, 400, parsed);
@@ -75,7 +80,10 @@ export default async function handler(
       const body = await readBody(req);
       const id = String(body.id || "");
       const status = String(body.status || "") as StoreOrder["status"];
-      if (!id || !["nuevo", "atendido", "cancelado"].includes(status)) {
+      if (
+        !isOrderId(id) ||
+        !["nuevo", "atendido", "cancelado"].includes(status)
+      ) {
         send(res, 400, { error: "Pedido o estado no válido." });
         return;
       }
@@ -119,6 +127,7 @@ export default async function handler(
 
     send(res, 405, { error: "Método no permitido" });
   } catch (error) {
+    if (sendReadError(res, error)) return;
     send(res, 500, {
       error: error instanceof Error ? error.message : "Error en pedidos",
     });

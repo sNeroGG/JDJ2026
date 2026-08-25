@@ -7,6 +7,7 @@ type SeoOptions = {
   path: string;
   siteUrl: string;
   image: string;
+  robots?: string;
 };
 
 function upsertMeta(key: "name" | "property", value: string, content: string) {
@@ -45,7 +46,14 @@ function absolute(value: string, base: string) {
  * contenido editable. Los scrapers de WhatsApp y Facebook leen el HTML estático
  * que genera el build, esto es para la navegación entre rutas.
  */
-export function useSeo({ title, description, path, siteUrl, image }: SeoOptions) {
+export function useSeo({
+  title,
+  description,
+  path,
+  siteUrl,
+  image,
+  robots = "index, follow",
+}: SeoOptions) {
   useEffect(() => {
     const base = siteUrl || window.location.origin;
     const pageUrl = absolute(path, base);
@@ -53,6 +61,7 @@ export function useSeo({ title, description, path, siteUrl, image }: SeoOptions)
 
     document.title = title;
     upsertMeta("name", "description", description);
+    upsertMeta("name", "robots", robots);
     upsertCanonical(pageUrl);
     upsertMeta("property", "og:title", title);
     upsertMeta("property", "og:description", description);
@@ -63,5 +72,5 @@ export function useSeo({ title, description, path, siteUrl, image }: SeoOptions)
       upsertMeta("property", "og:image", imageUrl);
       upsertMeta("name", "twitter:image", imageUrl);
     }
-  }, [title, description, path, siteUrl, image]);
+  }, [title, description, path, siteUrl, image, robots]);
 }

@@ -8,6 +8,7 @@ import {
   DONATION_MAX,
   DONATION_MIN,
   DONATION_PRESETS,
+  isDonationPreset,
   normalizeDui,
   parseDonationAmount,
 } from "../utils/donations";
@@ -28,6 +29,7 @@ export function DonatePage() {
   const { content } = useContent();
   const { site } = content;
   const [form, setForm] = useState(EMPTY);
+  const [customAmount, setCustomAmount] = useState(false);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -145,7 +147,7 @@ export function DonatePage() {
                 />
               </label>
               <label>
-                Parroquia o vicaría
+                Parroquia / Vicaría / Movimiento
                 <input
                   value={form.parish}
                   onChange={(e) => setForm({ ...form, parish: e.target.value })}
@@ -160,26 +162,50 @@ export function DonatePage() {
                       key={preset}
                       type="button"
                       className={
-                        Number(form.amount) === preset ? "is-active" : ""
+                        !customAmount && Number(form.amount) === preset
+                          ? "is-active"
+                          : ""
                       }
-                      onClick={() => setForm({ ...form, amount: String(preset) })}
+                      onClick={() => {
+                        setCustomAmount(false);
+                        setForm({ ...form, amount: String(preset) });
+                      }}
                     >
                       {formatUsd(preset)}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className={customAmount ? "is-active" : ""}
+                    onClick={() => {
+                      setCustomAmount(true);
+                      const current = parseDonationAmount(form.amount);
+                      if (current != null && isDonationPreset(current)) {
+                        setForm({ ...form, amount: "" });
+                      }
+                    }}
+                  >
+                    Otro monto
+                  </button>
                 </div>
-                <label>
-                  Otro monto (USD)
-                  <input
-                    type="number"
-                    min={DONATION_MIN}
-                    max={DONATION_MAX}
-                    step="0.01"
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    required
-                  />
-                </label>
+                {customAmount ? (
+                  <label>
+                    Escribe un monto entre {formatUsd(DONATION_MIN)} y{" "}
+                    {formatUsd(DONATION_MAX)}
+                    <input
+                      type="number"
+                      min={DONATION_MIN}
+                      max={DONATION_MAX}
+                      step="0.01"
+                      value={form.amount}
+                      onChange={(e) =>
+                        setForm({ ...form, amount: e.target.value })
+                      }
+                      placeholder={`${DONATION_MIN} – ${DONATION_MAX}`}
+                      required
+                    />
+                  </label>
+                ) : null}
               </fieldset>
               <p className="donate-form__privacy">
                 Usamos estos datos solo para identificar el origen de cada

@@ -2,6 +2,10 @@ export const DONATION_MIN = 5;
 export const DONATION_MAX = 25;
 export const DONATION_PRESETS = [5, 10, 15, 20, 25] as const;
 
+export function isDonationPreset(amount: number) {
+  return (DONATION_PRESETS as readonly number[]).includes(amount);
+}
+
 export type DonationStatus = "pending" | "paid" | "failed" | "expired";
 
 export type DonationRecord = {
@@ -54,6 +58,9 @@ export function parseDonationInput(body: Record<string, unknown>): DonationInput
 
   if (fullName.length < 3) {
     return { error: "Escribe tu nombre completo." };
+  }
+  if (fullName.length > 120 || parish.length > 120 || phone.length > 24) {
+    return { error: "Hay un dato demasiado largo." };
   }
   if (!DUI_RE.test(dui)) {
     return { error: "El DUI debe verse así: 00000000-0." };

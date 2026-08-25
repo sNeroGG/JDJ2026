@@ -1,3 +1,5 @@
+import { eqFilter } from "./safe.js";
+
 const DONATION_COLUMNS =
   "id,full_name,dui,email,phone,parish,amount,status,wompi_enlace_id,wompi_transaction_id,payment_method,paid_at,created_at";
 
@@ -53,8 +55,10 @@ export async function updateDonation(
   id: string,
   patch: Record<string, unknown>,
 ) {
+  const filter = eqFilter("id", id);
+  if (!filter) return null;
   const rows = await rest<Record<string, unknown>[]>(
-    `donations?id=eq.${encodeURIComponent(id)}&select=${DONATION_COLUMNS}`,
+    `donations?${filter}&select=${DONATION_COLUMNS}`,
     {
       method: "PATCH",
       body: JSON.stringify(patch),
@@ -65,8 +69,10 @@ export async function updateDonation(
 }
 
 export async function getDonation(id: string) {
+  const filter = eqFilter("id", id);
+  if (!filter) return null;
   const rows = await rest<Record<string, unknown>[]>(
-    `donations?id=eq.${encodeURIComponent(id)}&select=${DONATION_COLUMNS}`,
+    `donations?${filter}&select=${DONATION_COLUMNS}`,
   );
   return rows[0] ?? null;
 }

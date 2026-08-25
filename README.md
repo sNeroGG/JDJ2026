@@ -10,8 +10,9 @@ Landing de la Jornada Diocesana de la Juventud — Arquidiócesis de San Salvado
 
 ## Editar textos desde el sitio publicado
 
-Los textos, las preguntas frecuentes y demás contenido se editan en `/admin`
-**directamente en el sitio de Vercel**, sin tocar la terminal. Al pulsar
+Los textos, las preguntas frecuentes y demás contenido se editan en `/jdj-cms`
+**directamente en el sitio de Vercel**, sin tocar la terminal. La ruta `/admin`
+no abre el panel (vuelve al inicio) para que nadie entre ahí por error. Al pulsar
 **Publicar**, el sitio commitea `src/data/savedContent.ts` al repo con la API de
 GitHub; Vercel detecta el push y reconstruye solo. El cambio se ve en vivo en un
 par de minutos y queda en el historial de git por si hay que revertirlo.
@@ -20,7 +21,7 @@ Para habilitarlo hay que crear un **fine-grained PAT** en GitHub
 (*Settings → Developer settings → Personal access tokens*) limitado a este repo
 y con permiso **Contents: read and write**, y guardarlo en Vercel →
 **Settings → Environment Variables** como `GITHUB_TOKEN`. Sin esa variable el
-panel avisa que no puede publicar y `/admin` solo sirve para editar en local.
+panel avisa que no puede publicar y `/jdj-cms` solo sirve para editar en local.
 
 Ojo con los deploys: cada publicación genera uno, y el plan Hobby de Vercel tiene
 tope diario. Conviene juntar los cambios y publicar una sola vez.
@@ -31,7 +32,7 @@ Los archivos sí se suben **en local**. Quedan en el proyecto y viajan con el
 deploy (sin Blob).
 
 1. `npm run dev`
-2. Entra a `/admin`
+2. Entra a `/jdj-cms`
 3. Sube el logo, documentos o logos institucionales y pulsa **Guardar**
 4. Revisa `public/images/`, `public/docs/` y `src/data/savedContent.ts`
 5. Commit y push a GitHub → Vercel publica todo junto a la web
@@ -77,8 +78,8 @@ a **Analytics** y pulsar **Enable** para el proyecto. Sin eso el sitio envía da
 pero el panel no los guarda.
 
 Los datos se ven en Vercel → proyecto → **Analytics**, y aparecen desde el momento
-del despliegue (no hay datos retroactivos). Las visitas a `/admin` se descartan
-para no ensuciar los números.
+del despliegue (no hay datos retroactivos). Las visitas al panel (`/jdj-cms`) se
+descartan para no ensuciar los números.
 
 El plan gratuito incluye 50,000 eventos al mes y un mes de historial. Los eventos
 personalizados (descargas de PDF, clics en el mapa o en inscripción) requieren plan
@@ -113,12 +114,16 @@ npm install
 npm run dev
 ```
 
-Contraseña del admin: `ADMIN_PASSWORD` (por defecto `jdj2026`). Se valida en el
-servidor, así que **no** lleva prefijo `VITE_` y no queda expuesta en el
-JavaScript del navegador. Si tu proyecto todavía tiene `VITE_ADMIN_PASSWORD` en
-Vercel, sigue funcionando como respaldo, pero conviene renombrarla y borrar la
-vieja.
+Contraseña del panel: `ADMIN_PASSWORD` (en local, por defecto `jdj2026`). Se
+valida en el servidor, así que **no** lleva prefijo `VITE_` y no queda expuesta
+en el JavaScript del navegador. En Vercel hay que definir una clave propia: la
+contraseña por defecto no se acepta en producción. La URL del panel es
+`/jdj-cms`; `/admin` redirige al inicio.
+
+Si tu proyecto todavía tiene `VITE_ADMIN_PASSWORD` en Vercel, sigue funcionando
+como respaldo, pero conviene renombrarla y borrar la vieja.
 
 ## Deploy
 
-GitHub → Vercel (preset Vite). Rutas: `/`, `/catequesis`, `/admin`.
+GitHub → Vercel (preset Vite). Rutas públicas: `/`, `/catequesis`, `/tienda`,
+`/donar`. Panel: `/jdj-cms`.

@@ -22,6 +22,7 @@ import {
   normalizeHandle,
 } from "./src/server/instagramFeed.ts";
 import type { StoreOrder } from "./src/data/defaultContent.ts";
+import { isOrderId } from "./src/utils/ids.ts";
 import {
   adjustVariantStock,
   listStoreProducts,
@@ -39,6 +40,8 @@ import {
 } from "./src/utils/store.ts";
 import donationsHandler from "./api/donations.ts";
 import donationsWebhookHandler from "./api/donations-webhook.ts";
+import loginHandler from "./api/login.ts";
+import { isAuthorized as isAdminRequest } from "./api/_lib/auth.ts";
 
 function safeFileName(name: string) {
   const base = path.basename(name).replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/gi, "-");
@@ -70,17 +73,6 @@ function sendJson(
 
 type BuildEnv = Record<string, string | undefined>;
 
-/** Igual que api/_lib/auth.ts, pero leyendo los .env que resuelve loadEnv. */
-function adminPassword(env: BuildEnv) {
-  return env.ADMIN_PASSWORD || env.VITE_ADMIN_PASSWORD || "jdj2026";
-}
-
-function isAuthorized(req: IncomingMessage, password: string) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return token === password;
-}
-
 function localMediaPlugin(env: BuildEnv): Plugin {
   return {
     name: "jdj-local-media",
@@ -111,7 +103,6 @@ function localMediaPlugin(env: BuildEnv): Plugin {
       const root = server.config.root;
       const imagesDir = path.join(root, "public", "images");
       const docsDir = path.join(root, "public", "docs");
-      const password = adminPassword(env);
 
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] || "";
@@ -122,7 +113,7 @@ function localMediaPlugin(env: BuildEnv): Plugin {
 
         void (async () => {
           if (url === "/__admin/files" && req.method === "GET") {
-            if (!isAuthorized(req, password)) {
+            if (!isAdminRequest(req)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -148,7 +139,7 @@ function localMediaPlugin(env: BuildEnv): Plugin {
             sendJson(res, 405, { error: "Método no permitido" });
             return;
           }
-          if (!isAuthorized(req, password)) {
+          if (!isAdminRequest(req)) {
             sendJson(res, 401, { error: "No autorizado" });
             return;
           }
@@ -224,12 +215,11 @@ const DONATION_ENV_KEYS = [
   "PUBLIC_SITE_URL",
 ] as const;
 
-function localStoreApiPlugin(env: BuildEnv): Plugin {
+function localStoreApiPlugin(): Plugin {
   return {
     name: "jdj-store-api",
     configureServer(server) {
       const root = server.config.root;
-      const password = adminPassword(env);
 
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] || "";
@@ -249,16 +239,7 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
           }
 
           if (url === "/api/login") {
-            if (req.method !== "POST") {
-              sendJson(res, 405, { error: "Método no permitido" });
-              return;
-            }
-            const body = await readJsonBody(req);
-            if (String(body.password || "") !== password) {
-              sendJson(res, 401, { error: "Contraseña incorrecta" });
-              return;
-            }
-            sendJson(res, 200, { ok: true, canPublish: false });
+            await loginHandler(req, res);
             return;
           }
 
@@ -267,7 +248,7 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
               sendJson(res, 405, { error: "Método no permitido" });
               return;
             }
-            if (!isAuthorized(req, password)) {
+            if (!isAdminRequest(req)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -307,7 +288,7 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
           }
 
           if (url === "/api/orders" && req.method === "GET") {
-            if (!isAuthorized(req, password)) {
+            if (!isAdminRequest(req)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
@@ -364,14 +345,17 @@ function localStoreApiPlugin(env: BuildEnv): Plugin {
           }
 
           if (url === "/api/orders" && req.method === "PATCH") {
-            if (!isAuthorized(req, password)) {
+            if (!isAdminRequest(req)) {
               sendJson(res, 401, { error: "No autorizado" });
               return;
             }
             const body = await readJsonBody(req);
             const id = String(body.id || "");
             const status = String(body.status || "") as StoreOrder["status"];
-            if (!id || !["nuevo", "atendido", "cancelado"].includes(status)) {
+            if (
+              !isOrderId(id) ||
+              !["nuevo", "atendido", "cancelado"].includes(status)
+            ) {
               sendJson(res, 400, { error: "Pedido o estado no válido." });
               return;
             }
@@ -436,11 +420,11 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, process.cwd(), ""),
     ...process.env,
   };
-  for (const key of DONATION_ENV_KEYS) {
+  for (const key of [...DONATION_ENV_KEYS, "ADMIN_PASSWORD", "VITE_ADMIN_PASSWORD"]) {
     if (env[key]) process.env[key] = env[key];
   }
 
   return {
-    plugins: [react(), localMediaPlugin(env), localStoreApiPlugin(env)],
+    plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
   };
 });
