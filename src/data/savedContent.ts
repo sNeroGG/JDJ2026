@@ -281,7 +281,14 @@ export const SAVED_CONTENT: SavedContent = {
     "countdownTitle": "Faltan",
     "countdownLiveText": "¡Estamos viviendo la JDJ 2026!",
     "countdownDoneText": "Gracias por caminar con nosotros en la JDJ 2026.",
-    "items": []
+    "items": [
+      {
+        "id": "hora-16777e43",
+        "time": "08:00",
+        "title": "Nueva actividad",
+        "text": ""
+      }
+    ]
   },
   "registration": {
     "enabled": false,
@@ -359,8 +366,8 @@ export const SAVED_CONTENT: SavedContent = {
   },
   "partners": {
     "eyebrow": "Acompañan",
-    "title": "#TodosPorTodos",
-    "lead": "",
+    "title": "Logos institucionales",
+    "lead": "Logos institucionales creados por la Arquidiócesis de San Salvador, El Salvador.",
     "credit": "Arquidiócesis de San Salvador · El Salvador",
     "logos": [
       {
