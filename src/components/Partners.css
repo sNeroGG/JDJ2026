@@ -23,6 +23,10 @@
 
 .partners__lead {
   max-width: 42ch;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.02em;
 }
 
 .partners__grid {

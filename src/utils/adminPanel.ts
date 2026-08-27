@@ -198,8 +198,8 @@ export const ADMIN_PARTS: AdminPart[] = [
   {
     id: "partners",
     section: "page",
-    label: "Logos institucionales",
-    keywords: "arquidiocesis auspiciadores",
+    label: "Nos Acompañan",
+    keywords: "arquidiocesis auspiciadores logos institucionales todosportodos",
   },
   {
     id: "pie",

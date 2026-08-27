@@ -3018,7 +3018,7 @@ export function AdminPage() {
             </section>
 
             <section className="admin-panel" id="parte-partners">
-              <h2>Logos institucionales{partnerCount ? ` (${partnerCount})` : ""}</h2>
+              <h2>Nos Acompañan{partnerCount ? ` (${partnerCount})` : ""}</h2>
               {allowUploads ? (
               <label className="file-field">
                 Subir logos

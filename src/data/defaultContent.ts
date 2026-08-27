@@ -627,8 +627,8 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   partners: {
     eyebrow: "Acompañan",
-    title: "Logos institucionales",
-    lead: "Logos institucionales creados por la Arquidiócesis de San Salvador, El Salvador.",
+    title: "Nos Acompañan",
+    lead: "#TodosPorTodos",
     credit: "Arquidiócesis de San Salvador · El Salvador",
     logos: [],
   },
