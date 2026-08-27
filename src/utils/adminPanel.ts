@@ -198,7 +198,7 @@ export const ADMIN_PARTS: AdminPart[] = [
   {
     id: "partners",
     section: "page",
-    label: "Nos Acompañan",
+    label: "#TodosPorTodos",
     keywords: "arquidiocesis auspiciadores logos institucionales todosportodos",
   },
   {

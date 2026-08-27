@@ -14,7 +14,9 @@ export function Partners() {
         <div className="partners__intro reveal">
           <p className="section__eyebrow">{partners.eyebrow}</p>
           <h2 className="section__title partners__title">{partners.title}</h2>
-          <p className="section__lead partners__lead">{partners.lead}</p>
+          {partners.lead ? (
+            <p className="section__lead partners__lead">{partners.lead}</p>
+          ) : null}
         </div>
 
         <div className="partners__grid">

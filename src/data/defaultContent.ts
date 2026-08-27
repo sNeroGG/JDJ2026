@@ -627,8 +627,8 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   partners: {
     eyebrow: "Acompañan",
-    title: "Nos Acompañan",
-    lead: "#TodosPorTodos",
+    title: "#TodosPorTodos",
+    lead: "",
     credit: "Arquidiócesis de San Salvador · El Salvador",
     logos: [],
   },
