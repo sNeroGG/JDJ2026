@@ -281,14 +281,7 @@ export const SAVED_CONTENT: SavedContent = {
     "countdownTitle": "Faltan",
     "countdownLiveText": "¡Estamos viviendo la JDJ 2026!",
     "countdownDoneText": "Gracias por caminar con nosotros en la JDJ 2026.",
-    "items": [
-      {
-        "id": "hora-16777e43",
-        "time": "08:00",
-        "title": "Nueva actividad",
-        "text": ""
-      }
-    ]
+    "items": []
   },
   "registration": {
     "enabled": false,
