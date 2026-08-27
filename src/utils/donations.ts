@@ -1,6 +1,9 @@
+import { formatUsd, normalizeWhatsapp } from "./store";
+
 export const DONATION_MIN = 5;
 export const DONATION_MAX = 25;
 export const DONATION_PRESETS = [5, 10, 15, 20, 25] as const;
+export const DONATION_PAYMENT = "Transferencia";
 
 export function isDonationPreset(amount: number) {
   return (DONATION_PRESETS as readonly number[]).includes(amount);
@@ -17,8 +20,6 @@ export type DonationRecord = {
   parish: string;
   amount: number;
   status: DonationStatus;
-  wompi_enlace_id: number | null;
-  wompi_transaction_id: string | null;
   payment_method: string | null;
   paid_at: string | null;
   created_at: string;
@@ -35,6 +36,16 @@ export type DonationInput = {
 
 const DUI_RE = /^\d{8}-\d$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DONATION_STATUSES: readonly DonationStatus[] = [
+  "pending",
+  "paid",
+  "failed",
+  "expired",
+];
+
+export function isDonationStatus(value: string): value is DonationStatus {
+  return (DONATION_STATUSES as readonly string[]).includes(value);
+}
 
 export function normalizeDui(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 9);
@@ -89,4 +100,49 @@ export function donationStatusLabel(status: DonationStatus) {
   if (status === "failed") return "Fallida";
   if (status === "expired") return "Vencida";
   return "Pendiente";
+}
+
+export function buildDonationMessage(input: {
+  id: string;
+  fullName: string;
+  dui: string;
+  email: string;
+  phone: string;
+  parish: string;
+  amount: number;
+}) {
+  return [
+    `Hola, quiero hacer una donación a la JDJ Jayaque 2026.`,
+    "",
+    `Referencia: ${input.id}`,
+    `Nombre: ${input.fullName}`,
+    `DUI: ${input.dui}`,
+    `Correo: ${input.email}`,
+    `Teléfono: ${input.phone}`,
+    `Parroquia / Vicaría / Movimiento: ${input.parish}`,
+    `Monto: ${formatUsd(input.amount)}`,
+    `Pago: Transferencia bancaria`,
+    "",
+    `Por favor, envíenme los datos bancarios para completar el aporte.`,
+  ].join("\n");
+}
+
+export function whatsappDonationUrl(
+  whatsapp: string,
+  input: Parameters<typeof buildDonationMessage>[0],
+) {
+  const phone = normalizeWhatsapp(whatsapp);
+  if (!phone) return "";
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildDonationMessage(input))}`;
+}
+
+export function whatsappDonationFollowupUrl(whatsapp: string, id: string) {
+  const phone = normalizeWhatsapp(whatsapp);
+  if (!phone) return "";
+  const text = [
+    `Hola, quiero completar mi donación a la JDJ Jayaque 2026.`,
+    `Referencia: ${id}`,
+    `Pago: Transferencia bancaria`,
+  ].join("\n");
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }

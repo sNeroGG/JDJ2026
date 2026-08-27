@@ -113,38 +113,146 @@
   font-size: 0.78rem;
 }
 
-.admin__side nav {
+.admin-search input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  border-radius: 0.7rem;
+  padding: 0.62rem 0.75rem;
+  font: inherit;
+}
+
+.admin-search input::placeholder {
+  color: rgba(232, 238, 241, 0.42);
+}
+
+.admin-search-results {
+  list-style: none;
   display: grid;
   gap: 0.28rem;
   flex: 1;
   align-content: start;
+  overflow: auto;
+}
+
+.admin-search-results button {
+  width: 100%;
+  text-align: left;
+  color: rgba(232, 238, 241, 0.88);
+  padding: 0.58rem 0.75rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-search-results button strong,
+.admin-search-results button small {
+  display: block;
+}
+
+.admin-search-results button small {
+  color: rgba(232, 238, 241, 0.5);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.admin-search-results button:hover {
+  background: rgba(45, 128, 142, 0.3);
+}
+
+.admin-search-empty {
+  color: rgba(232, 238, 241, 0.5);
+  font-size: 0.86rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.admin--text-only .file-field,
+.admin--text-only input[type="file"] {
+  display: none;
+}
+
+.admin--text-only .admin-logo-item .btn--danger,
+.admin--text-only button[aria-label="Quitar foto"] {
+  display: none;
+}
+
+[id^="parte-"] {
+  scroll-margin-top: 0.75rem;
+}
+
+.admin__side nav {
+  display: grid;
+  gap: 0.22rem;
+  flex: 1;
+  align-content: start;
+  overflow: auto;
+  padding: 0.1rem 0;
 }
 
 .admin__side nav button {
   text-align: left;
   color: rgba(232, 238, 241, 0.78);
-  padding: 0.62rem 0.8rem;
-  border-radius: 0.75rem;
+  padding: 0.58rem 0.8rem;
+  border-radius: 0.7rem;
   font-weight: 600;
   font-size: 0.9rem;
   line-height: 1.2;
 }
 
-.admin__side nav button.is-active,
 .admin__side nav button:hover {
-  background: rgba(45, 128, 142, 0.3);
+  background: rgba(255, 255, 255, 0.07);
   color: #fff;
 }
 
 .admin__side nav button.is-active {
-  box-shadow: inset 3px 0 0 #7ec8d4;
+  background: #2d808e;
+  color: #fff;
+  box-shadow: none;
 }
 
 .admin__side-actions {
   display: grid;
   gap: 0.2rem;
-  padding-top: 0.4rem;
+  padding-top: 0.45rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-view-menu {
+  margin-bottom: 0.15rem;
+}
+
+.admin-view-menu summary {
+  cursor: pointer;
+  list-style: none;
+  color: rgba(232, 238, 241, 0.7);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.86rem;
+  border-radius: 0.6rem;
+}
+
+.admin-view-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-view-menu summary::after {
+  content: "+";
+  float: right;
+  color: #7ec8d4;
+  font-weight: 700;
+}
+
+.admin-view-menu[open] summary::after {
+  content: "–";
+}
+
+.admin-view-menu summary:hover,
+.admin-view-menu[open] summary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.admin-view-menu a {
+  display: block;
 }
 
 .admin__side-actions a,
@@ -191,6 +299,38 @@
   font-family: var(--font-display);
   font-size: 1.45rem;
   letter-spacing: -0.03em;
+  margin-bottom: 0.65rem;
+}
+
+.admin-mode {
+  display: inline-flex;
+  padding: 0.18rem;
+  border-radius: 999px;
+  background: rgba(28, 35, 44, 0.06);
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-mode button {
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.admin-mode button.is-active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.admin-mode button:disabled:not(.is-active) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-panel .admin-mode {
+  margin-bottom: 0.35rem;
 }
 
 .admin__lead {
@@ -429,6 +569,16 @@
   border: 1px solid rgba(28, 35, 44, 0.06);
 }
 
+.admin-card .admin-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .admin-card .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-product {
   padding: 0;
   gap: 0;
@@ -572,6 +722,20 @@
   object-fit: contain;
 }
 
+.admin-hero-preview {
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: #f4f7f5;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  aspect-ratio: 16 / 7;
+}
+
+.admin-hero-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .file-field.is-busy {
   opacity: 0.7;
   pointer-events: none;
@@ -641,6 +805,55 @@
   background: #fff;
   border-radius: 0.55rem;
   padding: 0.4rem;
+}
+
+.admin-logos--photos img {
+  height: 120px;
+  object-fit: cover;
+  padding: 0;
+}
+
+.admin-album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
+  gap: 0.45rem;
+}
+
+.admin-album-tile {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 0.7rem;
+  aspect-ratio: 1;
+  background: #e6ebe3;
+}
+
+.admin-album-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-album-tile__remove {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: rgba(28, 35, 44, 0.82);
+  color: #fff;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.admin-album-tile__remove:hover {
+  background: #9b2c1f;
+}
+
+.admin-details--nested {
+  border: 1px dashed rgba(28, 35, 44, 0.12);
+  background: #f7f8f6;
 }
 
 .admin-empty {
@@ -927,22 +1140,24 @@
   }
 
   .admin__side nav button.is-active {
-    box-shadow: none;
     background: #2d808e;
   }
 
   .admin__side-actions {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: start;
+    gap: 0.35rem;
     padding-top: 0.35rem;
   }
 
-  .admin__side-actions a,
-  .admin__side-actions button {
-    padding: 0.35rem 0.15rem;
-    font-size: 0.8rem;
+  .admin-view-menu {
+    margin-bottom: 0;
+  }
+
+  .admin__side-actions > button {
+    padding: 0.42rem 0.55rem;
+    font-size: 0.78rem;
   }
 
   .admin__main {

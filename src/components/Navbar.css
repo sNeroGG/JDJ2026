@@ -32,6 +32,12 @@
   backdrop-filter: blur(10px);
 }
 
+.navbar.is-page .navbar__inner,
+.navbar.is-page.is-open .navbar__inner {
+  background: #fff;
+  backdrop-filter: none;
+}
+
 .navbar:not(.is-solid):not(.is-open) .navbar__inner {
   border: 1px solid transparent;
 }
@@ -177,6 +183,12 @@
     border-radius: 1.2rem;
     background: rgba(255, 255, 255, 0.55);
     box-shadow: none;
+  }
+
+  .navbar.is-page .navbar__inner,
+  .navbar.is-page.is-open .navbar__inner {
+    background: #fff;
+    backdrop-filter: none;
   }
 
   .navbar__toggle {

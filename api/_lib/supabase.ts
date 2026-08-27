@@ -1,7 +1,7 @@
 import { eqFilter } from "./safe.js";
 
 const DONATION_COLUMNS =
-  "id,full_name,dui,email,phone,parish,amount,status,wompi_enlace_id,wompi_transaction_id,payment_method,paid_at,created_at";
+  "id,full_name,dui,email,phone,parish,amount,status,payment_method,paid_at,created_at";
 
 function config() {
   const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
@@ -64,15 +64,6 @@ export async function updateDonation(
       body: JSON.stringify(patch),
       prefer: "return=representation",
     },
-  );
-  return rows[0] ?? null;
-}
-
-export async function getDonation(id: string) {
-  const filter = eqFilter("id", id);
-  if (!filter) return null;
-  const rows = await rest<Record<string, unknown>[]>(
-    `donations?${filter}&select=${DONATION_COLUMNS}`,
   );
   return rows[0] ?? null;
 }

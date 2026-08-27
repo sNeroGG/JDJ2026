@@ -62,12 +62,43 @@ export async function toWebp(filePath) {
   return webpPath;
 }
 
+export function thumbPathFor(filePath) {
+  const ext = path.extname(filePath);
+  return filePath.replace(new RegExp(`\\${ext}$`, "i"), ".thumb.webp");
+}
+
+/** Miniatura cuadrada para el álbum. La foto grande se queda aparte. */
+export async function writeThumb(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!IMAGE_EXT.has(ext) || path.basename(filePath).includes(".thumb.")) {
+    return null;
+  }
+  const thumbPath = thumbPathFor(filePath);
+  await sharp(filePath, { failOn: "none" })
+    .rotate()
+    .resize({
+      width: 480,
+      height: 480,
+      fit: "cover",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 72 })
+    .toFile(thumbPath);
+  return thumbPath;
+}
+
 export async function optimizeImagesInDir(dir) {
   if (!fs.existsSync(dir)) return;
   for (const name of fs.readdirSync(dir)) {
     const filePath = path.join(dir, name);
     if (!fs.statSync(filePath).isFile()) continue;
+    if (name.includes(".thumb.")) continue;
     await optimizeImage(filePath);
+    if (!/logo|favicon|og-|apple-touch|icon|CAMISAS|STORE/i.test(name)) {
+      await writeThumb(filePath).catch((error) => {
+        console.warn(`No se pudo crear miniatura de ${filePath}:`, error);
+      });
+    }
   }
 }
 

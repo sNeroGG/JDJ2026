@@ -55,11 +55,40 @@ export type InstagramPostItem = {
   imageUrl: string;
 };
 
+export type AboutPoint = {
+  id: string;
+  title: string;
+  text: string;
+};
+
+export type MemoryPhoto = {
+  id: string;
+  src: string;
+  alt: string;
+};
+
+export type AlbumPhoto = {
+  id: string;
+  src: string;
+  alt: string;
+  caption: string;
+};
+
 export type NavLink = {
   id: string;
   href: string;
   label: string;
 };
+
+/** Enlaces que se muestran en el menú y en Explorar del pie. */
+export const ESSENTIAL_NAV: NavLink[] = [
+  { id: "nav-sede", href: "#donde", label: "Sede" },
+  { id: "nav-jdj", href: "#jdj", label: "La JDJ" },
+  { id: "nav-recuerdos", href: "/recuerdos", label: "Recuerdos" },
+  { id: "nav-tienda", href: "/tienda", label: "Tienda" },
+  { id: "nav-donar", href: "/donar", label: "Donar" },
+  { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
+];
 
 export type ScheduleItem = {
   id: string;
@@ -140,12 +169,22 @@ export type SiteContent = {
     /** Imagen para compartir en WhatsApp y redes (1200×630). */
     ogImage: string;
   };
+  admin: {
+    /**
+     * Conservado por compatibilidad. El panel ya no lo usa:
+     * en producción nunca se suben archivos; en local el interruptor
+     * Modo tester / Modo producción vive solo en esa sesión.
+     */
+    allowMediaUploads: boolean;
+  };
   hero: {
     slogan: string;
     tagline: string;
     ctaLabel: string;
     ctaHref: string;
     highlights: HeroHighlight[];
+    /** Foto de fondo del hero. Vacío deja el cielo y las colinas. */
+    imageUrl: string;
   };
   location: {
     eyebrow: string;
@@ -170,8 +209,40 @@ export type SiteContent = {
     title: string;
     lead: string;
     handle: string;
-    /** 1 a 3 publicaciones: enlace de Instagram e imagen subida en /admin. */
+    /** Conservado por compatibilidad; la landing ya no muestra el feed. */
     posts: InstagramPostItem[];
+  };
+  about: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    body: string;
+    items: AboutPoint[];
+  };
+  memories: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    images: MemoryPhoto[];
+  };
+  destination: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    images: MemoryPhoto[];
+  };
+  album: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    emptyTitle: string;
+    emptyText: string;
+    shareEyebrow: string;
+    shareTitle: string;
+    shareLead: string;
+    shareCta: string;
+    shareUrl: string;
+    images: AlbumPhoto[];
   };
   meaning: {
     eyebrow: string;
@@ -258,6 +329,10 @@ export type SiteContent = {
     emptyText: string;
     ctaLabel: string;
     docs: CatechesisDoc[];
+    heroImageUrl: string;
+  };
+  donate: {
+    heroImageUrl: string;
   };
   footer: {
     logoUrl: string;
@@ -298,6 +373,9 @@ export const DEFAULT_CONTENT: SiteContent = {
     url: "",
     ogImage: "/images/og-jdj-2026.jpg",
   },
+  admin: {
+    allowMediaUploads: true,
+  },
   hero: {
     slogan: "Tengan valor y síganme",
     tagline: "Jornada Diocesana de la Juventud · Arquidiócesis de San Salvador",
@@ -318,6 +396,7 @@ export const DEFAULT_CONTENT: SiteContent = {
         href: "",
       },
     ],
+    imageUrl: "",
   },
   location: {
     eyebrow: "Sede 2026",
@@ -340,18 +419,51 @@ export const DEFAULT_CONTENT: SiteContent = {
     mapLat: "",
     mapLng: "",
     mapLabel: "Ver el mapa",
-    mapNote:
-      "El mapa se carga solo cuando lo pides, para no gastar tus datos de más.",
+    mapNote: "",
     directionsLabel: "Abrir en Google Maps",
     wazeLabel: "Abrir en Waze",
   },
   instagram: {
     enabled: true,
     eyebrow: "Instagram",
-    title: "Últimas publicaciones",
-    lead: "Lo más reciente de Pastoral Juvenil Arquidiocesana.",
+    title: "Síguenos",
+    lead: "Sigue a PJ Arquidiocesana en Instagram y Facebook para las novedades de la JDJ",
     handle: "pjarqui_ss",
     posts: [],
+  },
+  about: {
+    eyebrow: "La JDJ",
+    title: "¿Qué es la Jornada Diocesana de la Juventud?",
+    lead: "",
+    body: "La JDJ es el encuentro bienal de adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales. Un día de Eucaristía, catequesis, fiesta y envío, para caminar juntos detrás de Cristo. En 2024 nos vimos en Suchitoto; en 2026 el camino sigue hacia Jayaque.",
+    items: [],
+  },
+  memories: {
+    eyebrow: "",
+    title: "La última vez que nos vimos",
+    lead: "La JDJ se celebra cada dos años. Estas imágenes recuerdan el encuentro en Suchitoto; ahora el camino sigue hacia Jayaque.",
+    images: [],
+  },
+  destination: {
+    eyebrow: "Jayaque 2026",
+    title: "#JayaqueLaLleva",
+    lead: "Ahí es donde iremos este 2026. Jayaque abre sus montañas y la Parroquia San Cristóbal sus puertas para acoger a la juventud de la Arquidiócesis.",
+    images: [],
+  },
+  album: {
+    eyebrow: "Álbum",
+    title: "Recuerdos de Jayaque",
+    lead: "Un álbum de fotos del camino hacia la JDJ 2026. Toca una polaroid para verla en grande.",
+    emptyTitle: "El álbum se está llenando",
+    emptyText:
+      "Pronto verás aquí fotos de Jayaque y del camino hacia el encuentro.",
+    shareEyebrow: "Álbum compartido",
+    shareTitle: "¡Participa agregando tus fotos!",
+    shareLead:
+      "Súbelas al álbum de Google Photos para que tu recuerdo también forme parte de la JDJ.",
+    shareCta: "Abrir álbum compartido",
+    shareUrl: "https://photos.app.goo.gl/3Q7aokzJS4FTerCU8",
+    images: [],
   },
   meaning: {
     eyebrow: "Identidad",
@@ -417,7 +529,7 @@ export const DEFAULT_CONTENT: SiteContent = {
         id: "para-quien",
         label: "Para quién",
         title: "Juventud Arquidiocesana",
-        text: "Adolescentes y jóvenes de las 17 vicarias, grupos parroquiales, movimientos y comunidades eclesiales.",
+        text: "Adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales, y todo joven que quiere ser parte de este evento: están totalmente invitados.",
       },
       {
         id: "cuando",
@@ -534,15 +646,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   header: {
     ctaLabel: "Catequesis",
     ctaHref: "/catequesis",
-    nav: [
-      { id: "nav-sede", href: "#donde", label: "Sede" },
-      { id: "nav-evento", href: "#evento", label: "Evento" },
-      { id: "nav-agenda", href: "#agenda", label: "Agenda" },
-      { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
-      { id: "nav-tienda", href: "/tienda", label: "Tienda" },
-      { id: "nav-donar", href: "/donar", label: "Donar" },
-      { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
-    ],
+    nav: ESSENTIAL_NAV.filter((item) => item.id !== "nav-jdj"),
   },
   catechesis: {
     eyebrow: "Preparación",
@@ -553,6 +657,10 @@ export const DEFAULT_CONTENT: SiteContent = {
       "Estamos reuniendo las catequesis de preparación. Vuelve a esta página para descargar guías, fichas y recursos del camino hacia Jayaque.",
     ctaLabel: "Ver documentos",
     docs: [],
+    heroImageUrl: "",
+  },
+  donate: {
+    heroImageUrl: "",
   },
   footer: {
     logoUrl: "/images/logo-pja.webp",
@@ -561,18 +669,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     socialLabel: "Redes oficiales",
     bottomLeft: "JDJ Jayaque 2026",
     bottomRight: "Arquidiócesis de San Salvador, El Salvador",
-    nav: [
-      { id: "nav-sede", href: "#donde", label: "Sede" },
-      { id: "nav-logo", href: "#significado", label: "Logo" },
-      { id: "nav-evento", href: "#evento", label: "Evento" },
-      { id: "nav-agenda", href: "#agenda", label: "Agenda" },
-      { id: "nav-inscripcion", href: "#inscripcion", label: "Inscripción" },
-      { id: "nav-tienda", href: "/tienda", label: "Tienda" },
-      { id: "nav-donar", href: "/donar", label: "Donar" },
-      { id: "nav-catequesis", href: "/catequesis", label: "Catequesis" },
-      { id: "nav-faq", href: "#faq", label: "Preguntas" },
-      { id: "nav-logos", href: "#auspiciadores", label: "Logos" },
-    ],
+    nav: [...ESSENTIAL_NAV],
     social: [
       {
         id: "instagram",
@@ -584,13 +681,13 @@ export const DEFAULT_CONTENT: SiteContent = {
         id: "facebook",
         name: "Facebook",
         handle: "Pastoral Juvenil",
-        href: "https://www.facebook.com/search/top/?q=Pastoral%20Juvenil%20Arquidi%C3%B3cesis%20de%20San%20Salvador",
+        href: "https://www.facebook.com/pjarquiss",
       },
       {
         id: "youtube",
         name: "YouTube",
-        handle: "Arquidiócesis SS",
-        href: "https://www.youtube.com/results?search_query=Arquidi%C3%B3cesis+de+San+Salvador",
+        handle: "",
+        href: "",
       },
     ],
   },

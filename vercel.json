@@ -12,6 +12,15 @@
       ]
     },
     {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
       "source": "/jdj-cms",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
@@ -25,10 +34,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/donations/webhook",
-      "destination": "/api/donations-webhook"
-    },
     {
       "source": "/((?!api/|.*\\.).*)",
       "destination": "/index.html"

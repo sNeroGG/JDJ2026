@@ -6,7 +6,7 @@ import type { NavLink, SiteContent } from "../data/defaultContent";
  * mientras esté desactivada. Catequesis vive en su propia página, no aquí.
  */
 export function getVisibleAnchors(content: SiteContent) {
-  const anchors = new Set(["#inicio", "#donde", "#auspiciadores", "#contacto"]);
+  const anchors = new Set(["#inicio", "#donde", "#jdj", "#auspiciadores", "#contacto"]);
   if (content.meaning.elements.length) anchors.add("#significado");
   if (content.event.items.length) anchors.add("#evento");
   if (content.schedule.items.length) anchors.add("#agenda");

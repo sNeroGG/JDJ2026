@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ContentProvider } from "./context/ContentContext";
 import { AdminPage } from "./pages/AdminPage";
+import { AlbumPage } from "./pages/AlbumPage";
 import { CatechesisPage } from "./pages/CatechesisPage";
 import { DonatePage } from "./pages/DonatePage";
 import { DonateThanksPage } from "./pages/DonateThanksPage";
@@ -16,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/catequesis" element={<CatechesisPage />} />
+          <Route path="/recuerdos" element={<AlbumPage />} />
           <Route path="/tienda" element={<StorePage />} />
           <Route path="/donar" element={<DonatePage />} />
           <Route path="/donar/gracias" element={<DonateThanksPage />} />

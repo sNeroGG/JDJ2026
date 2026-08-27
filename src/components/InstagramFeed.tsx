@@ -1,6 +1,10 @@
-import { useMemo } from "react";
 import { useContent } from "../context/ContentContext";
-import { parseInstagramPost } from "../utils/instagram";
+import { useReveal } from "../hooks/useReveal";
+import {
+  activeSocialLinks,
+  instagramHandleOf,
+  instagramProfileUrl,
+} from "../utils/social";
 import "./InstagramFeed.css";
 
 function InstagramMark() {
@@ -29,102 +33,92 @@ function InstagramMark() {
   );
 }
 
-export function InstagramFeed() {
-  const { content } = useContent();
-  const { instagram } = content;
-  const handle = instagram.handle.replace(/^@/, "") || "pjarqui_ss";
-  const profileUrl = `https://www.instagram.com/${handle}/`;
-  const posts = useMemo(
-    () => instagram.posts.filter((post) => post.url || post.imageUrl).slice(0, 3),
-    [instagram.posts],
+function FacebookMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M14.6 8.4V6.7c0-.85.5-1.3 1.55-1.3H17.5V3h-2.25C12.7 3 11 4.7 11 7.05v1.35H9v2.8h2V21h3.3v-9.8h2.35l.35-2.8z"
+      />
+    </svg>
   );
+}
 
-  if (!instagram.enabled) return null;
+function YoutubeMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M21.6 7.2a2.7 2.7 0 0 0-1.9-1.9C18 5 12 5 12 5s-6 0-7.7.3a2.7 2.7 0 0 0-1.9 1.9A28 28 0 0 0 2 12a28 28 0 0 0 .4 4.8 2.7 2.7 0 0 0 1.9 1.9C6 19 12 19 12 19s6 0 7.7-.3a2.7 2.7 0 0 0 1.9-1.9A28 28 0 0 0 22 12a28 28 0 0 0-.4-4.8ZM10 15.2V8.8L15.5 12 10 15.2Z"
+      />
+    </svg>
+  );
+}
+
+const MARKS = {
+  instagram: InstagramMark,
+  facebook: FacebookMark,
+  youtube: YoutubeMark,
+} as const;
+
+function followCopy(id: string, handle: string, name: string) {
+  const label = handle.replace(/^@/, "") || name;
+  if (id === "instagram") {
+    return {
+      title: handle ? `Seguir @${handle.replace(/^@/, "")}` : "Seguir en Instagram",
+      subtitle: "Pastoral Juvenil",
+    };
+  }
+  if (id === "facebook") {
+    return { title: "Seguir en Facebook", subtitle: label };
+  }
+  return { title: "Seguir en YouTube", subtitle: label };
+}
+
+export function InstagramFeed() {
+  const ref = useReveal<HTMLElement>();
+  const { content } = useContent();
+  const { instagram, footer } = content;
+  const networks = activeSocialLinks(footer.social).map((item) => {
+    if (item.id !== "instagram") return item;
+    const handle = instagramHandleOf(footer.social, instagram.handle);
+    return {
+      ...item,
+      handle,
+      href: item.href.trim() || instagramProfileUrl(handle),
+    };
+  }).filter((item) => item.href.trim());
+
+  if (!instagram.enabled || !networks.length) return null;
 
   return (
-    <div className="instagram-feed reveal" id="instagram">
-      <div className="instagram-feed__intro">
-        <div>
-          <p className="section__eyebrow">{instagram.eyebrow}</p>
-          <h3 className="instagram-feed__title">{instagram.title}</h3>
-          {instagram.lead ? (
-            <p className="instagram-feed__lead">{instagram.lead}</p>
-          ) : null}
-        </div>
-        <a
-          className="instagram-feed__follow"
-          href={profileUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <InstagramMark />
-          <span>
-            Seguir @{handle}
-            <small>Pastoral Juvenil</small>
-          </span>
-        </a>
-      </div>
-
-      {posts.length > 0 ? (
-        <div className="instagram-feed__grid" data-count={posts.length}>
-          {posts.map((post, index) => {
-            const href = post.url || profileUrl;
-            const kind = parseInstagramPost(post.url)?.kind;
+    <section className="section instagram-follow" id="instagram" ref={ref}>
+      <div className="section__inner instagram-follow__inner reveal">
+        {instagram.lead ? (
+          <p className="instagram-follow__lead">{instagram.lead}</p>
+        ) : null}
+        <div className="instagram-follow__actions">
+          {networks.map((item) => {
+            const Mark = MARKS[item.id as keyof typeof MARKS];
+            const copy = followCopy(item.id, item.handle, item.name);
             return (
               <a
-                className="instagram-feed__card"
-                key={`${href}-${index}`}
-                href={href}
+                key={item.id}
+                className={`instagram-feed__follow instagram-feed__follow--${item.id}`}
+                href={item.href}
                 target="_blank"
                 rel="noreferrer"
               >
-                <div className="instagram-feed__meta">
-                  {posts.length > 1 ? (
-                    <span className="instagram-feed__index">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  ) : (
-                    <span className="instagram-feed__index">Destacada</span>
-                  )}
-                  <span className="instagram-feed__kind">
-                    {kind === "reel" ? "Reel" : "Publicación"}
-                  </span>
-                </div>
-                <div className="instagram-feed__photo">
-                  {post.imageUrl ? (
-                    <img src={post.imageUrl} alt="" />
-                  ) : (
-                    <div className="instagram-feed__placeholder">
-                      <InstagramMark />
-                    </div>
-                  )}
-                </div>
-                <span className="instagram-feed__open">
-                  Ver en Instagram
-                  <span aria-hidden="true">↗</span>
+                {Mark ? <Mark /> : null}
+                <span>
+                  {copy.title}
+                  <small>{copy.subtitle}</small>
                 </span>
               </a>
             );
           })}
         </div>
-      ) : (
-        <a
-          className="instagram-feed__card instagram-feed__card--profile"
-          href={profileUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <div className="instagram-feed__photo">
-            <div className="instagram-feed__placeholder">
-              <InstagramMark />
-            </div>
-          </div>
-          <span className="instagram-feed__open">
-            Ver perfil de @{handle}
-            <span aria-hidden="true">↗</span>
-          </span>
-        </a>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }

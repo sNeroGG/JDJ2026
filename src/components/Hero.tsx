@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Countdown } from "./Countdown";
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
@@ -13,12 +14,19 @@ export function Hero() {
     schedule.startDate,
     schedule.dateLabel,
   );
+  const photo = hero.imageUrl;
 
   return (
-    <header className="hero" id="inicio">
+    <header
+      className={`hero${photo ? " hero--photo" : ""}`}
+      id="inicio"
+      style={
+        photo
+          ? ({ "--hero-photo": `url(${JSON.stringify(photo)})` } as CSSProperties)
+          : undefined
+      }
+    >
       <div className="hero__atmosphere" aria-hidden="true">
-        <div className="hero__sun" />
-        <div className="hero__rays" />
         <div className="hero__hills">
           <span />
           <span />

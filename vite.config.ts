@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 // @ts-expect-error local ESM helper without types
 import { injectAnalytics } from "./scripts/analytics.mjs";
 // @ts-expect-error local ESM helper without types
-import { optimizeImage, toWebp } from "./scripts/optimize-image.mjs";
+import { optimizeImage, toWebp, writeThumb } from "./scripts/optimize-image.mjs";
 // @ts-expect-error local ESM helper without types
 import { renderPdfCover } from "./scripts/pdf-cover.mjs";
 import {
@@ -39,13 +39,23 @@ import {
   whatsappOrderUrl,
 } from "./src/utils/store.ts";
 import donationsHandler from "./api/donations.ts";
-import donationsWebhookHandler from "./api/donations-webhook.ts";
 import loginHandler from "./api/login.ts";
 import { isAuthorized as isAdminRequest } from "./api/_lib/auth.ts";
 
 function safeFileName(name: string) {
   const base = path.basename(name).replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/gi, "-");
   return base.replace(/^-+|-+$/g, "") || `archivo-${Date.now()}`;
+}
+
+function nextSequentialImageStem(dir: string) {
+  let max = 0;
+  if (fs.existsSync(dir)) {
+    for (const name of fs.readdirSync(dir)) {
+      const match = name.match(/^(\d{3})(?:\.thumb)?\.(?:webp|jpe?g|png)$/i);
+      if (match) max = Math.max(max, Number(match[1]));
+    }
+  }
+  return String(max + 1).padStart(3, "0");
 }
 
 async function readJsonBody(req: IncomingMessage) {
@@ -149,7 +159,12 @@ function localMediaPlugin(env: BuildEnv): Plugin {
           if (url === "/__admin/upload") {
             const folder = body.folder === "docs" ? "docs" : "images";
             const destDir = folder === "docs" ? docsDir : imagesDir;
-            const filename = safeFileName(String(body.filename || "archivo"));
+            const sequential = folder === "images" && body.sequential === true;
+            const originalName = safeFileName(String(body.filename || "archivo"));
+            const ext = path.extname(originalName) || ".jpg";
+            const filename = sequential
+              ? `${nextSequentialImageStem(destDir)}${ext}`
+              : originalName;
             const data = String(body.data || "");
             if (!data) {
               sendJson(res, 400, { error: "Falta el archivo" });
@@ -166,6 +181,12 @@ function localMediaPlugin(env: BuildEnv): Plugin {
             if (folder === "images") {
               await optimizeImage(dest);
               const webpPath = await toWebp(dest);
+              await writeThumb(webpPath).catch((error: unknown) => {
+                console.warn("No se pudo crear la miniatura:", error);
+              });
+              if (sequential && dest !== webpPath && fs.existsSync(dest)) {
+                fs.unlinkSync(dest);
+              }
               sendJson(res, 200, {
                 url: `/${folder}/${path.basename(webpPath)}`,
               });
@@ -204,15 +225,11 @@ const LOCAL_API_ROUTES = [
   "/api/login",
   "/api/content",
   "/api/donations",
-  "/api/donations/webhook",
 ];
 
 const DONATION_ENV_KEYS = [
-  "WOMPI_APP_ID",
-  "WOMPI_API_SECRET",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "PUBLIC_SITE_URL",
 ] as const;
 
 function localStoreApiPlugin(): Plugin {
@@ -229,12 +246,8 @@ function localStoreApiPlugin(): Plugin {
         }
 
         void (async () => {
-          if (url === "/api/donations" || url === "/api/donations/webhook") {
-            const handler =
-              url === "/api/donations/webhook"
-                ? donationsWebhookHandler
-                : donationsHandler;
-            await handler(req, res);
+          if (url === "/api/donations") {
+            await donationsHandler(req, res);
             return;
           }
 

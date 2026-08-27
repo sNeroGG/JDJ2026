@@ -2,14 +2,15 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
+import { storeWhatsapp } from "./_lib/runtime.js";
+import { insertDonation, listDonations, updateDonation } from "./_lib/supabase.js";
 import {
-  insertDonation,
-  listDonations,
-  updateDonation,
-} from "./_lib/supabase.js";
-import { createDonationLink, siteUrlFromRequest } from "./_lib/wompi.js";
-import { parseDonationInput } from "../src/utils/donations.js";
-import { clientKey, rateLimit } from "./_lib/safe.js";
+  DONATION_PAYMENT,
+  isDonationStatus,
+  parseDonationInput,
+  whatsappDonationUrl,
+} from "../src/utils/donations.js";
+import { clientKey, isUuid, rateLimit } from "./_lib/safe.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -31,6 +32,30 @@ export default async function handler(
       return;
     }
 
+    if (req.method === "PATCH") {
+      if (!isAuthorized(req)) {
+        send(res, 401, { error: "No autorizado" });
+        return;
+      }
+      const body = await readBody(req);
+      const id = String(body.id || "");
+      const status = String(body.status || "");
+      if (!isUuid(id) || !isDonationStatus(status)) {
+        send(res, 400, { error: "Donación o estado no válido." });
+        return;
+      }
+      const donation = await updateDonation(id, {
+        status,
+        paid_at: status === "paid" ? new Date().toISOString() : null,
+      });
+      if (!donation) {
+        send(res, 404, { error: "Donación no encontrada." });
+        return;
+      }
+      send(res, 200, { ok: true, donation });
+      return;
+    }
+
     if (req.method !== "POST") {
       send(res, 405, { error: "Método no permitido" });
       return;
@@ -48,14 +73,6 @@ export default async function handler(
     }
 
     const id = randomUUID();
-    const siteUrl = siteUrlFromRequest(req);
-    if (!siteUrl) {
-      send(res, 500, {
-        error: "Falta PUBLIC_SITE_URL para armar el retorno de Wompi.",
-      });
-      return;
-    }
-
     await insertDonation({
       id,
       full_name: parsed.fullName,
@@ -65,28 +82,22 @@ export default async function handler(
       parish: parsed.parish,
       amount: parsed.amount,
       status: "pending",
+      payment_method: DONATION_PAYMENT,
     });
 
-    try {
-      const link = await createDonationLink({
-        reference: id,
-        amount: parsed.amount,
-        siteUrl,
-      });
-      if (link.idEnlace != null) {
-        await updateDonation(id, { wompi_enlace_id: link.idEnlace });
-      }
-      send(res, 201, {
-        ok: true,
+    send(res, 201, {
+      ok: true,
+      id,
+      whatsappUrl: whatsappDonationUrl(storeWhatsapp(), {
         id,
-        redirectUrl: link.urlEnlace,
-      });
-    } catch (error) {
-      await updateDonation(id, { status: "failed" }).catch(() => undefined);
-      const message =
-        error instanceof Error ? error.message : "No se pudo abrir Wompi.";
-      send(res, 502, { error: message });
-    }
+        fullName: parsed.fullName,
+        dui: parsed.dui,
+        email: parsed.email,
+        phone: parsed.phone,
+        parish: parsed.parish,
+        amount: parsed.amount,
+      }),
+    });
   } catch (error) {
     if (sendReadError(res, error)) return;
     const message =

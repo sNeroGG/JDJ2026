@@ -14,23 +14,37 @@ import {
   DEFAULT_CONTENT,
   type AccentTone,
   type CatechesisDoc,
-  type InstagramPostItem,
+  type MemoryPhoto,
+  type AlbumPhoto,
   type PartnerLogo,
   type RegistrationStatus,
   type SiteContent,
+  type SocialLink,
   type StoreOrder,
   type StoreOrderStatus,
   type StoreProduct,
   type StoreVariant,
 } from "../data/defaultContent";
 import { createId, downloadJson } from "../utils/files";
-import { instagramPermalink, normalizeInstagramPosts } from "../utils/instagram";
+import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
+import {
+  isAdminSection,
+  searchAdminParts,
+  type AdminPart,
+  type AdminSection,
+} from "../utils/adminPanel";
 import {
   donationStatusLabel,
   type DonationRecord,
   type DonationStatus,
 } from "../utils/donations";
+import {
+  instagramHandleOf,
+  instagramProfileUrl,
+  SOCIAL_NETWORKS,
+  withSocialDefaults,
+} from "../utils/social";
 import {
   buildOrderReport,
   defaultProductVariants,
@@ -46,22 +60,100 @@ import {
 import "./AdminPage.css";
 
 const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
+const ALBUM_MAX = 200;
+const IS_DEV = import.meta.env.DEV;
 
-const ADMIN_SECTIONS = [
-  "site",
-  "event",
-  "location",
-  "catechesis",
-  "store",
-  "orders",
-  "donations",
-  "page",
-] as const;
+function moveItem<T>(items: T[], index: number, delta: number) {
+  const target = index + delta;
+  if (target < 0 || target >= items.length) return items;
+  const next = [...items];
+  const [item] = next.splice(index, 1);
+  next.splice(target, 0, item);
+  return next;
+}
 
-type AdminSection = (typeof ADMIN_SECTIONS)[number];
+const TESTER_MODE_KEY = "jdj-admin-tester-mode";
 
-function isAdminSection(value: string | null): value is AdminSection {
-  return ADMIN_SECTIONS.includes(value as AdminSection);
+function AdminModeSwitch({
+  isDev,
+  testerMode,
+  onChange,
+}: {
+  isDev: boolean;
+  testerMode: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="admin-mode" role="group" aria-label="Modo del panel">
+      <button
+        type="button"
+        className={testerMode ? "is-active" : ""}
+        disabled={!isDev}
+        onClick={() => onChange(true)}
+      >
+        Modo tester
+      </button>
+      <button
+        type="button"
+        className={!testerMode ? "is-active" : ""}
+        disabled={!isDev}
+        onClick={() => onChange(false)}
+      >
+        Modo producción
+      </button>
+    </div>
+  );
+}
+
+function AdminHeroImage({
+  label,
+  url,
+  uploading,
+  allowUploads,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  url: string;
+  uploading: boolean;
+  allowUploads: boolean;
+  onPick: (event: ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div>
+      <p className="admin-panel__kicker">{label}</p>
+      {url ? (
+        <div className="admin-hero-preview">
+          <img src={url} alt="" />
+        </div>
+      ) : (
+        <p className="admin-empty">Aún no hay imagen hero.</p>
+      )}
+      {allowUploads ? (
+        <div className="admin-inline-actions">
+          <label className={`file-field${uploading ? " is-busy" : ""}`}>
+            {uploading ? "Copiando…" : url ? "Cambiar imagen" : "Subir imagen"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              disabled={uploading}
+              onChange={onPick}
+            />
+          </label>
+          {url ? (
+            <button type="button" className="btn btn--danger" onClick={onClear}>
+              Quitar
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <p className="admin-panel__hint">
+          En producción no se suben fotos. Solo se edita texto.
+        </p>
+      )}
+    </div>
+  );
 }
 
 const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
@@ -101,19 +193,6 @@ export function AdminPage() {
     ? sectionParam
     : "site";
 
-  function setSection(id: AdminSection) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (id === "site") next.delete("seccion");
-        else next.set("seccion", id);
-        if (id !== "store") next.delete("producto");
-        return next;
-      },
-      { replace: true },
-    );
-  }
-
   const openProductId = searchParams.get("producto");
 
   function setOpenProduct(id: string | null) {
@@ -142,10 +221,62 @@ export function AdminPage() {
   const [donationFilter, setDonationFilter] = useState<"all" | DonationStatus>(
     "all",
   );
+  const [query, setQuery] = useState("");
+  const [testerMode, setTesterMode] = useState(() => {
+    if (!IS_DEV) return false;
+    try {
+      return sessionStorage.getItem(TESTER_MODE_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const allowUploads = IS_DEV && testerMode;
+
+  function setAdminMode(nextTester: boolean) {
+    setTesterMode(nextTester);
+    try {
+      sessionStorage.setItem(TESTER_MODE_KEY, nextTester ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+  const parte = searchParams.get("parte");
+  const queryMatches = useMemo(() => searchAdminParts(query), [query]);
+
+  function setSection(id: AdminSection, nextParte?: string) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === "site") next.delete("seccion");
+        else next.set("seccion", id);
+        if (id !== "store") next.delete("producto");
+        if (nextParte) next.set("parte", nextParte);
+        else next.delete("parte");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function goToPart(part: AdminPart) {
+    setQuery("");
+    setSection(part.section, part.id);
+  }
 
   useEffect(() => {
     setDraft(content);
   }, [content]);
+
+  useEffect(() => {
+    if (!parte) return;
+    const frame = window.requestAnimationFrame(() => {
+      const el = document.getElementById(`parte-${parte}`);
+      if (!el) return;
+      if (el instanceof HTMLDetailsElement) el.open = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [parte, section]);
 
   useEffect(() => {
     if (!isAuthenticated || section !== "catechesis" || !import.meta.env.DEV) {
@@ -221,6 +352,7 @@ export function AdminPage() {
 
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
+  const albumCount = draft.album.images.length;
   const itemCount = draft.schedule.items.length;
   const faqCount = draft.faq.items.length;
   const productCount = draft.store.products.length;
@@ -244,6 +376,11 @@ export function AdminPage() {
       },
       { id: "location", label: "Sede", full: "Sede y mapa" },
       {
+        id: "album",
+        label: `Recuerdos${albumCount ? ` (${albumCount})` : ""}`,
+        full: "Álbum polaroid de Jayaque",
+      },
+      {
         id: "catechesis",
         label: `Catequesis${docCount ? ` (${docCount})` : ""}`,
         full: "Documentos de catequesis",
@@ -261,7 +398,7 @@ export function AdminPage() {
       {
         id: "donations",
         label: `Donaciones${donations.length ? ` (${donations.length})` : ""}`,
-        full: "Donaciones Wompi",
+        full: "Donaciones por transferencia",
       },
       {
         id: "page",
@@ -269,7 +406,7 @@ export function AdminPage() {
         full: "Textos, logos y pie",
       },
     ],
-    [itemCount, docCount, productCount, orders.length, donations.length],
+    [itemCount, docCount, albumCount, productCount, orders.length, donations.length],
   );
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
@@ -293,10 +430,17 @@ export function AdminPage() {
   function patchInstagram(patch: Partial<SiteContent["instagram"]>) {
     setDraft({ ...draft, instagram: { ...draft.instagram, ...patch } });
   }
-  function patchInstagramPost(index: number, patch: Partial<InstagramPostItem>) {
-    const posts = [...draft.instagram.posts];
-    posts[index] = { ...posts[index], ...patch };
-    patchInstagram({ posts });
+  function patchAbout(patch: Partial<SiteContent["about"]>) {
+    setDraft({ ...draft, about: { ...draft.about, ...patch } });
+  }
+  function patchMemories(patch: Partial<SiteContent["memories"]>) {
+    setDraft({ ...draft, memories: { ...draft.memories, ...patch } });
+  }
+  function patchDestination(patch: Partial<SiteContent["destination"]>) {
+    setDraft({ ...draft, destination: { ...draft.destination, ...patch } });
+  }
+  function patchAlbum(patch: Partial<SiteContent["album"]>) {
+    setDraft({ ...draft, album: { ...draft.album, ...patch } });
   }
   function patchSchedule(patch: Partial<SiteContent["schedule"]>) {
     setDraft({ ...draft, schedule: { ...draft.schedule, ...patch } });
@@ -321,6 +465,26 @@ export function AdminPage() {
   }
   function patchFooter(patch: Partial<SiteContent["footer"]>) {
     setDraft({ ...draft, footer: { ...draft.footer, ...patch } });
+  }
+  function patchSocial(id: string, patch: Partial<SocialLink>) {
+    const social = withSocialDefaults(draft.footer.social).map((item) => {
+      if (item.id !== id) return item;
+      const next = { ...item, ...patch };
+      if (id === "instagram" && patch.handle != null) {
+        const handle = String(patch.handle).replace(/^@/, "").trim();
+        next.handle = handle ? `@${handle}` : "";
+        if (patch.href == null) next.href = instagramProfileUrl(handle);
+      }
+      return next;
+    });
+    setDraft({
+      ...draft,
+      footer: { ...draft.footer, social },
+      instagram: {
+        ...draft.instagram,
+        handle: instagramHandleOf(social, draft.instagram.handle),
+      },
+    });
   }
   function patchPartners(patch: Partial<SiteContent["partners"]>) {
     setDraft({ ...draft, partners: { ...draft.partners, ...patch } });
@@ -357,7 +521,12 @@ export function AdminPage() {
       ...next,
       instagram: {
         ...next.instagram,
-        posts: normalizeInstagramPosts(next.instagram.posts),
+        handle: instagramHandleOf(next.footer.social, next.instagram.handle),
+        posts: [],
+      },
+      footer: {
+        ...next.footer,
+        social: withSocialDefaults(next.footer.social),
       },
       store: {
         ...next.store,
@@ -384,11 +553,25 @@ export function AdminPage() {
     }
   }
 
-  async function uploadOrWarn(file: File, folder: "images" | "docs") {
+  async function uploadOrWarn(
+    file: File,
+    folder: "images" | "docs",
+    options?: { sequential?: boolean },
+  ) {
+    if (!allowUploads) {
+      setLogoNotice(
+        "En producción solo se editan textos. Sube fotos y archivos en local con npm run dev.",
+      );
+      return null;
+    }
     try {
       setLogoNotice(`Copiando ${file.name} a public/${folder}…`);
-      const uploaded = await uploadMedia(file, folder);
-      setLogoNotice(`${file.name} quedó en public/${folder}.`);
+      const uploaded = await uploadMedia(file, folder, options);
+      setLogoNotice(
+        uploaded?.url
+          ? `${file.name} quedó como ${uploaded.url.replace(/^\/images\//, "")}.`
+          : `${file.name} quedó en public/${folder}.`,
+      );
       return uploaded;
     } catch (error) {
       setLogoNotice(
@@ -428,6 +611,25 @@ export function AdminPage() {
         ...draft,
         footer: { ...draft.footer, logoUrl: uploaded.url },
       };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onHeroImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+    apply: (url: string, current: SiteContent) => SiteContent,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const next = apply(uploaded.url, draft);
       setDraft(next);
       await persist(next);
     } finally {
@@ -482,22 +684,99 @@ export function AdminPage() {
     }
   }
 
-  async function onInstagramImageChange(
-    index: number,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0];
+  async function onMemoriesUpload(event: ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
     event.target.value = "";
-    if (!file) return;
+    if (!files?.length) return;
+    const remaining = Math.max(0, 5 - draft.memories.images.length);
+    if (!remaining) return;
     setUploading(true);
+    const uploads: MemoryPhoto[] = [];
     try {
-      const uploaded = await uploadOrWarn(file, "images");
-      if (!uploaded) return;
-      const posts = [...draft.instagram.posts];
-      posts[index] = { ...posts[index], imageUrl: uploaded.url };
+      for (const file of Array.from(files).slice(0, remaining)) {
+        const uploaded = await uploadOrWarn(file, "images");
+        if (!uploaded) continue;
+        uploads.push({
+          id: createId("memoria"),
+          src: uploaded.url,
+          alt: file.name.replace(/\.[^.]+$/, ""),
+        });
+      }
+      if (!uploads.length) return;
       const next = {
         ...draft,
-        instagram: { ...draft.instagram, posts },
+        memories: {
+          ...draft.memories,
+          images: [...draft.memories.images, ...uploads],
+        },
+      };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onDestinationUpload(event: ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
+    event.target.value = "";
+    if (!files?.length) return;
+    const remaining = Math.max(0, 5 - draft.destination.images.length);
+    if (!remaining) return;
+    setUploading(true);
+    const uploads: MemoryPhoto[] = [];
+    try {
+      for (const file of Array.from(files).slice(0, remaining)) {
+        const uploaded = await uploadOrWarn(file, "images");
+        if (!uploaded) continue;
+        uploads.push({
+          id: createId("jayaque"),
+          src: uploaded.url,
+          alt: file.name.replace(/\.[^.]+$/, ""),
+        });
+      }
+      if (!uploads.length) return;
+      const next = {
+        ...draft,
+        destination: {
+          ...draft.destination,
+          images: [...draft.destination.images, ...uploads],
+        },
+      };
+      setDraft(next);
+      await persist(next);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onAlbumUpload(event: ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files;
+    event.target.value = "";
+    if (!files?.length) return;
+    const remaining = Math.max(0, ALBUM_MAX - draft.album.images.length);
+    if (!remaining) return;
+    setUploading(true);
+    const uploads: AlbumPhoto[] = [];
+    try {
+      for (const file of Array.from(files).slice(0, remaining)) {
+        const uploaded = await uploadOrWarn(file, "images", { sequential: true });
+        if (!uploaded) continue;
+        const number = uploaded.url.match(/(\d{3})\.webp$/i)?.[1];
+        uploads.push({
+          id: createId("album"),
+          src: uploaded.url,
+          alt: number ? `Foto ${number}` : "Foto del álbum",
+          caption: "",
+        });
+      }
+      if (!uploads.length) return;
+      const next = {
+        ...draft,
+        album: {
+          ...draft.album,
+          images: [...draft.album.images, ...uploads],
+        },
       };
       setDraft(next);
       await persist(next);
@@ -586,6 +865,43 @@ export function AdminPage() {
       setOrdersNotice("Pedido actualizado.");
     } catch {
       setOrdersNotice("No se pudo actualizar el pedido.");
+    }
+  }
+
+  async function patchDonationStatus(id: string, status: DonationStatus) {
+    const current = donations.find((item) => item.id === id);
+    if (!current || current.status === status) return;
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    setDonationsNotice("Actualizando donación…");
+    try {
+      const remote = await fetch("/api/donations", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ id, status }),
+      });
+      const payload = (await remote.json().catch(() => null)) as {
+        error?: string;
+        donation?: DonationRecord;
+      } | null;
+      if (!remote.ok || !payload?.donation) {
+        setDonationsNotice(payload?.error || "No se pudo actualizar la donación.");
+        return;
+      }
+      const next = donations.map((item) =>
+        item.id === id ? payload.donation! : item,
+      );
+      setDonations(next);
+      setDonationsTotal(
+        next
+          .filter((item) => item.status === "paid")
+          .reduce((sum, item) => sum + Number(item.amount || 0), 0),
+      );
+      setDonationsNotice("Donación actualizada.");
+    } catch {
+      setDonationsNotice("No se pudo actualizar la donación.");
     }
   }
 
@@ -688,28 +1004,67 @@ export function AdminPage() {
   );
 
   return (
-    <div className="admin">
+    <div className={`admin${allowUploads ? "" : " admin--text-only"}`}>
       <aside className="admin__side">
         <div className="admin__brand">
           <strong>JDJ Admin</strong>
-          <span>Lo esencial del sitio</span>
+          <span>
+            {allowUploads
+              ? "Modo tester"
+              : IS_DEV
+                ? "Modo producción (prueba)"
+                : "Producción: solo texto"}
+          </span>
         </div>
-        <nav aria-label="Secciones del admin">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={section === item.id ? "is-active" : ""}
-              onClick={() => setSection(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        <label className="admin-search">
+          <span className="sr-only">Buscar qué editar</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar qué editar…"
+          />
+        </label>
+        {query.trim() ? (
+          <ul className="admin-search-results">
+            {queryMatches.length ? (
+              queryMatches.map((part) => (
+                <li key={part.id}>
+                  <button type="button" onClick={() => goToPart(part)}>
+                    <strong>{part.label}</strong>
+                    <small>
+                      {navItems.find((item) => item.id === part.section)?.label}
+                    </small>
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li className="admin-search-empty">No hay coincidencias.</li>
+            )}
+          </ul>
+        ) : (
+          <nav aria-label="Secciones del admin">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={section === item.id ? "is-active" : ""}
+                onClick={() => setSection(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
         <div className="admin__side-actions">
-          <Link to="/">Ver landing</Link>
-          <Link to="/tienda">Ver tienda</Link>
-          <Link to="/donar">Ver donar</Link>
+          <details className="admin-view-menu">
+            <summary>Ver el sitio</summary>
+            <Link to="/">Landing</Link>
+            <Link to="/recuerdos">Recuerdos</Link>
+            <Link to="/catequesis">Catequesis</Link>
+            <Link to="/tienda">Tienda</Link>
+            <Link to="/donar">Donar</Link>
+          </details>
           <button
             type="button"
             onClick={() => downloadJson("jdj2026-content.json", draft)}
@@ -748,6 +1103,11 @@ export function AdminPage() {
           <div>
             <p className="admin__eyebrow">{currentSection.full}</p>
             <h1>{currentSection.label}</h1>
+            <AdminModeSwitch
+              isDev={IS_DEV}
+              testerMode={allowUploads}
+              onChange={setAdminMode}
+            />
           </div>
           <div className="admin__actions">
             {isDirty ? <span className="admin__dirty">Sin guardar</span> : null}
@@ -775,6 +1135,14 @@ export function AdminPage() {
           </div>
         </header>
 
+        {allowUploads ? null : (
+          <p className="admin-notice is-warning" role="status">
+            {IS_DEV
+              ? "Modo producción: no se puede subir ningún archivo. Cambia a modo tester para fotos y PDFs."
+              : "El sitio está en producción: no se puede subir ningún archivo. Solo se edita texto. Las fotos se agregan en local con npm run dev."}
+          </p>
+        )}
+
         {canPublish ? null : (
           <p className="admin-notice is-warning" role="status">
             Falta configurar GITHUB_TOKEN en Vercel: los cambios no se podrán
@@ -796,7 +1164,23 @@ export function AdminPage() {
 
         {section === "site" && (
           <div className="admin-stack">
-            <section className="admin-panel">
+            <details className="admin-details" id="parte-fotos" open>
+              <summary>Modo del panel</summary>
+              <div className="admin-panel">
+                <AdminModeSwitch
+                  isDev={IS_DEV}
+                  testerMode={allowUploads}
+                  onChange={setAdminMode}
+                />
+                <p className="admin-panel__hint">
+                  {IS_DEV
+                    ? "Modo tester sube fotos y PDFs al proyecto. Modo producción simula Vercel: solo texto, sin archivos."
+                    : "En el sitio publicado este interruptor queda en modo producción. Sube archivos en local y luego publica."}
+                </p>
+              </div>
+            </details>
+
+            <section className="admin-panel" id="parte-logos">
               <h2>Logos</h2>
               <div className="admin-logo-pair">
                 <div>
@@ -804,14 +1188,16 @@ export function AdminPage() {
                   <div className="admin-logo-preview">
                     <img src={draft.logoUrl} alt="Logo de la portada" />
                   </div>
-                  <label className="file-field">
-                    Subir logo
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                      onChange={onMainLogoChange}
-                    />
-                  </label>
+                  {allowUploads ? (
+                    <label className="file-field">
+                      Subir logo
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                        onChange={onMainLogoChange}
+                      />
+                    </label>
+                  ) : null}
                 </div>
                 <div>
                   <p className="admin-panel__kicker">Footer / pestaña</p>
@@ -821,19 +1207,21 @@ export function AdminPage() {
                       alt="Logo del footer"
                     />
                   </div>
-                  <label className="file-field">
-                    Subir emblema
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                      onChange={onFooterLogoChange}
-                    />
-                  </label>
+                  {allowUploads ? (
+                    <label className="file-field">
+                      Subir emblema
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                        onChange={onFooterLogoChange}
+                      />
+                    </label>
+                  ) : null}
                 </div>
               </div>
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-portada">
               <h2>Textos de portada</h2>
               <div className="admin-grid">
                 <label>
@@ -899,7 +1287,35 @@ export function AdminPage() {
               </p>
             </section>
 
-            <details className="admin-details">
+            <section className="admin-panel" id="parte-hero">
+              <h2>Imagen hero de la portada</h2>
+              <p className="admin-panel__hint">
+                Foto de fondo del inicio. Si queda vacía, se ven el cielo y las
+                colinas. Súbela en local con <code>npm run dev</code>.
+              </p>
+              <AdminHeroImage
+                label="Portada"
+                url={draft.hero.imageUrl}
+                uploading={uploading}
+                allowUploads={allowUploads}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    hero: { ...current.hero, imageUrl: url },
+                  }))
+                }
+                onClear={() => {
+                  const next = {
+                    ...draft,
+                    hero: { ...draft.hero, imageUrl: "" },
+                  };
+                  setDraft(next);
+                  void persist(next);
+                }}
+              />
+            </section>
+
+            <details className="admin-details" id="parte-seo">
               <summary>SEO y compartir enlace</summary>
               <div className="admin-panel">
                 <label>
@@ -943,7 +1359,7 @@ export function AdminPage() {
 
         {section === "event" && (
           <div className="admin-stack">
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-fecha">
               <h2>Fecha</h2>
               <p className="admin-panel__hint">
                 Activa la cuenta regresiva. Hora de El Salvador.
@@ -958,7 +1374,7 @@ export function AdminPage() {
               </label>
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-agenda">
               <h2>Agenda del día</h2>
               <div className="admin-inline-actions">
                 <button
@@ -1034,7 +1450,7 @@ export function AdminPage() {
               )}
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-evento">
               <h2>Tarjetas del evento</h2>
               {draft.event.items.map((item, index) => (
                 <div className="admin-card" key={item.id}>
@@ -1078,7 +1494,7 @@ export function AdminPage() {
               ))}
             </section>
 
-            <details className="admin-details">
+            <details className="admin-details" id="parte-inscripcion">
               <summary>
                 Inscripción{" "}
                 {draft.registration.enabled ? "(visible)" : "(oculta)"}
@@ -1150,8 +1566,10 @@ export function AdminPage() {
         )}
 
         {section === "location" && (
-          <section className="admin-panel">
-            <h2>Sede</h2>
+          <div className="admin-stack">
+            <details className="admin-details" id="parte-sede" open>
+              <summary>Sede</summary>
+              <div className="admin-panel">
             <div className="admin-grid">
               <label>
                 Parroquia
@@ -1187,112 +1605,239 @@ export function AdminPage() {
                 onChange={(e) => patchLocation({ lead: e.target.value })}
               />
             </label>
-            <h2>Instagram</h2>
+              </div>
+            </details>
+            <details className="admin-details" id="parte-suchitoto">
+              <summary>Suchitoto 2024</summary>
+              <div className="admin-panel">
             <p className="admin-panel__hint">
-              Empieza con 1 publicación y puedes agregar hasta 3. Instagram no
-              deja mostrar la foto sin su texto: sube aquí la imagen (captura o
-              descarga) y pega el enlace. En la landing se ve tu imagen; el clic
-              abre Instagram.
+              Sube 4 o 5 fotos del último encuentro. Se muestran en la landing
+              antes del botón de Instagram. Solo en local con{" "}
+              <code>npm run dev</code>.
             </p>
             <div className="admin-grid">
               <label>
-                Usuario
+                Etiqueta
                 <input
-                  value={draft.instagram.handle}
-                  onChange={(e) =>
-                    patchInstagram({ handle: e.target.value.replace(/^@/, "") })
-                  }
-                  placeholder="pjarqui_ss"
+                  value={draft.memories.eyebrow}
+                  onChange={(e) => patchMemories({ eyebrow: e.target.value })}
                 />
               </label>
               <label>
-                Título del apartado
+                Título
                 <input
-                  value={draft.instagram.title}
-                  onChange={(e) => patchInstagram({ title: e.target.value })}
+                  value={draft.memories.title}
+                  onChange={(e) => patchMemories({ title: e.target.value })}
                 />
               </label>
             </div>
             <label>
               Texto
-              <input
-                value={draft.instagram.lead}
-                onChange={(e) => patchInstagram({ lead: e.target.value })}
+              <textarea
+                rows={3}
+                value={draft.memories.lead}
+                onChange={(e) => patchMemories({ lead: e.target.value })}
               />
             </label>
-            <div className="admin-inline-actions">
-              <button
-                type="button"
-                className="btn btn--ghost"
-                disabled={draft.instagram.posts.length >= 3}
-                onClick={() =>
-                  patchInstagram({
-                    posts: [
-                      ...draft.instagram.posts,
-                      { url: "", imageUrl: "" },
-                    ],
-                  })
-                }
-              >
-                Agregar publicación
-              </button>
-            </div>
-            {draft.instagram.posts.length === 0 ? (
+            {allowUploads ? (
+            <label className={`file-field${uploading ? " is-busy" : ""}`}>
+              {uploading
+                ? "Copiando…"
+                : `Subir fotos (${draft.memories.images.length}/5)`}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                multiple
+                disabled={uploading || draft.memories.images.length >= 5}
+                onChange={(e) => void onMemoriesUpload(e)}
+              />
+            </label>
+            ) : null}
+            {draft.memories.images.length === 0 ? (
               <p className="admin-empty">
-                Aún no hay publicaciones. Agrega 1 para mostrarla en Sede.
+                Aún no hay fotos. Cuando las subas, la sección aparece en la
+                landing.
               </p>
             ) : (
-              draft.instagram.posts.map((post, index) => (
-                <div className="admin-card" key={`ig-${index}`}>
-                  <p className="admin-panel__kicker">
-                    Publicación {index + 1} de {draft.instagram.posts.length}
-                  </p>
-                  {post.imageUrl ? (
-                    <div className="admin-product-preview">
-                      <img src={post.imageUrl} alt="" />
-                    </div>
-                  ) : null}
-                  <label className={`file-field${uploading ? " is-busy" : ""}`}>
-                    {uploading ? "Copiando…" : "Subir imagen"}
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                      disabled={uploading}
-                      onChange={(e) => void onInstagramImageChange(index, e)}
-                    />
-                  </label>
-                  <label>
-                    Enlace de Instagram
-                    <input
-                      value={post.url}
-                      onChange={(e) =>
-                        patchInstagramPost(index, { url: e.target.value })
+              <div className="admin-logos admin-logos--photos">
+                {draft.memories.images.map((photo, index) => (
+                  <div className="admin-logo-item" key={photo.id}>
+                    <img src={photo.src} alt={photo.alt} />
+                    <label>
+                      Texto alternativo
+                      <input
+                        value={photo.alt}
+                        onChange={(e) => {
+                          const images = [...draft.memories.images];
+                          images[index] = { ...photo, alt: e.target.value };
+                          patchMemories({ images });
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      onClick={() =>
+                        patchMemories({
+                          images: draft.memories.images.filter(
+                            (item) => item.id !== photo.id,
+                          ),
+                        })
                       }
-                      onBlur={() => {
-                        const permalink = instagramPermalink(post.url);
-                        if (permalink && permalink !== post.url) {
-                          patchInstagramPost(index, { url: permalink });
-                        }
-                      }}
-                      placeholder="https://www.instagram.com/p/…"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn btn--danger"
-                    onClick={() =>
-                      patchInstagram({
-                        posts: draft.instagram.posts.filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
-                      })
-                    }
-                  >
-                    Quitar
-                  </button>
-                </div>
-              ))
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
+              </div>
+            </details>
+            <details className="admin-details" id="parte-jayaque">
+              <summary>Jayaque 2026</summary>
+              <div className="admin-panel">
+            <p className="admin-panel__hint">
+              Hashtag y fotos del lugar, debajo de Suchitoto. Sube hasta 5
+              fotos. Solo en local con <code>npm run dev</code>.
+            </p>
+            <div className="admin-grid">
+              <label>
+                Etiqueta
+                <input
+                  value={draft.destination.eyebrow}
+                  onChange={(e) =>
+                    patchDestination({ eyebrow: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Título
+                <input
+                  value={draft.destination.title}
+                  onChange={(e) => patchDestination({ title: e.target.value })}
+                />
+              </label>
+            </div>
+            <label>
+              Texto
+              <textarea
+                rows={3}
+                value={draft.destination.lead}
+                onChange={(e) => patchDestination({ lead: e.target.value })}
+              />
+            </label>
+            {allowUploads ? (
+            <label className={`file-field${uploading ? " is-busy" : ""}`}>
+              {uploading
+                ? "Copiando…"
+                : `Subir fotos (${draft.destination.images.length}/5)`}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                multiple
+                disabled={uploading || draft.destination.images.length >= 5}
+                onChange={(e) => void onDestinationUpload(e)}
+              />
+            </label>
+            ) : null}
+            {draft.destination.images.length === 0 ? (
+              <p className="admin-empty">
+                Aún no hay fotos de Jayaque. Cuando las subas, aparecen en la
+                landing.
+              </p>
+            ) : (
+              <div className="admin-logos admin-logos--photos">
+                {draft.destination.images.map((photo, index) => (
+                  <div className="admin-logo-item" key={photo.id}>
+                    <img src={photo.src} alt={photo.alt} />
+                    <label>
+                      Texto alternativo
+                      <input
+                        value={photo.alt}
+                        onChange={(e) => {
+                          const images = [...draft.destination.images];
+                          images[index] = { ...photo, alt: e.target.value };
+                          patchDestination({ images });
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      onClick={() =>
+                        patchDestination({
+                          images: draft.destination.images.filter(
+                            (item) => item.id !== photo.id,
+                          ),
+                        })
+                      }
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+              </div>
+            </details>
+            <details className="admin-details" id="parte-instagram">
+              <summary>Redes</summary>
+              <div className="admin-panel">
+                <p className="admin-panel__hint">
+                  Instagram, Facebook y YouTube se editan aquí y se usan en la
+                  landing y en el pie. YouTube no aparece en el sitio mientras
+                  la URL esté vacía.
+                </p>
+                <label>
+                  Texto de la sección
+                  <textarea
+                    rows={2}
+                    value={draft.instagram.lead}
+                    onChange={(e) => patchInstagram({ lead: e.target.value })}
+                  />
+                </label>
+                {SOCIAL_NETWORKS.map((network) => {
+                  const item = withSocialDefaults(draft.footer.social).find(
+                    (entry) => entry.id === network.id,
+                  );
+                  return (
+                    <div className="admin-card" key={network.id}>
+                      <p className="admin-panel__kicker">{network.name}</p>
+                      {network.id === "youtube" ? (
+                        <p className="admin-panel__hint">
+                          Déjalo vacío hasta que haya canal.
+                        </p>
+                      ) : null}
+                      <div className="admin-grid">
+                        <label>
+                          Usuario
+                          <input
+                            value={item?.handle || ""}
+                            placeholder={network.handlePlaceholder}
+                            onChange={(e) =>
+                              patchSocial(network.id, { handle: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label>
+                          URL
+                          <input
+                            value={item?.href || ""}
+                            placeholder={network.hrefPlaceholder}
+                            onChange={(e) =>
+                              patchSocial(network.id, { href: e.target.value })
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+            <details className="admin-details" id="parte-mapa">
+              <summary>Mapa</summary>
+              <div className="admin-panel">
             <label>
               Dirección para el mapa
               <input
@@ -1318,11 +1863,188 @@ export function AdminPage() {
                 />
               </label>
             </div>
+              </div>
+            </details>
+          </div>
+        )}
+
+        {section === "album" && (
+          <section className="admin-panel" id="parte-album">
+            <h2>Álbum de recuerdos</h2>
+            <p className="admin-panel__hint">
+              {draft.album.images.length} foto
+              {draft.album.images.length === 1 ? "" : "s"} en /recuerdos.
+              {allowUploads
+                ? " Sube varias a la vez; se guardan como 001, 002… y la página pública las muestra de a poco."
+                : " En producción solo se edita texto y se pueden quitar fotos."}
+            </p>
+            <div className="admin-grid">
+              <label>
+                Etiqueta
+                <input
+                  value={draft.album.eyebrow}
+                  onChange={(e) => patchAlbum({ eyebrow: e.target.value })}
+                />
+              </label>
+              <label>
+                Título
+                <input
+                  value={draft.album.title}
+                  onChange={(e) => patchAlbum({ title: e.target.value })}
+                />
+              </label>
+            </div>
+            <label>
+              Texto
+              <textarea
+                rows={2}
+                value={draft.album.lead}
+                onChange={(e) => patchAlbum({ lead: e.target.value })}
+              />
+            </label>
+            <label>
+              Invitación al álbum compartido
+              <input
+                value={draft.album.shareTitle}
+                onChange={(e) => patchAlbum({ shareTitle: e.target.value })}
+              />
+            </label>
+            <label>
+              Texto de la invitación
+              <textarea
+                rows={2}
+                value={draft.album.shareLead}
+                onChange={(e) => patchAlbum({ shareLead: e.target.value })}
+              />
+            </label>
+            <label>
+              Texto del botón
+              <input
+                value={draft.album.shareCta}
+                onChange={(e) => patchAlbum({ shareCta: e.target.value })}
+              />
+            </label>
+            <label>
+              Enlace de Google Photos
+              <input
+                value={draft.album.shareUrl}
+                onChange={(e) => patchAlbum({ shareUrl: e.target.value })}
+                placeholder="https://photos.app.goo.gl/…"
+              />
+            </label>
+            {allowUploads ? (
+              <label className={`file-field${uploading ? " is-busy" : ""}`}>
+                {uploading
+                  ? "Copiando…"
+                  : `Subir fotos (${draft.album.images.length}/${ALBUM_MAX})`}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                  multiple
+                  disabled={uploading || draft.album.images.length >= ALBUM_MAX}
+                  onChange={(e) => void onAlbumUpload(e)}
+                />
+              </label>
+            ) : null}
+            {draft.album.images.length === 0 ? (
+              <p className="admin-empty">
+                {allowUploads
+                  ? "Aún no hay fotos. Sube varias a la vez."
+                  : "El álbum está vacío."}
+              </p>
+            ) : (
+              <div className="admin-album-grid">
+                {draft.album.images.map((photo) => (
+                  <figure className="admin-album-tile" key={photo.id}>
+                    <img
+                      src={thumbSrc(photo.src)}
+                      alt={photo.alt || photo.caption || ""}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        if (event.currentTarget.src !== photo.src) {
+                          event.currentTarget.src = photo.src;
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="admin-album-tile__remove"
+                      aria-label="Quitar del álbum"
+                      onClick={() => {
+                        const next = {
+                          ...draft,
+                          album: {
+                            ...draft.album,
+                            images: draft.album.images.filter(
+                              (item) => item.id !== photo.id,
+                            ),
+                          },
+                        };
+                        setDraft(next);
+                        void persist(next);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </figure>
+                ))}
+              </div>
+            )}
+            <details className="admin-details admin-details--nested">
+              <summary>Textos si el álbum está vacío</summary>
+              <div className="admin-panel">
+                <label>
+                  Título
+                  <input
+                    value={draft.album.emptyTitle}
+                    onChange={(e) =>
+                      patchAlbum({ emptyTitle: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Texto
+                  <input
+                    value={draft.album.emptyText}
+                    onChange={(e) => patchAlbum({ emptyText: e.target.value })}
+                  />
+                </label>
+              </div>
+            </details>
           </section>
         )}
 
         {section === "catechesis" && (
-          <section className="admin-panel">
+          <div className="admin-stack">
+          <section className="admin-panel" id="parte-catequesis-hero">
+            <h2>Imagen hero de catequesis</h2>
+            <p className="admin-panel__hint">
+              Banner de /catequesis, debajo del menú. Si queda vacía, la página
+              empieza con el título. Súbela en local con <code>npm run dev</code>.
+            </p>
+            <AdminHeroImage
+              label="Catequesis"
+              url={draft.catechesis.heroImageUrl}
+              uploading={uploading}
+              allowUploads={allowUploads}
+              onPick={(e) =>
+                void onHeroImageChange(e, (url, current) => ({
+                  ...current,
+                  catechesis: { ...current.catechesis, heroImageUrl: url },
+                }))
+              }
+              onClear={() => {
+                const next = {
+                  ...draft,
+                  catechesis: { ...draft.catechesis, heroImageUrl: "" },
+                };
+                setDraft(next);
+                void persist(next);
+              }}
+            />
+          </section>
+          <section className="admin-panel" id="parte-documentos">
             <h2>Documentos</h2>
             <p className="admin-panel__hint">
               Se copian a <code>public/docs</code> y se ven en /catequesis.
@@ -1342,6 +2064,7 @@ export function AdminPage() {
                 onChange={(e) => patchCatechesis({ lead: e.target.value })}
               />
             </label>
+            {allowUploads ? (
             <label className={`file-field${uploading ? " is-busy" : ""}`}>
               {uploading ? "Copiando…" : "Subir documentos"}
               <input
@@ -1351,6 +2074,12 @@ export function AdminPage() {
                 onChange={onCatechesisUpload}
               />
             </label>
+            ) : (
+              <p className="admin-panel__hint">
+                En producción no se suben PDFs. Agrégalos en local con npm run
+                dev.
+              </p>
+            )}
             {projectDocs.length > 0 ? (
               <div className="admin-project-files">
                 <p className="admin-panel__hint">
@@ -1458,11 +2187,12 @@ export function AdminPage() {
               ))
             )}
           </section>
+          </div>
         )}
 
         {section === "store" && (
           <div className="admin-stack">
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-tienda-logo">
               <h2>Logo de la tienda</h2>
               <p className="admin-panel__hint">
                 Es un logo aparte de la portada y del footer. Se ve en /tienda.
@@ -1475,6 +2205,7 @@ export function AdminPage() {
               ) : (
                 <p className="admin-empty">Aún no hay logo de tienda.</p>
               )}
+              {allowUploads ? (
               <label className={`file-field${uploading ? " is-busy" : ""}`}>
                 {uploading ? "Copiando…" : "Subir logo de tienda"}
                 <input
@@ -1484,9 +2215,14 @@ export function AdminPage() {
                   onChange={onStoreLogoChange}
                 />
               </label>
+              ) : (
+                <p className="admin-panel__hint">
+                  En producción no se sube el logo. Cárgalo en local.
+                </p>
+              )}
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-tienda-textos">
               <h2>Textos y compra</h2>
               <div className="admin-grid">
                 <label>
@@ -1529,6 +2265,9 @@ export function AdminPage() {
                   />
                 </label>
               </div>
+              <p className="admin-panel__hint">
+                El WhatsApp también recibe las donaciones de /donar.
+              </p>
               <label>
                 Nota de pago (transferencia)
                 <textarea
@@ -1539,7 +2278,7 @@ export function AdminPage() {
               </label>
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-productos">
               <h2>Productos{productCount ? ` (${productCount})` : ""}</h2>
               <p className="admin-panel__hint">
                 El stock se descuenta por talla y color al hacer un pedido. Si
@@ -1690,6 +2429,7 @@ export function AdminPage() {
                         ))}
                       </div>
                     ) : null}
+                    {allowUploads ? (
                     <label className={`file-field${uploading ? " is-busy" : ""}`}>
                       {uploading ? "Copiando…" : "Agregar fotos"}
                       <input
@@ -1700,6 +2440,7 @@ export function AdminPage() {
                         onChange={(e) => void onProductImagesChange(index, e)}
                       />
                     </label>
+                    ) : null}
                     <label>
                       Título
                       <input
@@ -1840,7 +2581,7 @@ export function AdminPage() {
         )}
 
         {section === "orders" && (
-          <section className="admin-panel">
+          <section className="admin-panel" id="parte-pedidos">
             <h2>Pedidos{orders.length ? ` (${orders.length})` : ""}</h2>
             <p className="admin-panel__hint">
               Cada compra llega aquí y se abre WhatsApp con el pedido. El pago
@@ -1973,11 +2714,41 @@ export function AdminPage() {
         )}
 
         {section === "donations" && (
-          <section className="admin-panel">
+          <div className="admin-stack">
+          <section className="admin-panel" id="parte-donar-hero">
+            <h2>Imagen hero de donar</h2>
+            <p className="admin-panel__hint">
+              Banner de /donar, debajo del menú. Si queda vacía, la página
+              empieza con el formulario. Súbela en local con{" "}
+              <code>npm run dev</code>.
+            </p>
+            <AdminHeroImage
+              label="Donar"
+              url={draft.donate.heroImageUrl}
+              uploading={uploading}
+              allowUploads={allowUploads}
+              onPick={(e) =>
+                void onHeroImageChange(e, (url, current) => ({
+                  ...current,
+                  donate: { ...current.donate, heroImageUrl: url },
+                }))
+              }
+              onClear={() => {
+                const next = {
+                  ...draft,
+                  donate: { ...draft.donate, heroImageUrl: "" },
+                };
+                setDraft(next);
+                void persist(next);
+              }}
+            />
+          </section>
+          <section className="admin-panel" id="parte-donaciones">
             <h2>Donaciones{donations.length ? ` (${donations.length})` : ""}</h2>
             <p className="admin-panel__hint">
-              Cada aporte queda pendiente hasta que Wompi confirma el pago por
-              webhook. El total solo suma donaciones pagadas ($5 a $25).
+              Cada aporte llega por WhatsApp y se paga por transferencia
+              bancaria. Queda pendiente hasta que confirmes el comprobante. El
+              total solo suma donaciones pagadas ($5 a $25).
             </p>
             <div className="admin-report">
               <article className="admin-report__card">
@@ -2054,24 +2825,88 @@ export function AdminPage() {
                       {donation.email} · {donation.phone}
                     </p>
                     <p>{donation.parish}</p>
-                    {donation.wompi_transaction_id ? (
-                      <p>Wompi: {donation.wompi_transaction_id}</p>
-                    ) : null}
+                    <p>
+                      {donation.payment_method || "Transferencia"}
+                    </p>
                     <p className="admin-order__date">
                       {formatOrderDate(donation.created_at)}
                       {donation.paid_at
                         ? ` · pagada ${formatOrderDate(donation.paid_at)}`
                         : ""}
                     </p>
+                    <div className="admin-inline-actions">
+                      {donation.status !== "paid" ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() =>
+                            void patchDonationStatus(donation.id, "paid")
+                          }
+                        >
+                          Marcar pagada
+                        </button>
+                      ) : null}
+                      {donation.status !== "pending" ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() =>
+                            void patchDonationStatus(donation.id, "pending")
+                          }
+                        >
+                          Marcar pendiente
+                        </button>
+                      ) : null}
+                    </div>
                   </article>
                 ))
             )}
           </section>
+          </div>
         )}
 
         {section === "page" && (
           <div className="admin-stack">
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-about">
+              <h2>Qué es la JDJ</h2>
+              <p className="admin-panel__hint">
+                Texto de la sección que explica el encuentro, debajo de la sede.
+              </p>
+              <div className="admin-grid">
+                <label>
+                  Etiqueta
+                  <input
+                    value={draft.about.eyebrow}
+                    onChange={(e) => patchAbout({ eyebrow: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Título
+                  <input
+                    value={draft.about.title}
+                    onChange={(e) => patchAbout({ title: e.target.value })}
+                  />
+                </label>
+              </div>
+              <label>
+                Entrada
+                <textarea
+                  rows={3}
+                  value={draft.about.lead}
+                  onChange={(e) => patchAbout({ lead: e.target.value })}
+                />
+              </label>
+              <label>
+                Texto
+                <textarea
+                  rows={5}
+                  value={draft.about.body}
+                  onChange={(e) => patchAbout({ body: e.target.value })}
+                />
+              </label>
+            </section>
+
+            <section className="admin-panel" id="parte-faq">
               <h2>Preguntas frecuentes{faqCount ? ` (${faqCount})` : ""}</h2>
               <div className="admin-inline-actions">
                 <button
@@ -2135,7 +2970,7 @@ export function AdminPage() {
               ))}
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-logo-significado">
               <h2>Significado del logo</h2>
               {draft.meaning.elements.map((item, index) => (
                 <div className="admin-card" key={item.id}>
@@ -2188,8 +3023,9 @@ export function AdminPage() {
               ))}
             </section>
 
-            <section className="admin-panel">
+            <section className="admin-panel" id="parte-partners">
               <h2>Logos institucionales{partnerCount ? ` (${partnerCount})` : ""}</h2>
+              {allowUploads ? (
               <label className="file-field">
                 Subir logos
                 <input
@@ -2199,6 +3035,11 @@ export function AdminPage() {
                   onChange={onPartnerUpload}
                 />
               </label>
+              ) : (
+                <p className="admin-panel__hint">
+                  En producción no se suben logos. Agrégalos en local.
+                </p>
+              )}
               <div className="admin-logos">
                 {draft.partners.logos.map((logo, index) => (
                   <div className="admin-logo-item" key={logo.id}>
@@ -2232,9 +3073,13 @@ export function AdminPage() {
               </div>
             </section>
 
-            <details className="admin-details">
-              <summary>Pie, redes y vicarías</summary>
+            <details className="admin-details" id="parte-pie">
+              <summary>Pie y vicarías</summary>
               <div className="admin-panel">
+                <p className="admin-panel__hint">
+                  Las redes (Instagram, Facebook y YouTube) se editan en Sede →
+                  Redes.
+                </p>
                 <label>
                   Organización
                   <input
@@ -2242,43 +3087,6 @@ export function AdminPage() {
                     onChange={(e) => patchFooter({ org: e.target.value })}
                   />
                 </label>
-                {draft.footer.social.map((item, index) => (
-                  <div className="admin-grid" key={item.id}>
-                    <label>
-                      Red
-                      <input
-                        value={item.name}
-                        onChange={(e) => {
-                          const social = [...draft.footer.social];
-                          social[index] = { ...item, name: e.target.value };
-                          patchFooter({ social });
-                        }}
-                      />
-                    </label>
-                    <label>
-                      Handle
-                      <input
-                        value={item.handle}
-                        onChange={(e) => {
-                          const social = [...draft.footer.social];
-                          social[index] = { ...item, handle: e.target.value };
-                          patchFooter({ social });
-                        }}
-                      />
-                    </label>
-                    <label>
-                      URL
-                      <input
-                        value={item.href}
-                        onChange={(e) => {
-                          const social = [...draft.footer.social];
-                          social[index] = { ...item, href: e.target.value };
-                          patchFooter({ social });
-                        }}
-                      />
-                    </label>
-                  </div>
-                ))}
                 <h3>Vicarías</h3>
                 <div className="admin-inline-actions">
                   <button

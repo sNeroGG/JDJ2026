@@ -1,26 +1,12 @@
-import { useState } from "react";
-import { InstagramFeed } from "./InstagramFeed";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
 import { mapDirectionsUrl, mapEmbedUrl, mapWazeUrl } from "../utils/maps";
 import "./Location.css";
 
-function PinIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M12 2c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export function Location() {
   const ref = useReveal<HTMLElement>();
   const { content } = useContent();
   const { location } = content;
-  const [showMap, setShowMap] = useState(false);
 
   const embedUrl = mapEmbedUrl(location);
   const directionsUrl = mapDirectionsUrl(location);
@@ -52,32 +38,16 @@ export function Location() {
           </ul>
         </div>
 
-        <InstagramFeed />
-
         {embedUrl ? (
           <div className="location__map reveal reveal-delay-2">
             <div className="location__map-frame">
-              {showMap ? (
-                <iframe
-                  title={`Mapa de ${location.parishName}`}
-                  src={embedUrl}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="location__map-open"
-                  onClick={() => setShowMap(true)}
-                >
-                  <span className="location__map-pin">
-                    <PinIcon />
-                  </span>
-                  <strong>{location.mapLabel}</strong>
-                  <span>{location.placeLine}</span>
-                </button>
-              )}
+              <iframe
+                title={`Mapa de ${location.parishName}`}
+                src={embedUrl}
+                loading="eager"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
 
             <div className="location__map-actions">
@@ -104,10 +74,6 @@ export function Location() {
                 </a>
               ) : null}
             </div>
-
-            {!showMap && location.mapNote ? (
-              <p className="location__map-note">{location.mapNote}</p>
-            ) : null}
           </div>
         ) : null}
       </div>

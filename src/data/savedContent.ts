@@ -11,6 +11,9 @@ export const SAVED_CONTENT: SavedContent = {
     "url": "",
     "ogImage": "/images/og-jdj-2026.jpg"
   },
+  "admin": {
+    "allowMediaUploads": true
+  },
   "hero": {
     "slogan": "Tengan valor y síganme",
     "tagline": "Jornada Diocesana de la Juventud · Arquidiócesis de San Salvador",
@@ -35,7 +38,8 @@ export const SAVED_CONTENT: SavedContent = {
         "value": "14 nov 2026",
         "href": ""
       }
-    ]
+    ],
+    "imageUrl": ""
   },
   "location": {
     "eyebrow": "Sede 2026",
@@ -66,20 +70,130 @@ export const SAVED_CONTENT: SavedContent = {
     "mapLat": "",
     "mapLng": "",
     "mapLabel": "Ver el mapa",
-    "mapNote": "El mapa se carga solo cuando lo pides, para no gastar tus datos de más.",
+    "mapNote": "",
     "directionsLabel": "Abrir en Google Maps",
     "wazeLabel": "Abrir en Waze"
   },
   "instagram": {
     "enabled": true,
     "eyebrow": "Instagram",
-    "title": "Últimas publicaciones",
-    "lead": "Lo más reciente de Pastoral Juvenil Arquidiocesana.",
+    "title": "Síguenos",
+    "lead": "Sigue a PJ Arquidiocesana en Instagram y Facebook para las novedades de la JDJ",
     "handle": "pjarqui_ss",
-    "posts": [
+    "posts": []
+  },
+  "about": {
+    "eyebrow": "La JDJ",
+    "title": "¿Qué es la Jornada Diocesana de la Juventud?",
+    "lead": "",
+    "body": "La JDJ es el encuentro bienal de adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales. Un día de Eucaristía, catequesis, fiesta y envío, para caminar juntos detrás de Cristo. En 2024 nos vimos en Suchitoto; en 2026 el camino sigue hacia Jayaque.",
+    "items": []
+  },
+  "memories": {
+    "eyebrow": "",
+    "title": "La última vez que nos vimos",
+    "lead": "La JDJ se celebra cada dos años. Estas imágenes recuerdan el encuentro en Suchitoto; ahora el camino sigue hacia Jayaque.",
+    "images": [
       {
-        "url": "https://www.instagram.com/p/Dbno7vMFqb3/",
-        "imageUrl": ""
+        "id": "memoria-842f2c23",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.22.08-PM.webp",
+        "alt": "WhatsApp Image 2026-08-25 at 10.22.08 PM"
+      },
+      {
+        "id": "memoria-98498450",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.22.07-PM.webp",
+        "alt": "WhatsApp Image 2026-08-25 at 10.22.07 PM"
+      },
+      {
+        "id": "memoria-13d291f1",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.22.06-PM.webp",
+        "alt": "WhatsApp Image 2026-08-25 at 10.22.06 PM"
+      },
+      {
+        "id": "memoria-0f3db98d",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.22.05-PM-1-.webp",
+        "alt": "WhatsApp Image 2026-08-25 at 10.22.05 PM(1)"
+      },
+      {
+        "id": "memoria-6d858155",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.22.05-PM.webp",
+        "alt": "WhatsApp Image 2026-08-25 at 10.22.05 PM"
+      }
+    ]
+  },
+  "destination": {
+    "eyebrow": "Jayaque 2026",
+    "title": "#JayaqueLaLleva",
+    "lead": "Ahí es donde iremos este 2026. Jayaque abre sus montañas y la Parroquia San Cristóbal sus puertas para acoger a la juventud de la Arquidiócesis.",
+    "images": [
+      {
+        "id": "jayaque-1",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.28.20-PM-1-.webp",
+        "alt": "Jóvenes frente a la iglesia de Jayaque, sede de la JDJ 2026"
+      },
+      {
+        "id": "jayaque-2",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.28.20-PM.webp",
+        "alt": "Grupo de la Pastoral Juvenil Arquidiocesana en Jayaque"
+      },
+      {
+        "id": "jayaque-3",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.28.18-PM.webp",
+        "alt": "Eucaristía en la iglesia de Jayaque"
+      },
+      {
+        "id": "jayaque-4",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.28.09-PM.webp",
+        "alt": "Jóvenes en la celebración de la iglesia de Jayaque"
+      },
+      {
+        "id": "jayaque-5",
+        "src": "/images/WhatsApp-Image-2026-08-25-at-10.28.08-PM.webp",
+        "alt": "Interior de la iglesia de Jayaque durante la Eucaristía"
+      }
+    ]
+  },
+  "album": {
+    "eyebrow": "Álbum",
+    "title": "Recuerdos de Jayaque",
+    "lead": "Un álbum de fotos del camino hacia la JDJ 2026. Toca una polaroid para verla en grande.",
+    "emptyTitle": "El álbum se está llenando",
+    "emptyText": "Pronto verás aquí fotos de Jayaque y del camino hacia el encuentro.",
+    "shareEyebrow": "Álbum compartido",
+    "shareTitle": "¡Participa agregando tus fotos!",
+    "shareLead": "Súbelas al álbum de Google Photos para que tu recuerdo también forme parte de la JDJ.",
+    "shareCta": "Abrir álbum compartido",
+    "shareUrl": "https://photos.app.goo.gl/3Q7aokzJS4FTerCU8",
+    "images": [
+      {
+        "id": "album-e967ac82",
+        "src": "/images/001.webp",
+        "alt": "Foto 001",
+        "caption": ""
+      },
+      {
+        "id": "album-273bd5a2",
+        "src": "/images/002.webp",
+        "alt": "Foto 002",
+        "caption": ""
+      },
+      {
+        "id": "album-fd0bcc85",
+        "src": "/images/003.webp",
+        "alt": "Foto 003",
+        "caption": ""
+      },
+      {
+        "id": "album-01397c80",
+        "src": "/images/004.webp",
+        "alt": "Foto 004",
+        "caption": ""
+      },
+      {
+        "id": "album-7e6ed7d1",
+        "src": "/images/005.webp",
+        "alt": "Foto 005",
+        "caption": ""
       }
     ]
   },
@@ -147,7 +261,7 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "para-quien",
         "label": "Para quién",
         "title": "Juventud Arquidiocesana",
-        "text": "Adolescentes y jóvenes de las 17 vicarias, grupos parroquiales, movimientos y comunidades eclesiales."
+        "text": "Adolescentes y jóvenes de las 17 vicarías, grupos parroquiales, movimientos y comunidades eclesiales, y todo joven que quiere ser parte de este evento: están totalmente invitados."
       },
       {
         "id": "cuando",
@@ -351,24 +465,19 @@ export const SAVED_CONTENT: SavedContent = {
         "label": "Sede"
       },
       {
-        "id": "nav-evento",
-        "href": "#evento",
-        "label": "Evento"
-      },
-      {
-        "id": "nav-agenda",
-        "href": "#agenda",
-        "label": "Agenda"
-      },
-      {
-        "id": "nav-inscripcion",
-        "href": "#inscripcion",
-        "label": "Inscripción"
+        "id": "nav-recuerdos",
+        "href": "/recuerdos",
+        "label": "Recuerdos"
       },
       {
         "id": "nav-tienda",
         "href": "/tienda",
         "label": "Tienda"
+      },
+      {
+        "id": "nav-donar",
+        "href": "/donar",
+        "label": "Donar"
       },
       {
         "id": "nav-catequesis",
@@ -393,7 +502,11 @@ export const SAVED_CONTENT: SavedContent = {
         "href": "/docs/CATEQUESIS-1-JDJ-2026.pdf",
         "coverUrl": "/docs/covers/CATEQUESIS-1-JDJ-2026.webp"
       }
-    ]
+    ],
+    "heroImageUrl": "/images/WhatsApp-Image-2026-08-25-at-10.22.01-PM.webp"
+  },
+  "donate": {
+    "heroImageUrl": "/images/WhatsApp-Image-2026-08-25-at-10.22.02-PM-1-.webp"
   },
   "footer": {
     "logoUrl": "/images/LOGO-FINAL---OFICIAL-JDJ-26---AGO_Mesa-de-trabajo-1-03.webp",
@@ -409,24 +522,14 @@ export const SAVED_CONTENT: SavedContent = {
         "label": "Sede"
       },
       {
-        "id": "nav-logo",
-        "href": "#significado",
-        "label": "Logo"
+        "id": "nav-jdj",
+        "href": "#jdj",
+        "label": "La JDJ"
       },
       {
-        "id": "nav-evento",
-        "href": "#evento",
-        "label": "Evento"
-      },
-      {
-        "id": "nav-agenda",
-        "href": "#agenda",
-        "label": "Agenda"
-      },
-      {
-        "id": "nav-inscripcion",
-        "href": "#inscripcion",
-        "label": "Inscripción"
+        "id": "nav-recuerdos",
+        "href": "/recuerdos",
+        "label": "Recuerdos"
       },
       {
         "id": "nav-tienda",
@@ -434,19 +537,14 @@ export const SAVED_CONTENT: SavedContent = {
         "label": "Tienda"
       },
       {
+        "id": "nav-donar",
+        "href": "/donar",
+        "label": "Donar"
+      },
+      {
         "id": "nav-catequesis",
         "href": "/catequesis",
         "label": "Catequesis"
-      },
-      {
-        "id": "nav-faq",
-        "href": "#faq",
-        "label": "Preguntas"
-      },
-      {
-        "id": "nav-logos",
-        "href": "#auspiciadores",
-        "label": "Logos"
       }
     ],
     "social": [
@@ -460,13 +558,13 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "facebook",
         "name": "Facebook",
         "handle": "Pastoral Juvenil",
-        "href": "https://www.facebook.com/search/top/?q=Pastoral%20Juvenil%20Arquidi%C3%B3cesis%20de%20San%20Salvador"
+        "href": "https://www.facebook.com/pjarquiss"
       },
       {
         "id": "youtube",
-        "name": "YouTube",
-        "handle": "Arquidiócesis SS",
-        "href": "https://www.youtube.com/results?search_query=Arquidi%C3%B3cesis+de+San+Salvador"
+        "name": "",
+        "handle": "",
+        "href": ""
       }
     ]
   }

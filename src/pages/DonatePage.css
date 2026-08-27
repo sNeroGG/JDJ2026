@@ -6,6 +6,10 @@
     var(--cream);
 }
 
+.donate-page.has-hero {
+  padding-top: 0;
+}
+
 .donate-page__layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
@@ -130,6 +134,11 @@
   font-size: 0.88rem;
   color: var(--muted);
   word-break: break-all;
+}
+
+.donate-thanks__again {
+  color: var(--teal);
+  font-weight: 700;
 }
 
 .donate-invite {

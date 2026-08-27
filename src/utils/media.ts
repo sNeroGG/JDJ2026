@@ -16,10 +16,11 @@ function fileToBase64(file: File) {
 export async function uploadMedia(
   file: File,
   folder: "images" | "docs" = "images",
+  options?: { sequential?: boolean },
 ) {
   if (!import.meta.env.DEV) {
     throw new Error(
-      "Sube archivos en local (npm run dev). Se guardan en public/images o public/docs y viajan con el deploy.",
+      "En producción no se suben fotos. Edita solo texto, o abre el panel en local con npm run dev.",
     );
   }
 
@@ -44,6 +45,7 @@ export async function uploadMedia(
       filename: file.name,
       folder,
       data,
+      sequential: options?.sequential === true,
     }),
   });
 

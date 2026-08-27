@@ -19,7 +19,7 @@ import {
 } from "../data/defaultContent";
 import { SAVED_CONTENT } from "../data/savedContent";
 import { capitalizeDioceseTermsIn } from "../utils/copy";
-import { normalizeInstagramPosts } from "../utils/instagram";
+import { withSocialDefaults } from "../utils/social";
 import { normalizeStoreProducts } from "../utils/store";
 
 const REGISTRATION_STATUSES: RegistrationStatus[] = ["soon", "open", "closed"];
@@ -61,6 +61,12 @@ const DONATE_NAV: NavLink = {
   label: "Donar",
 };
 
+const ALBUM_NAV: NavLink = {
+  id: "nav-recuerdos",
+  href: "/recuerdos",
+  label: "Recuerdos",
+};
+
 function withStoreNav<T extends NavLink>(items: T[]) {
   if (items.some((item) => item.href === "/tienda" || item.id === "nav-tienda")) {
     return items;
@@ -93,6 +99,25 @@ function withDonateNav<T extends NavLink>(items: T[]) {
     ];
   }
   return [...items, DONATE_NAV as T];
+}
+
+function withAlbumNav<T extends NavLink>(items: T[]) {
+  if (
+    items.some((item) => item.href === "/recuerdos" || item.id === "nav-recuerdos")
+  ) {
+    return items;
+  }
+  const jdjAt = items.findIndex(
+    (item) => item.href === "#jdj" || item.id === "nav-jdj",
+  );
+  if (jdjAt >= 0) {
+    return [
+      ...items.slice(0, jdjAt + 1),
+      ALBUM_NAV as T,
+      ...items.slice(jdjAt + 1),
+    ];
+  }
+  return [...items, ALBUM_NAV as T];
 }
 
 function isHostedUrl(value: string) {
@@ -134,6 +159,11 @@ function mergeContent(parsed: SavedContent): SiteContent {
         ? parsed.logoUrl
         : DEFAULT_CONTENT.logoUrl,
     site: { ...DEFAULT_CONTENT.site, ...parsed.site },
+    admin: {
+      ...DEFAULT_CONTENT.admin,
+      ...parsed.admin,
+      allowMediaUploads: parsed.admin?.allowMediaUploads ?? true,
+    },
     hero: {
       ...DEFAULT_CONTENT.hero,
       ...parsed.hero,
@@ -142,6 +172,10 @@ function mergeContent(parsed: SavedContent): SiteContent {
           ? parsed.hero.highlights
           : DEFAULT_CONTENT.hero.highlights,
       ),
+      imageUrl:
+        parsed.hero?.imageUrl && isHostedUrl(parsed.hero.imageUrl)
+          ? parsed.hero.imageUrl
+          : "",
     },
     location: {
       ...DEFAULT_CONTENT.location,
@@ -153,15 +187,48 @@ function mergeContent(parsed: SavedContent): SiteContent {
     instagram: {
       ...DEFAULT_CONTENT.instagram,
       ...parsed.instagram,
-      posts: normalizeInstagramPosts(
-        Array.isArray(parsed.instagram?.posts)
-          ? parsed.instagram.posts
-          : DEFAULT_CONTENT.instagram.posts,
-      ).map((post) => ({
-        ...post,
-        imageUrl:
-          post.imageUrl && isHostedUrl(post.imageUrl) ? post.imageUrl : "",
-      })),
+      posts: [],
+    },
+    about: {
+      ...DEFAULT_CONTENT.about,
+      ...parsed.about,
+      items: Array.isArray(parsed.about?.items)
+        ? parsed.about.items
+        : DEFAULT_CONTENT.about.items,
+    },
+    memories: {
+      ...DEFAULT_CONTENT.memories,
+      ...parsed.memories,
+      images: (parsed.memories?.images ?? DEFAULT_CONTENT.memories.images)
+        .map((item) => ({
+          id: String(item?.id || ""),
+          src: String(item?.src || ""),
+          alt: String(item?.alt || ""),
+        }))
+        .filter((item) => item.src && isHostedUrl(item.src)),
+    },
+    destination: {
+      ...DEFAULT_CONTENT.destination,
+      ...parsed.destination,
+      images: (parsed.destination?.images ?? DEFAULT_CONTENT.destination.images)
+        .map((item) => ({
+          id: String(item?.id || ""),
+          src: String(item?.src || ""),
+          alt: String(item?.alt || ""),
+        }))
+        .filter((item) => item.src && isHostedUrl(item.src)),
+    },
+    album: {
+      ...DEFAULT_CONTENT.album,
+      ...parsed.album,
+      images: (parsed.album?.images ?? DEFAULT_CONTENT.album.images)
+        .map((item) => ({
+          id: String(item?.id || ""),
+          src: String(item?.src || ""),
+          alt: String(item?.alt || ""),
+          caption: String(item?.caption || ""),
+        }))
+        .filter((item) => item.src && isHostedUrl(item.src)),
     },
     schedule: mergeSchedule(parsed),
     registration: {
@@ -225,13 +292,15 @@ function mergeContent(parsed: SavedContent): SiteContent {
       ctaHref: catechesisPath(
         parsed.header?.ctaHref ?? DEFAULT_CONTENT.header.ctaHref,
       ),
-      nav: withDonateNav(
-        withStoreNav(
-          withCatechesisRoute(
-            parsed.header?.nav?.length &&
-              !parsed.header.nav.some((item) => item.id === "nav-inicio")
-              ? parsed.header.nav
-              : DEFAULT_CONTENT.header.nav,
+      nav: withAlbumNav(
+        withDonateNav(
+          withStoreNav(
+            withCatechesisRoute(
+              parsed.header?.nav?.length &&
+                !parsed.header.nav.some((item) => item.id === "nav-inicio")
+                ? parsed.header.nav
+                : DEFAULT_CONTENT.header.nav,
+            ),
           ),
         ),
       ),
@@ -242,6 +311,19 @@ function mergeContent(parsed: SavedContent): SiteContent {
       docs: (parsed.catechesis?.docs ?? DEFAULT_CONTENT.catechesis.docs).filter(
         (doc) => !doc.href || isHostedUrl(doc.href),
       ),
+      heroImageUrl:
+        parsed.catechesis?.heroImageUrl &&
+        isHostedUrl(parsed.catechesis.heroImageUrl)
+          ? parsed.catechesis.heroImageUrl
+          : "",
+    },
+    donate: {
+      ...DEFAULT_CONTENT.donate,
+      ...parsed.donate,
+      heroImageUrl:
+        parsed.donate?.heroImageUrl && isHostedUrl(parsed.donate.heroImageUrl)
+          ? parsed.donate.heroImageUrl
+          : "",
     },
     footer: {
       ...DEFAULT_CONTENT.footer,
@@ -250,18 +332,22 @@ function mergeContent(parsed: SavedContent): SiteContent {
         parsed.footer?.logoUrl && isHostedUrl(parsed.footer.logoUrl)
           ? parsed.footer.logoUrl
           : DEFAULT_CONTENT.footer.logoUrl,
-      nav: withDonateNav(
-        withStoreNav(
-          withCatechesisRoute(
-            parsed.footer?.nav?.length
-              ? parsed.footer.nav
-              : DEFAULT_CONTENT.footer.nav,
+      nav: withAlbumNav(
+        withDonateNav(
+          withStoreNav(
+            withCatechesisRoute(
+              parsed.footer?.nav?.length
+                ? parsed.footer.nav
+                : DEFAULT_CONTENT.footer.nav,
+            ),
           ),
         ),
       ),
-      social: parsed.footer?.social?.length
-        ? parsed.footer.social
-        : DEFAULT_CONTENT.footer.social,
+      social: withSocialDefaults(
+        parsed.footer?.social?.length
+          ? parsed.footer.social
+          : DEFAULT_CONTENT.footer.social,
+      ),
     },
   };
   return capitalizeDioceseTermsIn(merged);

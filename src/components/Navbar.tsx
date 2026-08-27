@@ -11,6 +11,10 @@ export function Navbar() {
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const solidPage =
+    pathname === "/catequesis" ||
+    pathname === "/donar" ||
+    pathname.startsWith("/donar/");
 
   const links = filterNavLinks(header.nav, content).filter(
     (item) => item.href !== "#inicio",
@@ -40,7 +44,7 @@ export function Navbar() {
 
   return (
     <nav
-      className={`navbar${scrolled ? " is-solid" : ""}${open ? " is-open" : ""}`}
+      className={`navbar${scrolled || solidPage ? " is-solid" : ""}${solidPage ? " is-page" : ""}${open ? " is-open" : ""}`}
       aria-label="Principal"
     >
       <div className="navbar__inner">

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
+import { PageHero } from "../components/PageHero";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
 import { useSeo } from "../hooks/useSeo";
@@ -12,7 +13,7 @@ import {
   normalizeDui,
   parseDonationAmount,
 } from "../utils/donations";
-import { formatUsd } from "../utils/store";
+import { formatUsd, normalizeWhatsapp } from "../utils/store";
 import "./DonatePage.css";
 
 const EMPTY = {
@@ -27,16 +28,17 @@ const EMPTY = {
 export function DonatePage() {
   const ref = useReveal<HTMLElement>();
   const { content } = useContent();
-  const { site } = content;
+  const { site, store, donate } = content;
   const [form, setForm] = useState(EMPTY);
   const [customAmount, setCustomAmount] = useState(false);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
+  const whatsappReady = Boolean(normalizeWhatsapp(store.whatsapp));
 
   useSeo({
     title: `Donar · ${site.name} ${site.year}`,
     description:
-      "Aporta entre $5 y $25 a la JDJ Jayaque 2026. Completa tus datos y paga con Wompi.",
+      "Aporta entre $5 y $25 a la JDJ Jayaque 2026. Completa tus datos y paga por transferencia bancaria mediante WhatsApp.",
     path: "/donar",
     siteUrl: site.url,
     image: site.ogImage,
@@ -52,6 +54,10 @@ export function DonatePage() {
     const amount = parseDonationAmount(form.amount);
     if (amount == null || amount < DONATION_MIN || amount > DONATION_MAX) {
       setNotice(`El monto debe estar entre ${formatUsd(DONATION_MIN)} y ${formatUsd(DONATION_MAX)}.`);
+      return;
+    }
+    if (!whatsappReady) {
+      setNotice("Falta el número de WhatsApp. Se configura en el panel de administración.");
       return;
     }
     setSending(true);
@@ -70,13 +76,26 @@ export function DonatePage() {
       });
       const payload = (await remote.json().catch(() => null)) as {
         error?: string;
-        redirectUrl?: string;
+        id?: string;
+        whatsappUrl?: string;
       } | null;
-      if (!remote.ok || !payload?.redirectUrl) {
-        setNotice(payload?.error || "No se pudo iniciar el pago.");
+      if (!remote.ok || !payload?.id) {
+        setNotice(payload?.error || "No se pudo registrar la donación.");
         return;
       }
-      window.location.assign(payload.redirectUrl);
+      const url = payload.whatsappUrl || "";
+      if (!url) {
+        setNotice(
+          "Donación registrada. Configura WhatsApp en el panel para enviarla.",
+        );
+        return;
+      }
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.href = url;
+        return;
+      }
+      window.location.assign(`/donar/gracias?id=${encodeURIComponent(payload.id)}`);
     } catch {
       setNotice("No se pudo conectar con el servidor de donaciones.");
     } finally {
@@ -85,8 +104,12 @@ export function DonatePage() {
   }
 
   return (
-    <div className="donate-page">
+    <div className={`donate-page${donate.heroImageUrl ? " has-hero" : ""}`}>
       <Navbar />
+      <PageHero
+        src={donate.heroImageUrl}
+        alt={`Donar a la ${site.name} ${site.year}`}
+      />
       <main>
         <section className="section donate-page__section" ref={ref}>
           <div className="section__inner donate-page__layout">
@@ -96,8 +119,9 @@ export function DonatePage() {
               <p className="section__lead">
                 Recibimos aportes de {formatUsd(DONATION_MIN)} a{" "}
                 {formatUsd(DONATION_MAX)}. Primero registramos quién dona;
-                después Wompi cobra el monto fijo. No aceptamos montos fuera de
-                ese rango ni pagos anónimos.
+                después te llevamos a WhatsApp para completar el pago por
+                transferencia bancaria. No aceptamos montos fuera de ese rango
+                ni pagos anónimos.
               </p>
             </div>
 
@@ -209,12 +233,23 @@ export function DonatePage() {
               </fieldset>
               <p className="donate-form__privacy">
                 Usamos estos datos solo para identificar el origen de cada
-                aporte y llevar el registro de la Pastoral Juvenil. No los
-                vendemos ni los usamos para fines ajenos a la JDJ.
+                aporte y llevar el registro de la Pastoral Juvenil. El pago se
+                completa por transferencia bancaria, con los datos de la cuenta
+                que te compartimos por WhatsApp.
               </p>
               {notice ? <p className="donate-form__notice">{notice}</p> : null}
-              <button type="submit" className="donate-form__submit" disabled={sending}>
-                {sending ? "Abriendo Wompi…" : "Continuar a Wompi"}
+              {!whatsappReady ? (
+                <p className="donate-form__notice">
+                  Falta el número de WhatsApp. Se configura en el panel de
+                  administración.
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                className="donate-form__submit"
+                disabled={sending || !whatsappReady}
+              >
+                {sending ? "Enviando…" : "Enviar por WhatsApp"}
               </button>
             </form>
           </div>

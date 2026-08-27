@@ -1,14 +1,14 @@
 .countdown--hero {
   width: 100%;
-  max-width: 22rem;
-  margin-top: 0.85rem;
+  max-width: 34rem;
+  margin-top: 1.15rem;
   color: var(--navy);
   animation: countdown-in 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
 }
 
 .countdown__message {
   font-family: var(--font-script);
-  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  font-size: clamp(1.4rem, 3.4vw, 1.9rem);
   color: var(--green-deep);
   line-height: 1.2;
   text-align: center;
@@ -18,13 +18,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.55rem;
   width: 100%;
 }
 
 .countdown__title {
   font-family: var(--font-script);
-  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-size: clamp(1.5rem, 3.6vw, 1.95rem);
   font-weight: 600;
   color: var(--green-deep);
   line-height: 1;
@@ -38,46 +38,63 @@
 }
 
 .countdown__unit {
-  min-width: 3.1rem;
+  flex: 1;
+  min-width: 0;
+  max-width: 6.25rem;
+  padding: 0.75rem 0.4rem 0.65rem;
   text-align: center;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 12px 28px rgba(28, 35, 44, 0.1);
+  backdrop-filter: blur(12px);
 }
 
 .countdown__unit strong {
   display: block;
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 3.2vw, 1.55rem);
+  font-size: clamp(1.7rem, 5.5vw, 2.75rem);
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   color: var(--navy);
 }
 
 .countdown__unit span {
+  display: block;
+  margin-top: 0.32rem;
   font-family: var(--font-display);
-  font-size: 0.58rem;
+  font-size: clamp(0.62rem, 1.4vw, 0.74rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--teal);
 }
 
 @media (max-width: 640px) {
   .countdown--hero {
-    margin-top: 0.6rem;
-    max-width: 18rem;
+    margin-top: 0.9rem;
+    max-width: 100%;
+  }
+
+  .countdown__units {
+    gap: 0.4rem;
   }
 
   .countdown__unit {
-    min-width: 2.6rem;
+    padding: 0.62rem 0.22rem 0.52rem;
+    border-radius: 0.85rem;
   }
 
   .countdown__unit strong {
-    font-size: 1.15rem;
+    font-size: clamp(1.55rem, 8.5vw, 1.95rem);
   }
 
   .countdown__unit span {
-    font-size: 0.52rem;
+    margin-top: 0.22rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
   }
 }
 

@@ -7,6 +7,7 @@ Landing de la Jornada Diocesana de la Juventud — Arquidiócesis de San Salvado
 - React + TypeScript + Vite
 - Deploy en Vercel
 - Imágenes y documentos en el repo (`public/images`, `public/docs`)
+- Donaciones: transferencia bancaria por WhatsApp + Supabase
 
 ## Editar textos desde el sitio publicado
 
@@ -51,10 +52,11 @@ de enlazarlas para que no queden enlaces muertos.
 | Inscripción | Hay pasos o enlace de formulario |
 | Vicarías | Hay al menos una vicaría |
 | Preguntas frecuentes | Hay al menos una pregunta |
+| Suchitoto 2024 | Va unida a **La JDJ**; las fotos se suben en **Sede** |
 
 El mapa de la sede se configura en **Sede**: con la dirección basta, y si agregas
 latitud y longitud los botones de Google Maps y Waze llevan al punto exacto. El
-mapa no se carga hasta que la persona lo pide, para no gastar datos de más.
+mapa se muestra en la landing.
 
 ## Cómo se ve al compartir el enlace
 
@@ -107,6 +109,41 @@ Un detalle a tener en cuenta: Cloudflare guarda los datos sin muestrear solo 7 d
 y después los agrega a cerca del 10% del volumen, así que los números de meses
 anteriores son estimaciones, no conteos exactos.
 
+## Donaciones
+
+En `/donar` se elige un monto de $5 a $25, se piden datos de quién dona y se
+abre WhatsApp para completar el pago por **transferencia bancaria**. El registro
+queda pendiente en Supabase hasta que en `/jdj-cms` → **Donaciones** marques el
+comprobante como pagado.
+
+El número de WhatsApp es el mismo de la tienda (se configura en el panel).
+
+**«Otro monto»:** es un botón más junto a $5–$25; el input solo aparece si
+eliges **Otro monto**, y tiene que quedar entre $5 y $25.
+
+### Siguientes pasos
+
+1. **Supabase**
+   - Crea un proyecto.
+   - En el SQL Editor corre `supabase/donations.sql` (crea o actualiza la tabla
+     `donations` con RLS y deja el pago como transferencia).
+   - Copia **Project URL** y **service_role** (Settings → API). El `anon` no
+     sirve: el servidor usa service role y RLS deja fuera al público.
+
+2. **Variables en Vercel** (Production; sin prefijo `VITE_`):
+
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+
+   Redeploy después de guardarlas. En local, las mismas en `.env` y
+   `npm run dev`.
+
+3. **Probar el flujo**
+   - Configura WhatsApp en `/jdj-cms` → Tienda.
+   - `/donar` → datos → Enviar por WhatsApp.
+   - Debe abrir el chat con el detalle del aporte y llevar a `/donar/gracias`.
+   - En `/jdj-cms` → Donaciones, marca **Pagada** cuando llegue la transferencia.
+
 ## Desarrollo local
 
 ```bash
@@ -126,4 +163,4 @@ como respaldo, pero conviene renombrarla y borrar la vieja.
 ## Deploy
 
 GitHub → Vercel (preset Vite). Rutas públicas: `/`, `/catequesis`, `/tienda`,
-`/donar`. Panel: `/jdj-cms`.
+`/donar`, `/donar/gracias`. Panel: `/jdj-cms`.

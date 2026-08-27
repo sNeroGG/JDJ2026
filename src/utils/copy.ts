@@ -19,6 +19,8 @@ const SKIP_KEYS = new Set([
   "coverUrl",
   "ctaHref",
   "permalink",
+  "imageUrl",
+  "heroImageUrl",
 ]);
 
 /** Primera letra en mayúscula: Arquidiócesis, Diócesis y adjetivos (Diocesana, Arquidiocesana). */

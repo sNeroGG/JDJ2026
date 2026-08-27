@@ -13,9 +13,10 @@ export function DonateInvite() {
         <p className="section__eyebrow">Aporta</p>
         <h2 className="section__title">Sostén el camino hacia Jayaque</h2>
         <p className="section__lead">
-          Puedes donar entre {formatUsd(DONATION_MIN)} y {formatUsd(DONATION_MAX)}{" "}
-          por Wompi. Pedimos tus datos antes del pago para registrar cada
-          movimiento.
+          Con tu aporte nos ayudas a cubrir los gastos del evento. Puedes donar
+          entre {formatUsd(DONATION_MIN)} y {formatUsd(DONATION_MAX)} por
+          transferencia bancaria; te pedimos tus datos para registrar cada
+          movimiento y te enviamos los datos de la cuenta por WhatsApp.
         </p>
         <SiteLink className="donate-form__submit" href="/donar">
           Donar ahora

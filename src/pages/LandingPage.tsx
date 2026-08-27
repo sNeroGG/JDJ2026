@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+import { AboutJdj } from "../components/AboutJdj";
 import { DonateInvite } from "../components/DonateInvite";
 import { EventInfo } from "../components/EventInfo";
 import { Faq } from "../components/Faq";
 import { Footer } from "../components/Footer";
 import { Hero } from "../components/Hero";
+import { InstagramFeed } from "../components/InstagramFeed";
 import { Location } from "../components/Location";
 import { Meaning } from "../components/Meaning";
 import { Navbar } from "../components/Navbar";
@@ -56,6 +58,8 @@ export function LandingPage() {
       <Hero />
       <main>
         <Location />
+        <AboutJdj />
+        <InstagramFeed />
         <Meaning />
         <Vicariates />
         <EventInfo />
