@@ -19,15 +19,11 @@ export function Comisiones() {
               key={item.id}
               className={`comisiones__card reveal${index ? ` reveal-delay-${Math.min(index, 2)}` : ""}`}
             >
-              <div
-                className={`comisiones__figure${item.image ? "" : " is-empty"}`}
-              >
-                {item.image ? (
+              {item.image ? (
+                <div className="comisiones__figure">
                   <img src={item.image} alt={item.title} />
-                ) : (
-                  <span>Espacio para imagen</span>
-                )}
-              </div>
+                </div>
+              ) : null}
               <div className="comisiones__copy">
                 <h2>{item.title}</h2>
                 {item.intro ? (

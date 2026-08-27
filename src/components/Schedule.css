@@ -9,6 +9,7 @@
 .schedule__date {
   margin-top: 1rem;
   display: inline-block;
+  max-width: 100%;
   padding: 0.5rem 1rem;
   border-radius: 999px;
   background: rgba(45, 128, 142, 0.12);
@@ -102,4 +103,28 @@
 
 .schedule__back:hover {
   background: var(--green-deep);
+}
+
+@media (max-width: 560px) {
+  .schedule--page {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+
+  .schedule__list li {
+    grid-template-columns: 1fr;
+    gap: 0.28rem;
+  }
+
+  .schedule__time {
+    font-size: 0.88rem;
+  }
+
+  .schedule__entry h4 {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .schedule__day {
+    padding: 1rem 0.95rem 1.1rem;
+  }
 }

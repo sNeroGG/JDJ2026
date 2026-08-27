@@ -1,3 +1,12 @@
+import {
+  DEFAULT_MINISTRIES,
+  DEFAULT_MINISTRY_LAYOUT,
+  type MinistryItem,
+  type MinistryLayout,
+} from "./ministries";
+
+export type { MinistryItem, MinistryLayout };
+
 export type AccentTone = "orange" | "sky" | "teal" | "green" | "navy";
 
 export type MeaningElement = {
@@ -305,6 +314,8 @@ export type SiteContent = {
     credit: string;
     logos: PartnerLogo[];
   };
+  ministries: MinistryItem[];
+  ministriesLayout: MinistryLayout;
   store: {
     logoUrl: string;
     eyebrow: string;
@@ -541,15 +552,70 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   schedule: {
     eyebrow: "Agenda",
-    title: "El camino hacia el encuentro",
-    lead: "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
-    startDate: "2026-11-14T08:00",
+    title: "Agenda",
+    lead: "Parroquia San Cristóbal · 8:30 a. m. a 6:00 p. m.",
+    startDate: "2026-11-14T08:30",
     dateLabel: "14 de noviembre de 2026",
     countdownEyebrow: "Cuenta regresiva",
     countdownTitle: "Faltan",
     countdownLiveText: "¡Estamos viviendo la JDJ 2026!",
     countdownDoneText: "Gracias por caminar con nosotros en la JDJ 2026.",
-    items: [],
+    items: [
+      {
+        id: "hora-previa",
+        time: "7:30 a. m.",
+        title: "Previa",
+        text: "Apertura y recibimiento de jóvenes, animación en los puntos de ingreso, e inicio de ventas.",
+      },
+      {
+        id: "hora-maria",
+        time: "8:30 a. m.",
+        title: "Mi encuentro con María",
+        text: "Momento inicial, rezo del Santo Rosario en tarima central previo a Santa Eucaristía.",
+      },
+      {
+        id: "hora-eucaristia",
+        time: "9:30 a. m.",
+        title: "Santa Eucaristía",
+        text: "",
+      },
+      {
+        id: "hora-senor",
+        time: "11:30 a. m.",
+        title: "Mi encuentro con el Señor",
+        text: "Al finalizar la Eucaristía, se expone El Santísimo y se traslada al monumento donde se dará inicio a la adoración Eucarística durante toda la jornada.",
+      },
+      {
+        id: "hora-almuerzo",
+        time: "12:00 p. m.",
+        title: "Almuerzo",
+        text: "",
+      },
+      {
+        id: "hora-encuentro",
+        time: "1:00 p. m.",
+        title: "Bloque de encuentro",
+        text: "Momento central de la JDJ, en el que se habilitarán distintos espacios y actividades para el desarrollo del mensaje de esta edición de la JDJ (Vocafest, sacramento de la reconciliación, conversatorios, conciertos, entre otros).",
+      },
+      {
+        id: "hora-vocacional",
+        time: "4:00 p. m.",
+        title: "Momento vocacional",
+        text: "Conversatorio y momento vocacional central en tarima principal.",
+      },
+      {
+        id: "hora-cierre-adoracion",
+        time: "4:30 p. m.",
+        title: "Cierre adoración Eucarística",
+        text: "Se traslada El Santísimo desde el templo parroquial hacia la tarima principal para un pequeño momento de adoración central y reserva del Santísimo.",
+      },
+      {
+        id: "hora-concierto",
+        time: "5:00 p. m.",
+        title: "Concierto final",
+        text: "Momento final de nuestra Jornada Diocesana de la Juventud con un gran concierto de cierre.",
+      },
+    ],
   },
   registration: {
     enabled: false,
@@ -632,6 +698,8 @@ export const DEFAULT_CONTENT: SiteContent = {
     credit: "Arquidiócesis de San Salvador · El Salvador",
     logos: [],
   },
+  ministries: DEFAULT_MINISTRIES.map((item) => ({ ...item })),
+  ministriesLayout: DEFAULT_MINISTRY_LAYOUT,
   store: {
     logoUrl: "",
     eyebrow: "Tienda JDJ",

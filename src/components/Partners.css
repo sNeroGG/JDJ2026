@@ -198,3 +198,13 @@
     font-size: 0.68rem;
   }
 }
+
+@media (max-width: 480px) {
+  .partners__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .partners__slot img {
+    max-height: 56px;
+  }
+}

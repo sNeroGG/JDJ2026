@@ -9,13 +9,13 @@ export const SEDE_TOPICS = [
     path: "/agenda",
     title: "Agenda",
     description:
-      "Apartado de la agenda de la JDJ Jayaque 2026. Pronto publicaremos más información.",
+      "Agenda de la JDJ Jayaque 2026 en la Parroquia San Cristóbal, sábado 14 de noviembre.",
   },
   {
     path: "/ministerios",
     title: "Ministerios",
     description:
-      "Apartado de los ministerios de la JDJ Jayaque 2026. Pronto publicaremos más información.",
+      "Los ministerios de la JDJ Jayaque 2026: Corazón Inquieto, Angelus, Proyecto Católico y Ministerio Pro Deo.",
   },
   {
     path: "/voluntarios",

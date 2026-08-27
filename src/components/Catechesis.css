@@ -235,3 +235,13 @@
     max-height: 160px;
   }
 }
+
+@media (max-width: 480px) {
+  .catechesis__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catechesis__cover {
+    max-height: none;
+  }
+}

@@ -1,0 +1,209 @@
+.ministerios {
+  padding-top: calc(var(--section-pad) + 2.5rem);
+  min-height: 70svh;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(45, 128, 142, 0.12), transparent 60%),
+    var(--cream);
+}
+
+.ministerios__intro {
+  padding-top: calc(1.28rem + 0.85rem);
+  margin-bottom: 1.15rem;
+}
+
+.ministerios .section__title {
+  max-width: 14ch;
+}
+
+.ministerios__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.85rem, 2vw, 1.15rem);
+}
+
+.ministerios__card {
+  display: grid;
+  align-content: start;
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 0.15rem);
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 12px 28px rgba(28, 35, 44, 0.04);
+}
+
+.ministerios__photo {
+  overflow: hidden;
+  width: 100%;
+  min-height: 14.5rem;
+  aspect-ratio: 16 / 10;
+  background: #e8eef0;
+}
+
+.ministerios__card--logo .ministerios__photo {
+  min-height: 0;
+  aspect-ratio: 1;
+  background: #fff;
+}
+
+.ministerios__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ministerios__photo--logo img {
+  object-fit: contain;
+  padding: 1.1rem;
+}
+
+.ministerios__photo--logo.has-bg img {
+  padding: 0;
+  object-fit: cover;
+}
+
+.ministerios__photo.is-empty {
+  display: grid;
+  place-items: center;
+  border-bottom: 1px dashed rgba(28, 35, 44, 0.1);
+  background: linear-gradient(180deg, #eef6f7, #e4eef1);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 0.85rem;
+}
+
+.ministerios__copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 1rem 1.15rem 1.2rem;
+}
+
+.ministerios__card--logo .ministerios__copy,
+.ministerios__copy--text {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ministerios__logo {
+  overflow: hidden;
+  width: 4.35rem;
+  height: 4.35rem;
+  border-radius: 0.85rem;
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.ministerios__logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.28rem;
+}
+
+.ministerios__logo.has-bg img {
+  padding: 0;
+  object-fit: cover;
+}
+
+.ministerios__logo.is-empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  background: linear-gradient(180deg, #eef6f7, #e4eef1);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.ministerios__text {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.ministerios__text h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.12rem, 2.4vw, 1.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  color: var(--navy);
+}
+
+.ministerios__text p {
+  color: var(--muted);
+}
+
+.ministerios__empty {
+  max-width: 42rem;
+  color: var(--muted);
+}
+
+.ministerios__back {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1.75rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.ministerios__back:hover {
+  background: var(--green-deep);
+}
+
+@media (max-width: 900px) {
+  .ministerios__copy {
+    padding: 0.95rem 1rem 1.1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .ministerios__list {
+    grid-template-columns: 1fr;
+  }
+
+  .ministerios__photo {
+    min-height: 11.5rem;
+  }
+
+  .ministerios__card--logo .ministerios__photo {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .ministerios {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+
+  .ministerios__photo {
+    min-height: 10rem;
+  }
+
+  .ministerios__card--logo .ministerios__photo {
+    min-height: 0;
+  }
+
+  .ministerios__logo {
+    width: 3.6rem;
+    height: 3.6rem;
+  }
+
+  .ministerios__copy {
+    gap: 0.7rem;
+    padding: 0.85rem 0.9rem 1rem;
+  }
+}

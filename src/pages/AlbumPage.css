@@ -277,6 +277,10 @@
 }
 
 @media (max-width: 640px) {
+  .album-page {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+
   .album-page__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.9rem;

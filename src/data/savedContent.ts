@@ -273,15 +273,70 @@ export const SAVED_CONTENT: SavedContent = {
   },
   "schedule": {
     "eyebrow": "Agenda",
-    "title": "El camino hacia el encuentro",
-    "lead": "Aquí publicaremos el programa de la jornada, hora por hora, para que llegues preparado.",
-    "startDate": "2026-11-14T08:00",
+    "title": "Agenda",
+    "lead": "Parroquia San Cristóbal · 8:30 a. m. a 6:00 p. m.",
+    "startDate": "2026-11-14T08:30",
     "dateLabel": "14 de noviembre de 2026",
     "countdownEyebrow": "Cuenta regresiva",
     "countdownTitle": "Faltan",
     "countdownLiveText": "¡Estamos viviendo la JDJ 2026!",
     "countdownDoneText": "Gracias por caminar con nosotros en la JDJ 2026.",
-    "items": []
+    "items": [
+      {
+        "id": "hora-previa",
+        "time": "7:30 a. m.",
+        "title": "Previa",
+        "text": "Apertura y recibimiento de jóvenes, animación en los puntos de ingreso, e inicio de ventas."
+      },
+      {
+        "id": "hora-maria",
+        "time": "8:30 a. m.",
+        "title": "Mi encuentro con María",
+        "text": "Momento inicial, rezo del Santo Rosario en tarima central previo a Santa Eucaristía."
+      },
+      {
+        "id": "hora-eucaristia",
+        "time": "9:30 a. m.",
+        "title": "Santa Eucaristía",
+        "text": ""
+      },
+      {
+        "id": "hora-senor",
+        "time": "11:30 a. m.",
+        "title": "Mi encuentro con el Señor",
+        "text": "Al finalizar la Eucaristía, se expone El Santísimo y se traslada al monumento donde se dará inicio a la adoración Eucarística durante toda la jornada."
+      },
+      {
+        "id": "hora-almuerzo",
+        "time": "12:00 p. m.",
+        "title": "Almuerzo",
+        "text": ""
+      },
+      {
+        "id": "hora-encuentro",
+        "time": "1:00 p. m.",
+        "title": "Bloque de encuentro",
+        "text": "Momento central de la JDJ, en el que se habilitarán distintos espacios y actividades para el desarrollo del mensaje de esta edición de la JDJ (Vocafest, sacramento de la reconciliación, conversatorios, conciertos, entre otros)."
+      },
+      {
+        "id": "hora-vocacional",
+        "time": "4:00 p. m.",
+        "title": "Momento vocacional",
+        "text": "Conversatorio y momento vocacional central en tarima principal."
+      },
+      {
+        "id": "hora-cierre-adoracion",
+        "time": "4:30 p. m.",
+        "title": "Cierre adoración Eucarística",
+        "text": "Se traslada El Santísimo desde el templo parroquial hacia la tarima principal para un pequeño momento de adoración central y reserva del Santísimo."
+      },
+      {
+        "id": "hora-concierto",
+        "time": "5:00 p. m.",
+        "title": "Concierto final",
+        "text": "Momento final de nuestra Jornada Diocesana de la Juventud con un gran concierto de cierre."
+      }
+    ]
   },
   "registration": {
     "enabled": false,
@@ -345,8 +400,8 @@ export const SAVED_CONTENT: SavedContent = {
       },
       {
         "id": "faq-d19dc9dd",
-        "question": "Como puedo ir si no pertenezco a un grupo catolico?",
-        "answer": "No te preocupes! Hay espacio para ti, puedes acercarte a cualquier grupo juvenil catolico cerca de donde vives y coordinarse para que puedas ir con ellos, si tienes la disposicion no te quedes con las ganas! :D"
+        "question": "¿Cómo puedo ir si no pertenezco a un grupo católico?",
+        "answer": "¡No te preocupes! Hay espacio para ti. Puedes acercarte a cualquier grupo juvenil católico cerca de donde vives y coordinarte para ir con ellos. Si tienes la disposición, no te quedes con las ganas."
       }
     ]
   },
@@ -395,6 +450,41 @@ export const SAVED_CONTENT: SavedContent = {
       }
     ]
   },
+  "ministries": [
+    {
+      "id": "corazon-inquieto",
+      "title": "Corazón Inquieto",
+      "image": "/images/IMG_7119-1-.webp",
+      "photo": "",
+      "description": "",
+      "keepBackground": false
+    },
+    {
+      "id": "angelus",
+      "title": "Angelus",
+      "image": "/images/2-1-.webp",
+      "photo": "",
+      "description": "",
+      "keepBackground": true
+    },
+    {
+      "id": "proyecto-catolico",
+      "title": "Proyecto Católico",
+      "image": "/images/logo-proyecto-catolico.webp",
+      "photo": "",
+      "description": "",
+      "keepBackground": true
+    },
+    {
+      "id": "pro-deo",
+      "title": "Ministerio Pro Deo",
+      "image": "/images/logo-pro-deo.webp",
+      "photo": "",
+      "description": "",
+      "keepBackground": true
+    }
+  ],
+  "ministriesLayout": "logo",
   "store": {
     "logoUrl": "/images/LOGO-STORE-PJA_Mesa-de-trabajo-1-02.webp",
     "eyebrow": "Tienda JDJ",

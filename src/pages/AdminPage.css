@@ -304,6 +304,8 @@
 
 .admin-mode {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   padding: 0.18rem;
   border-radius: 999px;
   background: rgba(28, 35, 44, 0.06);
@@ -744,6 +746,7 @@
 .file-field input[type="file"] {
   padding: 0.55rem;
   background: #fff;
+  max-width: 100%;
 }
 
 .admin-project-files ul {
@@ -811,6 +814,93 @@
   height: 120px;
   object-fit: cover;
   padding: 0;
+}
+
+.admin-agenda-item {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-agenda-item:last-of-type {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-ministries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5rem), 1fr));
+  gap: 0.9rem;
+}
+
+.admin-ministry-item {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  border-radius: 0.95rem;
+  background: #f6f8f7;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-ministry-media {
+  display: grid;
+  grid-template-columns: minmax(4.4rem, 5.4rem) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.admin-ministry-media:has(> :only-child) {
+  grid-template-columns: 5.4rem;
+}
+
+.admin-ministry-caption {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-ministry-preview {
+  overflow: hidden;
+  border-radius: 0.7rem;
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-ministry-preview--logo {
+  aspect-ratio: 1;
+}
+
+.admin-ministry-preview--photo {
+  aspect-ratio: 16 / 10;
+}
+
+.admin-ministry-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.65rem;
+}
+
+.admin-ministry-preview--photo img,
+.admin-ministry-preview.has-bg img {
+  padding: 0;
+  object-fit: cover;
+}
+
+.admin-ministry-preview.is-empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  background: linear-gradient(180deg, #eef6f7, #e4eef1);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
 }
 
 .admin-album-grid {
@@ -1145,7 +1235,7 @@
 
   .admin__side-actions {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     align-items: start;
     gap: 0.35rem;
     padding-top: 0.35rem;
@@ -1220,5 +1310,27 @@
 
   .admin-doc-preview {
     height: 200px;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-login {
+    padding: 1rem;
+  }
+
+  .admin-login__card {
+    padding: 1.25rem 1.1rem;
+  }
+
+  .admin__side-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-ministry-media {
+    grid-template-columns: 4.4rem minmax(0, 1fr);
+  }
+
+  .admin-agenda-item .btn--danger {
+    width: 100%;
   }
 }

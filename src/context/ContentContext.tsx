@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -150,6 +151,21 @@ function mergeSchedule(parsed: SavedContent): SiteContent["schedule"] {
   };
 }
 
+function mergeMinistries(parsed: SavedContent): SiteContent["ministries"] {
+  const saved = parsed.ministries;
+  if (!Array.isArray(saved) || saved.length === 0) {
+    return DEFAULT_CONTENT.ministries.map((item) => ({ ...item }));
+  }
+  return saved.map((item, index) => ({
+    id: String(item.id || `ministerio-${index + 1}`),
+    title: String(item.title || ""),
+    image: item.image && isHostedUrl(item.image) ? item.image : "",
+    photo: item.photo && isHostedUrl(item.photo) ? item.photo : "",
+    description: String(item.description || ""),
+    keepBackground: Boolean(item.keepBackground),
+  }));
+}
+
 function mergeContent(parsed: SavedContent): SiteContent {
   const merged: SiteContent = {
     ...DEFAULT_CONTENT,
@@ -273,6 +289,9 @@ function mergeContent(parsed: SavedContent): SiteContent {
         (logo) => isHostedUrl(logo.src),
       ),
     },
+    ministries: mergeMinistries(parsed),
+    ministriesLayout:
+      parsed.ministriesLayout === "photos" ? "photos" : "logo",
     store: {
       ...DEFAULT_CONTENT.store,
       ...parsed.store,
@@ -393,6 +412,24 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   const [content, setContentState] = useState<SiteContent>(loadContent);
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadAuth());
   const [canPublish, setCanPublish] = useState(() => loadCanPublish());
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let cancelled = false;
+    void fetch("/api/content")
+      .then(async (remote) => {
+        if (!remote.ok) return null;
+        return remote.json() as Promise<{ content?: SavedContent }>;
+      })
+      .then((payload) => {
+        if (cancelled || !payload?.content) return;
+        setContentState(mergeContent(payload.content));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setContent = useCallback((next: SiteContent) => {
     setContentState(next);

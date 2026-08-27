@@ -156,3 +156,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .donate-page:not(.has-hero) {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+
+  .donate-form {
+    padding: 1.1rem 0.95rem 1.15rem;
+  }
+}

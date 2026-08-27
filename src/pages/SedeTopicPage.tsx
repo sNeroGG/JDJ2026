@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Comisiones } from "../components/Comisiones";
 import { Footer } from "../components/Footer";
+import { Ministerios } from "../components/Ministerios";
 import { Navbar } from "../components/Navbar";
 import { Schedule } from "../components/Schedule";
 import { SiteLink } from "../components/SiteLink";
@@ -19,6 +20,7 @@ export function SedeTopicPage() {
   const topic = sedeTopicByPath(pathname);
   const isAgenda = topic?.path === "/agenda";
   const isComisiones = topic?.path === "/comisiones";
+  const isMinisterios = topic?.path === "/ministerios";
 
   useSeo({
     title: topic
@@ -28,7 +30,9 @@ export function SedeTopicPage() {
       ? schedule.lead || topic?.description || site.metaDescription
       : isComisiones
         ? "Las comisiones de la JDJ Jayaque 2026: logística, pastoral, animación y comunicación."
-        : topic?.description || site.metaDescription,
+        : isMinisterios
+          ? "Los ministerios de la JDJ Jayaque 2026: Corazón Inquieto, Angelus, Proyecto Católico y Ministerio Pro Deo."
+          : topic?.description || site.metaDescription,
     path: pathname,
     siteUrl: site.url,
     image: site.ogImage,
@@ -46,6 +50,18 @@ export function SedeTopicPage() {
         <Navbar />
         <main>
           <Comisiones />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isMinisterios) {
+    return (
+      <div className="app">
+        <Navbar />
+        <main>
+          <Ministerios />
         </main>
         <Footer />
       </div>

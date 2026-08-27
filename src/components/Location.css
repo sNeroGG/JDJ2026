@@ -244,3 +244,25 @@
     aspect-ratio: 4 / 3;
   }
 }
+
+@media (max-width: 480px) {
+  .location__hubs {
+    gap: 0.45rem;
+  }
+
+  .location__hub {
+    min-height: 3.1rem;
+    padding: 0.65rem 0.7rem;
+    font-size: 0.88rem;
+  }
+
+  .location__facts li {
+    flex-wrap: wrap;
+    gap: 0.2rem 0.75rem;
+  }
+
+  .location__facts strong {
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+}

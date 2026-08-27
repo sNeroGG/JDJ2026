@@ -45,3 +45,9 @@
     max-height: 220px;
   }
 }
+
+@media (max-width: 480px) {
+  .catechesis-page:not(.has-hero) {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+}

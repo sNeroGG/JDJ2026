@@ -118,11 +118,12 @@
 
 @media (max-width: 760px) {
   .instagram-follow__actions {
+    flex-wrap: wrap;
     gap: 0.4rem;
   }
 
   .instagram-feed__follow {
-    flex: 1 1 0;
+    flex: 1 1 7.5rem;
     flex-direction: column;
     justify-content: center;
     max-width: none;

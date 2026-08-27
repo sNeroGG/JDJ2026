@@ -34,3 +34,9 @@
 .sede-topic__back:hover {
   background: var(--green-deep);
 }
+
+@media (max-width: 480px) {
+  .sede-topic {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+}

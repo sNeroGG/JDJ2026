@@ -34,7 +34,7 @@
 
 .store-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
   gap: 1.25rem;
 }
 
@@ -284,9 +284,17 @@
 }
 
 @media (max-width: 640px) {
+  .store-page {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+
   .store-modal__row,
   .store-modal__actions {
     grid-template-columns: 1fr;
+  }
+
+  .store-gallery {
+    padding: 0.85rem;
   }
 }
 

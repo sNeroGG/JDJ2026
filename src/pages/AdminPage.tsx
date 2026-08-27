@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -17,6 +18,7 @@ import {
   type MemoryPhoto,
   type AlbumPhoto,
   type PartnerLogo,
+  type MinistryItem,
   type RegistrationStatus,
   type SiteContent,
   type SocialLink,
@@ -179,6 +181,7 @@ export function AdminPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const sectionParam = searchParams.get("seccion");
   const section: AdminSection = isAdminSection(sectionParam)
     ? sectionParam
@@ -254,8 +257,15 @@ export function AdminPage() {
     setSection(part.section, part.id);
   }
 
+  const contentSnapshot = useRef(content);
+
   useEffect(() => {
-    setDraft(content);
+    const previous = contentSnapshot.current;
+    contentSnapshot.current = content;
+    setDraft((current) => {
+      const dirty = JSON.stringify(current) !== JSON.stringify(previous);
+      return dirty ? current : content;
+    });
   }, [content]);
 
   useEffect(() => {
@@ -480,6 +490,14 @@ export function AdminPage() {
   function patchPartners(patch: Partial<SiteContent["partners"]>) {
     setDraft({ ...draft, partners: { ...draft.partners, ...patch } });
   }
+  function patchMinistries(items: MinistryItem[]) {
+    setDraft({ ...draft, ministries: items });
+  }
+  function patchMinistry(index: number, patch: Partial<MinistryItem>) {
+    const items = [...draft.ministries];
+    items[index] = { ...items[index], ...patch };
+    patchMinistries(items);
+  }
   function patchStore(patch: Partial<SiteContent["store"]>) {
     setDraft({ ...draft, store: { ...draft.store, ...patch } });
   }
@@ -524,15 +542,17 @@ export function AdminPage() {
         products: normalizeStoreProducts(next.store.products),
       },
     };
+    contentSnapshot.current = value;
     setDraft(value);
     setContent(value);
+    setSaving(true);
     try {
       const mode = await saveContent(value);
       setSavedAt(new Date().toLocaleTimeString("es-SV"));
       setLogoNotice(
         mode === "github"
           ? "Publicado. Vercel está reconstruyendo el sitio: el cambio se ve en vivo en un par de minutos."
-          : "Cambios guardados en el proyecto.",
+          : "Cambios guardados.",
       );
     } catch (error) {
       setLogoNotice(
@@ -541,6 +561,8 @@ export function AdminPage() {
           : "No se pudo guardar el contenido.",
       );
       throw error;
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -584,7 +606,6 @@ export function AdminPage() {
       if (!uploaded) return;
       const next = { ...draft, logoUrl: uploaded.url };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -603,7 +624,6 @@ export function AdminPage() {
         footer: { ...draft.footer, logoUrl: uploaded.url },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -622,7 +642,6 @@ export function AdminPage() {
       if (!uploaded) return;
       const next = apply(uploaded.url, draft);
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -641,7 +660,6 @@ export function AdminPage() {
         store: { ...draft.store, logoUrl: uploaded.url },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -669,7 +687,6 @@ export function AdminPage() {
       ]);
       const next = { ...draft, store: { ...draft.store, products } };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -702,7 +719,6 @@ export function AdminPage() {
         },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -735,7 +751,6 @@ export function AdminPage() {
         },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -770,7 +785,6 @@ export function AdminPage() {
         },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -924,10 +938,30 @@ export function AdminPage() {
         },
       };
       setDraft(next);
-      await persist(next);
       setLogoNotice(
         `${uploads.length} documento(s) copiados a public/docs y listos en Catequesis.`,
       );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onMinistryImageChange(
+    index: number,
+    field: "image" | "photo",
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const items = [...draft.ministries];
+      items[index] = { ...items[index], [field]: uploaded.url };
+      const next = { ...draft, ministries: items };
+      setDraft(next);
     } finally {
       setUploading(false);
     }
@@ -958,7 +992,6 @@ export function AdminPage() {
         },
       };
       setDraft(next);
-      await persist(next);
     } finally {
       setUploading(false);
     }
@@ -1051,6 +1084,7 @@ export function AdminPage() {
           <details className="admin-view-menu">
             <summary>Ver el sitio</summary>
             <Link to="/">Landing</Link>
+            <Link to="/ministerios">Ministerios</Link>
             <Link to="/recuerdos">Recuerdos</Link>
             <Link to="/catequesis">Catequesis</Link>
             <Link to="/tienda">Tienda</Link>
@@ -1110,6 +1144,7 @@ export function AdminPage() {
               className="btn btn--ghost admin__action-discard"
               onClick={() => {
                 setDraft(content);
+                contentSnapshot.current = content;
                 setLogoNotice("");
               }}
             >
@@ -1118,10 +1153,14 @@ export function AdminPage() {
             <button
               type="button"
               className="btn btn--primary"
-              disabled={uploading}
+              disabled={uploading || saving}
               onClick={() => void persist().catch(() => undefined)}
             >
-              {import.meta.env.DEV ? "Guardar" : "Publicar"}
+              {saving
+                ? "Guardando…"
+                : import.meta.env.DEV
+                  ? "Guardar"
+                  : "Publicar"}
             </button>
           </div>
         </header>
@@ -1141,15 +1180,15 @@ export function AdminPage() {
           </p>
         )}
 
-        {uploading || logoNotice ? (
+        {uploading || saving || logoNotice ? (
           <p
-            className={`admin-notice${uploading ? " is-busy" : ""}`}
+            className={`admin-notice${uploading || saving ? " is-busy" : ""}`}
             role="status"
           >
-            {uploading ? (
+            {uploading || saving ? (
               <span className="admin-spinner" aria-hidden="true" />
             ) : null}
-            {logoNotice || "Trabajando…"}
+            {logoNotice || (saving ? "Guardando…" : "Trabajando…")}
           </p>
         ) : null}
 
@@ -1301,7 +1340,6 @@ export function AdminPage() {
                     hero: { ...draft.hero, imageUrl: "" },
                   };
                   setDraft(next);
-                  void persist(next);
                 }}
               />
             </section>
@@ -1398,29 +1436,32 @@ export function AdminPage() {
                 </p>
               ) : (
                 draft.schedule.items.map((item, index) => (
-                  <div className="admin-grid" key={item.id}>
+                  <div className="admin-agenda-item" key={item.id}>
+                    <div className="admin-grid">
+                      <label>
+                        Hora
+                        <input
+                          value={item.time}
+                          onChange={(e) =>
+                            patchScheduleItem(index, { time: e.target.value })
+                          }
+                          placeholder="8:30 a. m."
+                        />
+                      </label>
+                      <label>
+                        Nombre
+                        <input
+                          value={item.title}
+                          onChange={(e) =>
+                            patchScheduleItem(index, { title: e.target.value })
+                          }
+                        />
+                      </label>
+                    </div>
                     <label>
-                      Hora
-                      <input
-                        value={item.time}
-                        onChange={(e) =>
-                          patchScheduleItem(index, { time: e.target.value })
-                        }
-                        placeholder="08:00"
-                      />
-                    </label>
-                    <label>
-                      Actividad
-                      <input
-                        value={item.title}
-                        onChange={(e) =>
-                          patchScheduleItem(index, { title: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Detalle
-                      <input
+                      Descripción
+                      <textarea
+                        rows={2}
                         value={item.text}
                         onChange={(e) =>
                           patchScheduleItem(index, { text: e.target.value })
@@ -1602,6 +1643,229 @@ export function AdminPage() {
             </label>
               </div>
             </details>
+            <section className="admin-panel" id="parte-ministerios">
+              <h2>Ministerios</h2>
+              <div
+                className="admin-mode"
+                role="group"
+                aria-label="Modo de ministerios"
+              >
+                <button
+                  type="button"
+                  className={
+                    draft.ministriesLayout === "logo" ? "is-active" : ""
+                  }
+                  onClick={() =>
+                    setDraft({ ...draft, ministriesLayout: "logo" })
+                  }
+                >
+                  Modo logos
+                </button>
+                <button
+                  type="button"
+                  className={
+                    draft.ministriesLayout === "photos" ? "is-active" : ""
+                  }
+                  onClick={() =>
+                    setDraft({ ...draft, ministriesLayout: "photos" })
+                  }
+                >
+                  Modo dos imágenes
+                </button>
+              </div>
+              <p className="admin-panel__hint">
+                {draft.ministriesLayout === "photos"
+                  ? "En /ministerios se ve la foto grande del grupo y el logo pequeño. Pulsa Guardar para aplicar."
+                  : "En /ministerios solo se ve el logo como imagen. Pulsa Guardar para aplicar."}{" "}
+                Si el logo ya trae fondo, márcalo para no recortarlo ni
+                sustituirlo.
+              </p>
+              <div className="admin-ministries">
+                {draft.ministries.map((item, index) => (
+                  <div className="admin-ministry-item" key={item.id}>
+                    <div className="admin-ministry-media">
+                      <div>
+                        <p className="admin-ministry-caption">Logo</p>
+                        {item.image ? (
+                          <div
+                            className={`admin-ministry-preview admin-ministry-preview--logo${item.keepBackground ? " has-bg" : ""}`}
+                          >
+                            <img src={item.image} alt="" />
+                          </div>
+                        ) : (
+                          <div className="admin-ministry-preview admin-ministry-preview--logo is-empty">
+                            Logo
+                          </div>
+                        )}
+                      </div>
+                      {draft.ministriesLayout === "photos" ? (
+                        <div>
+                          <p className="admin-ministry-caption">
+                            Foto del grupo
+                          </p>
+                          {item.photo ? (
+                            <div className="admin-ministry-preview admin-ministry-preview--photo">
+                              <img src={item.photo} alt="" />
+                            </div>
+                          ) : (
+                            <div className="admin-ministry-preview admin-ministry-preview--photo is-empty">
+                              Foto
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                    <label>
+                      Nombre
+                      <input
+                        value={item.title}
+                        onChange={(e) =>
+                          patchMinistry(index, { title: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Descripción
+                      <textarea
+                        rows={3}
+                        value={item.description}
+                        onChange={(e) =>
+                          patchMinistry(index, { description: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label className="admin-check">
+                      <input
+                        type="checkbox"
+                        checked={item.keepBackground}
+                        onChange={(e) =>
+                          patchMinistry(index, {
+                            keepBackground: e.target.checked,
+                          })
+                        }
+                      />
+                      Conservar el fondo del logo
+                    </label>
+                    <div className="admin-inline-actions">
+                      {allowUploads ? (
+                        <>
+                          <label
+                            className={`file-field${uploading ? " is-busy" : ""}`}
+                          >
+                            {uploading
+                              ? "Copiando…"
+                              : item.image
+                                ? "Cambiar logo"
+                                : "Subir logo"}
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                              disabled={uploading}
+                              onChange={(event) =>
+                                void onMinistryImageChange(
+                                  index,
+                                  "image",
+                                  event,
+                                )
+                              }
+                            />
+                          </label>
+                          {draft.ministriesLayout === "photos" ? (
+                            <label
+                              className={`file-field${uploading ? " is-busy" : ""}`}
+                            >
+                              {uploading
+                                ? "Copiando…"
+                                : item.photo
+                                  ? "Cambiar foto"
+                                  : "Subir foto"}
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                                disabled={uploading}
+                                onChange={(event) =>
+                                  void onMinistryImageChange(
+                                    index,
+                                    "photo",
+                                    event,
+                                  )
+                                }
+                              />
+                            </label>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="admin-panel__hint">
+                          En producción no se suben fotos. Agrégalas en local.
+                        </p>
+                      )}
+                      {item.image ? (
+                        <button
+                          type="button"
+                          className="btn btn--danger"
+                          onClick={() => {
+                            const items = [...draft.ministries];
+                            items[index] = { ...items[index], image: "" };
+                            const next = { ...draft, ministries: items };
+                            setDraft(next);
+                          }}
+                        >
+                          Quitar logo
+                        </button>
+                      ) : null}
+                      {item.photo && draft.ministriesLayout === "photos" ? (
+                        <button
+                          type="button"
+                          className="btn btn--danger"
+                          onClick={() => {
+                            const items = [...draft.ministries];
+                            items[index] = { ...items[index], photo: "" };
+                            const next = { ...draft, ministries: items };
+                            setDraft(next);
+                          }}
+                        >
+                          Quitar foto
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn--danger"
+                        onClick={() =>
+                          patchMinistries(
+                            draft.ministries.filter(
+                              (entry) => entry.id !== item.id,
+                            ),
+                          )
+                        }
+                      >
+                        Quitar ministerio
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="admin-inline-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    patchMinistries([
+                      ...draft.ministries,
+                      {
+                        id: createId("ministerio"),
+                        title: "",
+                        image: "",
+                        photo: "",
+                        description: "",
+                        keepBackground: true,
+                      },
+                    ])
+                  }
+                >
+                  Agregar ministerio
+                </button>
+              </div>
+            </section>
             <details className="admin-details" id="parte-suchitoto">
               <summary>Suchitoto 2024</summary>
               <div className="admin-panel">
@@ -1978,7 +2242,6 @@ export function AdminPage() {
                           },
                         };
                         setDraft(next);
-                        void persist(next);
                       }}
                     >
                       ×
@@ -2036,7 +2299,6 @@ export function AdminPage() {
                   catechesis: { ...draft.catechesis, heroImageUrl: "" },
                 };
                 setDraft(next);
-                void persist(next);
               }}
             />
           </section>
@@ -2735,7 +2997,6 @@ export function AdminPage() {
                   donate: { ...draft.donate, heroImageUrl: "" },
                 };
                 setDraft(next);
-                void persist(next);
               }}
             />
           </section>

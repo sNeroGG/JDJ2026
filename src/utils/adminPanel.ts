@@ -100,6 +100,12 @@ export const ADMIN_PARTS: AdminPart[] = [
     keywords: "jayaque parroquia san cristobal mapa",
   },
   {
+    id: "ministerios",
+    section: "location",
+    label: "Ministerios",
+    keywords: "ministerios logos fotos modo corazon inquieto angelus proyecto catolico pro deo",
+  },
+  {
     id: "suchitoto",
     section: "location",
     label: "Suchitoto 2024",

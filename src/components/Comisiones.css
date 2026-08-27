@@ -32,6 +32,10 @@
   box-shadow: 0 12px 28px rgba(28, 35, 44, 0.04);
 }
 
+.comisiones__card:not(:has(.comisiones__figure)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .comisiones__figure {
   overflow: hidden;
   width: 100%;
@@ -66,9 +70,10 @@
 
 .comisiones__copy h2 {
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
   font-weight: 800;
   line-height: 1.2;
+  overflow-wrap: anywhere;
   color: var(--navy);
   margin-bottom: 0.7rem;
 }
@@ -105,7 +110,8 @@
 }
 
 @media (max-width: 760px) {
-  .comisiones__card {
+  .comisiones__card,
+  .comisiones__card:not(:has(.comisiones__figure)) {
     grid-template-columns: 1fr;
   }
 
@@ -113,6 +119,12 @@
   .comisiones__figure img,
   .comisiones__figure.is-empty {
     min-height: 9.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .comisiones {
+    padding-top: calc(var(--section-pad) + 1.75rem);
   }
 }
 

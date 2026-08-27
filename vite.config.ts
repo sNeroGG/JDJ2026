@@ -257,6 +257,10 @@ function localStoreApiPlugin(): Plugin {
           }
 
           if (url === "/api/content") {
+            if (req.method === "GET") {
+              sendJson(res, 200, { content: readStoreContent(root) });
+              return;
+            }
             if (req.method !== "POST") {
               sendJson(res, 405, { error: "Método no permitido" });
               return;
@@ -441,7 +445,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
     server: {
       watch: {
-        ignored: ["**/public/audio/**"],
+        ignored: [
+          "**/public/audio/**",
+          "**/public/images/**",
+          "**/public/docs/**",
+          "**/src/data/savedContent.ts",
+          "**/src/data/savedOrders.ts",
+        ],
       },
     },
   };
