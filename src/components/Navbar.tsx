@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { SiteLink } from "./SiteLink";
 import { useContent } from "../context/ContentContext";
 import { filterNavLinks } from "../utils/sections";
+import { isSedeTopicPath } from "../utils/sedeTopics";
 import "./Navbar.css";
 
 export function Navbar() {
@@ -14,7 +15,8 @@ export function Navbar() {
   const solidPage =
     pathname === "/catequesis" ||
     pathname === "/donar" ||
-    pathname.startsWith("/donar/");
+    pathname.startsWith("/donar/") ||
+    isSedeTopicPath(pathname);
 
   const links = filterNavLinks(header.nav, content).filter(
     (item) => item.href !== "#inicio",

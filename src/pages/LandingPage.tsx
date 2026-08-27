@@ -12,7 +12,6 @@ import { Meaning } from "../components/Meaning";
 import { Navbar } from "../components/Navbar";
 import { Partners } from "../components/Partners";
 import { Registration } from "../components/Registration";
-import { Schedule } from "../components/Schedule";
 import { Vicariates } from "../components/Vicariates";
 import { useContent } from "../context/ContentContext";
 import { useSeo } from "../hooks/useSeo";
@@ -64,7 +63,6 @@ export function LandingPage() {
         <Meaning />
         <Vicariates />
         <EventInfo />
-        <Schedule />
         <Registration />
         <Catechesis />
         <DonateInvite />

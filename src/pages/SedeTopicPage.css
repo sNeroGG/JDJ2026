@@ -1,0 +1,36 @@
+.sede-topic {
+  padding-top: calc(var(--section-pad) + 2.5rem);
+  min-height: 70svh;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(45, 128, 142, 0.12), transparent 60%),
+    var(--cream);
+}
+
+.sede-topic__inner {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  max-width: 40rem;
+  padding-top: calc(1.28rem + 0.85rem);
+}
+
+.sede-topic .section__title {
+  max-width: 16ch;
+}
+
+.sede-topic__back {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1.25rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.sede-topic__back:hover {
+  background: var(--green-deep);
+}

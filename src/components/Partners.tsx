@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
+import { SiteLink } from "./SiteLink";
 import "./Partners.css";
 
 const ANTHEM_AUDIO = "/audio/todos-por-todos.mp3";
@@ -63,7 +64,7 @@ export function Partners() {
   }
 
   return (
-    <section className="section partners" id="auspiciadores" ref={ref}>
+    <section className="section partners" id="todosxtodos" ref={ref}>
       <div className="section__inner partners__inner">
         <div className="partners__intro reveal">
           <p className="section__eyebrow">{partners.eyebrow}</p>
@@ -123,9 +124,9 @@ export function Partners() {
               ))}
         </div>
 
-        <p className="partners__credit reveal reveal-delay-2">
-          {partners.credit}
-        </p>
+        <SiteLink className="partners__back" href="#inicio">
+          Volver al inicio
+        </SiteLink>
       </div>
     </section>
   );

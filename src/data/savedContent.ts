@@ -367,6 +367,31 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "logo-c2e01372",
         "name": "Pastoral Juvenil Arquidiocesana de San Salvador",
         "src": "/images/logo-pja.webp"
+      },
+      {
+        "id": "logo-juventud-dominica",
+        "name": "Juventud Dominica",
+        "src": "/images/logo-juventud-dominica.webp"
+      },
+      {
+        "id": "logo-camino-neocatecumenal",
+        "name": "Camino Neocatecumenal",
+        "src": "/images/logo-camino-neocatecumenal.webp"
+      },
+      {
+        "id": "logo-montaneros",
+        "name": "Asociación Montañeros de El Salvador",
+        "src": "/images/logo-montaneros.webp"
+      },
+      {
+        "id": "logo-juventud-misionera",
+        "name": "Juventud Misionera · Arquidiócesis de San Salvador",
+        "src": "/images/logo-juventud-misionera.webp"
+      },
+      {
+        "id": "logo-para-todo-la-gloria",
+        "name": "Para todo la gloria de Dios",
+        "src": "/images/logo-para-todo-la-gloria.webp"
       }
     ]
   },

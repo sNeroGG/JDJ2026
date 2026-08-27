@@ -2,6 +2,7 @@ import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
 import { mapDirectionsUrl, mapEmbedUrl, mapWazeUrl } from "../utils/maps";
 import { SiteLink } from "./SiteLink";
+import { SEDE_TOPICS } from "../utils/sedeTopics";
 import "./Location.css";
 
 export function Location() {
@@ -20,7 +21,7 @@ export function Location() {
           <div className="location__eyebrow-row">
             <p className="section__eyebrow">{location.eyebrow}</p>
             <SiteLink
-              href="#auspiciadores"
+              href="#todosxtodos"
               className="location__hashtag"
             >
               #TodosPorTodos
@@ -28,6 +29,17 @@ export function Location() {
           </div>
           <h2 className="section__title">{location.title}</h2>
           <p className="section__lead">{location.lead}</p>
+          <nav className="location__hubs" aria-label="Apartados de la sede">
+            {SEDE_TOPICS.map((topic) => (
+              <SiteLink
+                key={topic.path}
+                href={topic.path}
+                className="location__hub"
+              >
+                {topic.title}
+              </SiteLink>
+            ))}
+          </nav>
         </div>
 
         <div className="location__panel reveal reveal-delay-1">

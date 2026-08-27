@@ -1,15 +1,14 @@
 import type { NavLink, SiteContent } from "../data/defaultContent";
 
 /**
- * Anclas que realmente se renderizan en la landing. Agenda, inscripción,
- * vicarías y FAQ se ocultan sin contenido; la inscripción también se oculta
- * mientras esté desactivada. Catequesis vive en su propia página, no aquí.
+ * Anclas que realmente se renderizan en la landing. Inscripción, vicarías y
+ * FAQ se ocultan sin contenido; la inscripción también se oculta mientras
+ * esté desactivada. Catequesis y agenda viven en páginas propias.
  */
 export function getVisibleAnchors(content: SiteContent) {
-  const anchors = new Set(["#inicio", "#donde", "#jdj", "#auspiciadores", "#contacto"]);
+  const anchors = new Set(["#inicio", "#donde", "#jdj", "#todosxtodos", "#contacto"]);
   if (content.meaning.elements.length) anchors.add("#significado");
   if (content.event.items.length) anchors.add("#evento");
-  if (content.schedule.items.length) anchors.add("#agenda");
   if (
     content.registration.enabled &&
     (content.registration.steps.length || content.registration.ctaHref)

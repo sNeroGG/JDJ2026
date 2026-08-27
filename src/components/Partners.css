@@ -94,20 +94,21 @@
 
 .partners__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
   align-items: stretch;
 }
 
 .partners__slot {
   width: 100%;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
-  border-radius: 0.95rem;
+  gap: 0.4rem;
+  border-radius: 0.85rem;
   border: 1.5px dashed rgba(28, 35, 44, 0.18);
   background: rgba(255, 255, 255, 0.65);
   color: var(--muted);
@@ -115,7 +116,7 @@
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 0.9rem 0.7rem 0.85rem;
+  padding: 0.7rem 0.4rem 0.6rem;
   text-align: center;
   transition:
     border-color 0.25s ease,
@@ -129,7 +130,7 @@
 }
 
 .partners__slot img {
-  max-height: 72px;
+  max-height: 88px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
@@ -137,12 +138,14 @@
 
 .partners__name {
   margin: 0;
+  width: 100%;
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--navy);
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
 }
 
 .partners__slot:hover {
@@ -150,24 +153,41 @@
   background: rgba(255, 255, 255, 0.95);
 }
 
-.partners__credit {
+.partners__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 1.75rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--navy);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.92rem;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.partners__back:hover {
+  background: var(--green-deep);
+  transform: translateY(-1px);
+}
+
+.partners__back:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
   .partners__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
   }
 
   .partners__slot {
-    padding: 0.85rem 0.7rem 0.8rem;
+    padding: 0.65rem 0.35rem 0.55rem;
   }
 
   .partners__slot img {
@@ -175,6 +195,6 @@
   }
 
   .partners__name {
-    font-size: 0.74rem;
+    font-size: 0.68rem;
   }
 }

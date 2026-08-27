@@ -7,8 +7,10 @@ import { CatechesisPage } from "./pages/CatechesisPage";
 import { DonatePage } from "./pages/DonatePage";
 import { DonateThanksPage } from "./pages/DonateThanksPage";
 import { LandingPage } from "./pages/LandingPage";
+import { SedeTopicPage } from "./pages/SedeTopicPage";
 import { StorePage } from "./pages/StorePage";
 import { ADMIN_ROUTE, isAdminPath } from "./utils/adminRoute";
+import { SEDE_TOPICS } from "./utils/sedeTopics";
 
 function App() {
   return (
@@ -16,6 +18,13 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          {SEDE_TOPICS.map((topic) => (
+            <Route
+              key={topic.path}
+              path={topic.path}
+              element={<SedeTopicPage />}
+            />
+          ))}
           <Route path="/catequesis" element={<CatechesisPage />} />
           <Route path="/recuerdos" element={<AlbumPage />} />
           <Route path="/tienda" element={<StorePage />} />

@@ -1367,6 +1367,9 @@ export function AdminPage() {
 
             <section className="admin-panel" id="parte-agenda">
               <h2>Agenda del día</h2>
+              <p className="admin-panel__hint">
+                Se muestra en la página /agenda, no en la landing.
+              </p>
               <div className="admin-inline-actions">
                 <button
                   type="button"
@@ -1390,7 +1393,8 @@ export function AdminPage() {
               </div>
               {draft.schedule.items.length === 0 ? (
                 <p className="admin-empty">
-                  Sin actividades, la agenda no se muestra.
+                  Sin actividades, en /agenda se verá el apartado vacío hasta que
+                  publiques el programa.
                 </p>
               ) : (
                 draft.schedule.items.map((item, index) => (

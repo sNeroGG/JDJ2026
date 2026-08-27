@@ -79,7 +79,7 @@ export const ADMIN_PARTS: AdminPart[] = [
     id: "agenda",
     section: "event",
     label: "Agenda del día",
-    keywords: "horario actividades programa",
+    keywords: "horario actividades programa /agenda",
   },
   {
     id: "evento",
