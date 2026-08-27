@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AboutJdj } from "../components/AboutJdj";
+import { Catechesis } from "../components/Catechesis";
 import { DonateInvite } from "../components/DonateInvite";
 import { EventInfo } from "../components/EventInfo";
 import { Faq } from "../components/Faq";
@@ -65,6 +66,7 @@ export function LandingPage() {
         <EventInfo />
         <Schedule />
         <Registration />
+        <Catechesis />
         <DonateInvite />
         <Faq />
         <Partners />

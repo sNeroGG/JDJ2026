@@ -19,6 +19,12 @@ export const SOCIAL_NETWORKS = [
     handlePlaceholder: "Canal",
     hrefPlaceholder: "https://www.youtube.com/@…",
   },
+  {
+    id: "tiktok",
+    name: "TikTok",
+    handlePlaceholder: "@cuenta",
+    hrefPlaceholder: "https://www.tiktok.com/@…",
+  },
 ] as const;
 
 export function withSocialDefaults(social: SocialLink[] = []): SocialLink[] {

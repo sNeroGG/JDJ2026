@@ -115,7 +115,7 @@ export const ADMIN_PARTS: AdminPart[] = [
     id: "instagram",
     section: "location",
     label: "Redes",
-    keywords: "redes seguir instagram facebook youtube pjarqui",
+    keywords: "redes seguir instagram facebook youtube tiktok pjarqui",
   },
   {
     id: "mapa",

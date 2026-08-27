@@ -144,6 +144,21 @@
   max-width: 52ch;
 }
 
+.catechesis:not(.catechesis-page) .section__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: clamp(1.25rem, 4vw, 2.75rem);
+  align-items: start;
+}
+
+.catechesis:not(.catechesis-page) .catechesis__intro {
+  margin-bottom: 0;
+}
+
+.catechesis:not(.catechesis-page) .catechesis__teaser {
+  max-width: none;
+}
+
 .catechesis__teaser {
   max-width: 52ch;
   padding: clamp(1.35rem, 3vw, 1.85rem);
@@ -197,6 +212,14 @@
 }
 
 @media (max-width: 760px) {
+  .catechesis:not(.catechesis-page) .section__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .catechesis:not(.catechesis-page) .catechesis__intro {
+    margin-bottom: 0.35rem;
+  }
+
   .catechesis__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.7rem;

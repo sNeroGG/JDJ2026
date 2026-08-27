@@ -216,7 +216,7 @@
   }
 
   .navbar__menu.is-open {
-    max-height: 11rem;
+    max-height: min(70svh, 28rem);
     opacity: 1;
     pointer-events: auto;
     transform: none;

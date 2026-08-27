@@ -1775,9 +1775,9 @@ export function AdminPage() {
               <summary>Redes</summary>
               <div className="admin-panel">
                 <p className="admin-panel__hint">
-                  Instagram, Facebook y YouTube se editan aquí y se usan en la
-                  landing y en el pie. YouTube no aparece en el sitio mientras
-                  la URL esté vacía.
+                  Instagram, Facebook, YouTube y TikTok se editan aquí y se
+                  usan en la landing y en el pie. YouTube y TikTok no aparecen
+                  en el sitio mientras la URL esté vacía.
                 </p>
                 <label>
                   Texto de la sección
@@ -1794,9 +1794,10 @@ export function AdminPage() {
                   return (
                     <div className="admin-card" key={network.id}>
                       <p className="admin-panel__kicker">{network.name}</p>
-                      {network.id === "youtube" ? (
+                      {network.id === "youtube" || network.id === "tiktok" ? (
                         <p className="admin-panel__hint">
-                          Déjalo vacío hasta que haya canal.
+                          Déjalo vacío hasta que haya enlace. No se muestra en
+                          el sitio si la URL está vacía.
                         </p>
                       ) : null}
                       <div className="admin-grid">
@@ -3068,8 +3069,7 @@ export function AdminPage() {
               <summary>Pie y vicarías</summary>
               <div className="admin-panel">
                 <p className="admin-panel__hint">
-                  Las redes (Instagram, Facebook y YouTube) se editan en Sede →
-                  Redes.
+                  Las redes se editan en Sede → Redes.
                 </p>
                 <label>
                   Organización

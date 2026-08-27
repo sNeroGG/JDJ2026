@@ -14,8 +14,8 @@
   align-items: start;
 }
 
-.catechesis-page__layout .catechesis__intro {
-  margin-bottom: 0;
+.catechesis-page__layout > * {
+  min-width: 0;
 }
 
 .catechesis-page .section__title {
@@ -35,7 +35,7 @@
   max-width: none;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 760px) {
   .catechesis-page__layout {
     grid-template-columns: 1fr;
     gap: 1.5rem;

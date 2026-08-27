@@ -51,7 +51,21 @@ export function AlbumPage() {
                   rel="noreferrer"
                 >
                   {album.shareCta || "Abrir álbum compartido"}
-                  <span aria-hidden="true">↗</span>
+                  <svg
+                    className="album-page__share-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 17 17 7M9 7h8v8"
+                    />
+                  </svg>
                 </a>
               </div>
             ) : null}

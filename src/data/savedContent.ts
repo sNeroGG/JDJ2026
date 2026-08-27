@@ -562,7 +562,13 @@ export const SAVED_CONTENT: SavedContent = {
       },
       {
         "id": "youtube",
-        "name": "",
+        "name": "YouTube",
+        "handle": "",
+        "href": ""
+      },
+      {
+        "id": "tiktok",
+        "name": "TikTok",
         "handle": "",
         "href": ""
       }

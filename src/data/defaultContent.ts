@@ -689,6 +689,12 @@ export const DEFAULT_CONTENT: SiteContent = {
         handle: "",
         href: "",
       },
+      {
+        id: "tiktok",
+        name: "TikTok",
+        handle: "",
+        href: "",
+      },
     ],
   },
 };

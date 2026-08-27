@@ -55,10 +55,22 @@ function YoutubeMark() {
   );
 }
 
+function TikTokMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M14.6 3.2c.35 2.35 1.7 4.05 4 4.55v2.55c-1.38.03-2.68-.4-4-1.22v6.55c0 3.48-2.85 6.15-6.45 5.85-2.85-.24-5.1-2.7-5.15-5.55-.05-3.25 2.6-5.95 5.9-5.95.35 0 .7.04 1.05.12v2.7c-.35-.14-.72-.22-1.1-.22-1.78.02-3.2 1.5-3.15 3.28.05 1.75 1.5 3.15 3.28 3.12 1.82 0 3.22-1.45 3.22-3.25V3.2h2.4Z"
+      />
+    </svg>
+  );
+}
+
 const MARKS = {
   instagram: InstagramMark,
   facebook: FacebookMark,
   youtube: YoutubeMark,
+  tiktok: TikTokMark,
 } as const;
 
 function followCopy(id: string, handle: string, name: string) {
@@ -71,6 +83,12 @@ function followCopy(id: string, handle: string, name: string) {
   }
   if (id === "facebook") {
     return { title: "Seguir en Facebook", subtitle: label };
+  }
+  if (id === "tiktok") {
+    return {
+      title: handle ? `Seguir @${handle.replace(/^@/, "")}` : "Seguir en TikTok",
+      subtitle: label === handle.replace(/^@/, "") ? "Pastoral Juvenil" : label,
+    };
   }
   return { title: "Seguir en YouTube", subtitle: label };
 }

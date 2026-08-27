@@ -53,6 +53,12 @@
   background: var(--green-deep);
 }
 
+.album-page__share-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
 .album-page__intro {
   max-width: 40rem;
   margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
