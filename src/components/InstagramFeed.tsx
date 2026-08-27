@@ -126,10 +126,16 @@ export function InstagramFeed() {
                 href={item.href}
                 target="_blank"
                 rel="noreferrer"
+                aria-label={copy.title}
               >
                 {Mark ? <Mark /> : null}
                 <span>
-                  {copy.title}
+                  <strong className="instagram-feed__follow-title">
+                    {copy.title}
+                  </strong>
+                  <strong className="instagram-feed__follow-name">
+                    {item.name}
+                  </strong>
                   <small>{copy.subtitle}</small>
                 </span>
               </a>

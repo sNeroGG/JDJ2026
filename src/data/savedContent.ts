@@ -78,7 +78,7 @@ export const SAVED_CONTENT: SavedContent = {
     "enabled": true,
     "eyebrow": "Instagram",
     "title": "Síguenos",
-    "lead": "Sigue a PJ Arquidiocesana en Instagram y Facebook para las novedades de la JDJ",
+    "lead": "Sigue a PJ Arquidiocesana en redes sociales para las novedades de la JDJ",
     "handle": "pjarqui_ss",
     "posts": []
   },
