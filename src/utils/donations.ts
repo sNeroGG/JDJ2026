@@ -34,7 +34,6 @@ export type DonationInput = {
   amount: number;
 };
 
-const DUI_RE = /^\d{8}-\d$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DONATION_STATUSES: readonly DonationStatus[] = [
   "pending",
@@ -47,12 +46,6 @@ export function isDonationStatus(value: string): value is DonationStatus {
   return (DONATION_STATUSES as readonly string[]).includes(value);
 }
 
-export function normalizeDui(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 9);
-  if (digits.length <= 8) return digits;
-  return `${digits.slice(0, 8)}-${digits.slice(8)}`;
-}
-
 export function parseDonationAmount(value: unknown) {
   const amount = typeof value === "number" ? value : Number(String(value || "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
@@ -61,27 +54,18 @@ export function parseDonationAmount(value: unknown) {
 
 export function parseDonationInput(body: Record<string, unknown>): DonationInput | { error: string } {
   const fullName = String(body.fullName ?? body.full_name ?? "").trim();
-  const dui = normalizeDui(String(body.dui ?? ""));
   const email = String(body.email ?? "").trim().toLowerCase();
-  const phone = String(body.phone ?? "").trim();
   const parish = String(body.parish ?? "").trim();
   const amount = parseDonationAmount(body.amount);
 
   if (fullName.length < 3) {
     return { error: "Escribe tu nombre completo." };
   }
-  if (fullName.length > 120 || parish.length > 120 || phone.length > 24) {
+  if (fullName.length > 120 || parish.length > 120) {
     return { error: "Hay un dato demasiado largo." };
-  }
-  if (!DUI_RE.test(dui)) {
-    return { error: "El DUI debe verse así: 00000000-0." };
   }
   if (!EMAIL_RE.test(email)) {
     return { error: "El correo no es válido." };
-  }
-  const phoneDigits = phone.replace(/\D/g, "");
-  if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-    return { error: "El teléfono debe tener al menos 8 dígitos." };
   }
   if (parish.length < 3) {
     return { error: "Indica tu parroquia o vicaría." };
@@ -92,7 +76,7 @@ export function parseDonationInput(body: Record<string, unknown>): DonationInput
     };
   }
 
-  return { fullName, dui, email, phone, parish, amount };
+  return { fullName, dui: "", email, phone: "", parish, amount };
 }
 
 export function donationStatusLabel(status: DonationStatus) {
@@ -116,9 +100,7 @@ export function buildDonationMessage(input: {
     "",
     `Referencia: ${input.id}`,
     `Nombre: ${input.fullName}`,
-    `DUI: ${input.dui}`,
     `Correo: ${input.email}`,
-    `Teléfono: ${input.phone}`,
     `Parroquia / Vicaría / Movimiento: ${input.parish}`,
     `Monto: ${formatUsd(input.amount)}`,
     `Pago: Transferencia bancaria`,

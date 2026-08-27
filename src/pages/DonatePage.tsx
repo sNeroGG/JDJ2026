@@ -10,7 +10,6 @@ import {
   DONATION_MIN,
   DONATION_PRESETS,
   isDonationPreset,
-  normalizeDui,
   parseDonationAmount,
 } from "../utils/donations";
 import { formatUsd, normalizeWhatsapp } from "../utils/store";
@@ -18,9 +17,7 @@ import "./DonatePage.css";
 
 const EMPTY = {
   fullName: "",
-  dui: "",
   email: "",
-  phone: "",
   parish: "",
   amount: "10",
 };
@@ -67,9 +64,7 @@ export function DonatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: form.fullName,
-          dui: form.dui,
           email: form.email,
-          phone: form.phone,
           parish: form.parish,
           amount,
         }),
@@ -138,35 +133,12 @@ export function DonatePage() {
                 />
               </label>
               <label>
-                DUI
-                <input
-                  value={form.dui}
-                  onChange={(e) =>
-                    setForm({ ...form, dui: normalizeDui(e.target.value) })
-                  }
-                  inputMode="numeric"
-                  placeholder="00000000-0"
-                  autoComplete="off"
-                  required
-                />
-              </label>
-              <label>
                 Correo
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   autoComplete="email"
-                  required
-                />
-              </label>
-              <label>
-                Teléfono
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  autoComplete="tel"
                   required
                 />
               </label>

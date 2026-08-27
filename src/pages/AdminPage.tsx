@@ -2811,10 +2811,12 @@ export function AdminPage() {
                       </span>
                     </div>
                     <p>
-                      {donation.full_name} · DUI {donation.dui}
+                      {donation.full_name}
+                      {donation.dui ? ` · DUI ${donation.dui}` : ""}
                     </p>
                     <p>
-                      {donation.email} · {donation.phone}
+                      {donation.email}
+                      {donation.phone ? ` · ${donation.phone}` : ""}
                     </p>
                     <p>{donation.parish}</p>
                     <p>

@@ -31,8 +31,19 @@ update public.donations
 alter table public.donations
   alter column payment_method set not null;
 
-create index if not exists donations_created_at_idx
-  on public.donations (created_at desc);
+alter table public.donations
+  alter column dui set default '';
+
+-- El formulario ya no pide DUI; las donaciones nuevas quedan con dui vacío.
+alter table public.donations
+  alter column dui drop not null;
+
+alter table public.donations
+  alter column phone set default '';
+
+-- El formulario ya no pide teléfono; el contacto sigue por WhatsApp.
+alter table public.donations
+  alter column phone drop not null;
 
 create index if not exists donations_status_idx
   on public.donations (status);

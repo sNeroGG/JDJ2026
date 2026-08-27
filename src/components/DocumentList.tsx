@@ -102,7 +102,21 @@ export function DocumentList({
               rel="noreferrer"
             >
               Abrir documento
-              <span aria-hidden="true">↗</span>
+              <svg
+                className="catechesis__link-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7 17 17 7M9 7h8v8"
+                />
+              </svg>
             </a>
           ) : (
             <span className="catechesis__soon">Próximamente</span>

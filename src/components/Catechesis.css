@@ -126,6 +126,12 @@
   color: var(--teal);
 }
 
+.catechesis__link-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
 .catechesis__link:hover {
   color: var(--green-deep);
 }
