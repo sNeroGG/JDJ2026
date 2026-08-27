@@ -63,15 +63,6 @@ const ACCENTS: AccentTone[] = ["orange", "sky", "teal", "green", "navy"];
 const ALBUM_MAX = 200;
 const IS_DEV = import.meta.env.DEV;
 
-function moveItem<T>(items: T[], index: number, delta: number) {
-  const target = index + delta;
-  if (target < 0 || target >= items.length) return items;
-  const next = [...items];
-  const [item] = next.splice(index, 1);
-  next.splice(target, 0, item);
-  return next;
-}
-
 const TESTER_MODE_KEY = "jdj-admin-tester-mode";
 
 function AdminModeSwitch({
