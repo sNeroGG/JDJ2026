@@ -86,6 +86,13 @@ export function Partners() {
             src={ANTHEM_AUDIO}
             preload="metadata"
           />
+          <div className="partners__marquee" aria-hidden="true">
+            <div className="partners__marquee-track">
+              <span>{ANTHEM_TICKER}</span>
+              <span>{ANTHEM_TICKER}</span>
+            </div>
+          </div>
+          <p className="sr-only">{ANTHEM_LINES.join(". ")}</p>
         </div>
 
         <div className="partners__grid">
@@ -119,14 +126,6 @@ export function Partners() {
         <p className="partners__credit reveal reveal-delay-2">
           {partners.credit}
         </p>
-
-        <div className="partners__marquee" aria-hidden="true">
-          <div className="partners__marquee-track">
-            <span>{ANTHEM_TICKER}</span>
-            <span>{ANTHEM_TICKER}</span>
-          </div>
-        </div>
-        <p className="sr-only">{ANTHEM_LINES.join(". ")}</p>
       </div>
     </section>
   );
