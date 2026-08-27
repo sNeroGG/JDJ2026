@@ -15,8 +15,8 @@
 .location__eyebrow-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 1rem;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
   margin-bottom: 0.85rem;
 }
 
@@ -25,15 +25,30 @@
 }
 
 .location__hashtag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  background: var(--teal);
+  color: var(--white);
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--teal);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .location__hashtag:hover {
-  color: var(--green-deep);
+  background: var(--green-deep);
+  color: var(--white);
+  transform: translateY(-1px);
+}
+
+.location__hashtag:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
 }
 
 @media (min-width: 861px) {
