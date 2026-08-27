@@ -569,8 +569,8 @@ export const SAVED_CONTENT: SavedContent = {
       {
         "id": "tiktok",
         "name": "TikTok",
-        "handle": "",
-        "href": ""
+        "handle": "@pjarqui_sv",
+        "href": "https://www.tiktok.com/@pjarqui_sv"
       }
     ]
   }
