@@ -439,5 +439,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
+    server: {
+      watch: {
+        ignored: ["**/public/audio/**"],
+      },
+    },
   };
 });
