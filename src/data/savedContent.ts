@@ -490,7 +490,7 @@ export const SAVED_CONTENT: SavedContent = {
     "eyebrow": "Tienda JDJ",
     "title": "Lleva el encuentro contigo",
     "lead": "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
-    "whatsapp": "50379532973",
+    "whatsapp": "50362865945",
     "paymentNote": "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
     "ctaLabel": "Pedir por WhatsApp",
     "products": [
