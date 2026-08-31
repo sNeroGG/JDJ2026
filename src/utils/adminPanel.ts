@@ -106,6 +106,18 @@ export const ADMIN_PARTS: AdminPart[] = [
     keywords: "ministerios logos fotos modo corazon inquieto angelus proyecto catolico pro deo",
   },
   {
+    id: "comisiones",
+    section: "location",
+    label: "Comisiones",
+    keywords: "comisiones logistica pastoral liturgica animacion comunicacion foto header",
+  },
+  {
+    id: "voluntarios",
+    section: "location",
+    label: "Voluntarios",
+    keywords: "voluntarios voluntariado equipo foto header",
+  },
+  {
     id: "suchitoto",
     section: "location",
     label: "Suchitoto 2024",
@@ -168,8 +180,14 @@ export const ADMIN_PARTS: AdminPart[] = [
   {
     id: "pedidos",
     section: "orders",
-    label: "Pedidos",
-    keywords: "ordenes tienda whatsapp",
+    label: "Resumen de pedidos",
+    keywords: "ordenes tienda whatsapp tallas stock resumen",
+  },
+  {
+    id: "registro",
+    section: "orders",
+    label: "Registro de pedidos",
+    keywords: "lista pedidos estado detalle ordenes registro",
   },
   {
     id: "donar-hero",

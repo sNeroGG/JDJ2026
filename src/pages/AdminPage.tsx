@@ -21,6 +21,7 @@ import {
   type MinistryItem,
   type RegistrationStatus,
   type SiteContent,
+  type SedeTopicContent,
   type SocialLink,
   type StoreOrder,
   type StoreOrderStatus,
@@ -56,8 +57,8 @@ import {
   normalizeStoreProducts,
   productImages,
   productStock,
-  variantLabel,
   withProductGallery,
+  type OrderReportColorGroup,
 } from "../utils/store";
 import "./AdminPage.css";
 
@@ -102,14 +103,13 @@ function AdminHeroImage({
   label,
   url,
   uploading,
-  allowUploads,
   onPick,
   onClear,
 }: {
   label: string;
   url: string;
   uploading: boolean;
-  allowUploads: boolean;
+  allowUploads?: boolean;
   onPick: (event: ChangeEvent<HTMLInputElement>) => void;
   onClear: () => void;
 }) {
@@ -123,28 +123,361 @@ function AdminHeroImage({
       ) : (
         <p className="admin-empty">Aún no hay imagen hero.</p>
       )}
-      {allowUploads ? (
+      <div className="admin-inline-actions">
+        <label className={`file-field${uploading ? " is-busy" : ""}`}>
+          {uploading ? "Copiando…" : url ? "Cambiar imagen" : "Subir imagen"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+            disabled={uploading}
+            onChange={onPick}
+          />
+        </label>
+        {url ? (
+          <button type="button" className="btn btn--danger" onClick={onClear}>
+            Quitar
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function AdminSedeCardsEditor({
+  id,
+  heading,
+  path,
+  value,
+  addLabel,
+  uploading,
+  onChange,
+  onHeroPick,
+  onItemImage,
+}: {
+  id: string;
+  heading: string;
+  path: string;
+  value: SedeTopicContent;
+  addLabel: string;
+  allowUploads?: boolean;
+  uploading: boolean;
+  onChange: (next: SedeTopicContent) => void;
+  onHeroPick: (event: ChangeEvent<HTMLInputElement>) => void;
+  onItemImage: (index: number, event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  function patchItem(index: number, patch: Partial<SedeTopicContent["items"][number]>) {
+    const items = [...value.items];
+    items[index] = { ...items[index], ...patch };
+    onChange({ ...value, items });
+  }
+
+  return (
+    <details className="admin-details" id={id}>
+      <summary>{heading}</summary>
+      <div className="admin-panel">
+      <p className="admin-panel__hint">
+        Banner de {path}, debajo del menú, y las tarjetas de esta pestaña. Si la
+        foto header queda vacía, la página empieza con el título. Súbela en
+        local con <code>npm run dev</code>.
+      </p>
+      <AdminHeroImage
+        label="Foto header"
+        url={value.heroImageUrl}
+        uploading={uploading}
+        onPick={onHeroPick}
+        onClear={() => onChange({ ...value, heroImageUrl: "" })}
+      />
+      <label>
+        Título
+        <input
+          value={value.title}
+          onChange={(e) => onChange({ ...value, title: e.target.value })}
+        />
+      </label>
+      <label>
+        Texto introductorio
+        <textarea
+          rows={3}
+          value={value.lead}
+          onChange={(e) => onChange({ ...value, lead: e.target.value })}
+        />
+      </label>
+      {value.items.length ? (
+        <div className="admin-ministries">
+          {value.items.map((item, index) => (
+            <div className="admin-ministry-item" key={item.id}>
+              <div>
+                <p className="admin-ministry-caption">Foto</p>
+                {item.image ? (
+                  <div className="admin-ministry-preview admin-ministry-preview--photo">
+                    <img src={item.image} alt="" />
+                  </div>
+                ) : (
+                  <div className="admin-ministry-preview admin-ministry-preview--photo is-empty">
+                    Foto
+                  </div>
+                )}
+              </div>
+              <label>
+                Nombre
+                <input
+                  value={item.title}
+                  onChange={(e) => patchItem(index, { title: e.target.value })}
+                />
+              </label>
+              <label>
+                Descripción
+                <textarea
+                  rows={4}
+                  value={item.body}
+                  onChange={(e) => patchItem(index, { body: e.target.value })}
+                />
+              </label>
+              <div className="admin-inline-actions">
+                <label className={`file-field${uploading ? " is-busy" : ""}`}>
+                  {uploading
+                    ? "Copiando…"
+                    : item.image
+                      ? "Cambiar foto"
+                      : "Subir foto"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                    disabled={uploading}
+                    onChange={(event) => onItemImage(index, event)}
+                  />
+                </label>
+                {item.image ? (
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() => patchItem(index, { image: "" })}
+                  >
+                    Quitar foto
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      items: value.items.filter((entry) => entry.id !== item.id),
+                    })
+                  }
+                >
+                  Quitar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="admin-empty">Aún no hay tarjetas en esta pestaña.</p>
+      )}
+      <div className="admin-inline-actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={() =>
+            onChange({
+              ...value,
+              items: [
+                ...value.items,
+                { id: createId("card"), title: "", image: "", body: "" },
+              ],
+            })
+          }
+        >
+          {addLabel}
+        </button>
+      </div>
+      </div>
+    </details>
+  );
+}
+
+function unitsLabel(count: number) {
+  return `${count} ${count === 1 ? "unidad" : "unidades"}`;
+}
+
+const ORDER_STATUS_LABELS: Record<StoreOrderStatus, string> = {
+  nuevo: "Nuevo",
+  atendido: "Atendido",
+  cancelado: "Cancelado",
+};
+
+function AdminOrderRow({
+  order,
+  onStatus,
+}: {
+  order: StoreOrder;
+  onStatus: (id: string, status: StoreOrderStatus) => void;
+}) {
+  const summaryMeta = [
+    order.productTitle,
+    order.color,
+    order.size ? `Talla ${order.size}` : null,
+    unitsLabel(order.quantity),
+    formatUsd(order.total),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <details className="admin-order-row">
+      <summary>
+        <strong className="admin-order-row__id">{order.id}</strong>
+        <span className="admin-order-row__main">
+          <span className="admin-order-row__name">{order.name}</span>
+          <span className="admin-order-row__meta">{summaryMeta}</span>
+        </span>
+        <span className={`admin-order__status is-${order.status}`}>
+          {ORDER_STATUS_LABELS[order.status]}
+        </span>
+      </summary>
+      <div className="admin-order-row__body">
+        <dl className="admin-order-row__facts">
+          <div>
+            <dt>Nombre</dt>
+            <dd>{order.name}</dd>
+          </div>
+          <div>
+            <dt>Correo</dt>
+            <dd>{order.email}</dd>
+          </div>
+          <div>
+            <dt>Teléfono</dt>
+            <dd>{order.phone}</dd>
+          </div>
+          <div>
+            <dt>Producto</dt>
+            <dd>{order.productTitle}</dd>
+          </div>
+          {order.color ? (
+            <div>
+              <dt>Color</dt>
+              <dd>{order.color}</dd>
+            </div>
+          ) : null}
+          {order.size ? (
+            <div>
+              <dt>Talla</dt>
+              <dd>{order.size}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Cantidad</dt>
+            <dd>{unitsLabel(order.quantity)}</dd>
+          </div>
+          <div>
+            <dt>Total</dt>
+            <dd>{formatUsd(order.total)}</dd>
+          </div>
+          <div>
+            <dt>Pago</dt>
+            <dd>{order.payment}</dd>
+          </div>
+          <div>
+            <dt>Estado</dt>
+            <dd>{ORDER_STATUS_LABELS[order.status]}</dd>
+          </div>
+          <div>
+            <dt>Fecha</dt>
+            <dd>{formatOrderDate(order.createdAt)}</dd>
+          </div>
+          {order.note ? (
+            <div className="admin-order-row__note">
+              <dt>Nota</dt>
+              <dd>{order.note}</dd>
+            </div>
+          ) : null}
+        </dl>
         <div className="admin-inline-actions">
-          <label className={`file-field${uploading ? " is-busy" : ""}`}>
-            {uploading ? "Copiando…" : url ? "Cambiar imagen" : "Subir imagen"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-              disabled={uploading}
-              onChange={onPick}
-            />
-          </label>
-          {url ? (
-            <button type="button" className="btn btn--danger" onClick={onClear}>
-              Quitar
+          {order.status !== "atendido" ? (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => onStatus(order.id, "atendido")}
+            >
+              Marcar atendido
+            </button>
+          ) : null}
+          {order.status !== "nuevo" ? (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => onStatus(order.id, "nuevo")}
+            >
+              Marcar nuevo
+            </button>
+          ) : null}
+          {order.status !== "cancelado" ? (
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={() => onStatus(order.id, "cancelado")}
+            >
+              Cancelar y devolver stock
             </button>
           ) : null}
         </div>
-      ) : (
-        <p className="admin-panel__hint">
-          En producción no se suben fotos. Solo se edita texto.
-        </p>
-      )}
+      </div>
+    </details>
+  );
+}
+
+function OrderSizeTable({
+  groups,
+  hasColors,
+}: {
+  groups: OrderReportColorGroup[];
+  hasColors: boolean;
+}) {
+  return (
+    <div className="admin-order-sizes">
+      {groups.map((group) => (
+        <div key={group.color || "unica"}>
+          {hasColors ? (
+            <h4>{group.color || "Sin color"}</h4>
+          ) : null}
+          <div className="admin-stock-table-wrap">
+            <table className="admin-stock-table">
+              <thead>
+                <tr>
+                  <th>Talla</th>
+                  <th>Pedidos</th>
+                  <th>Vendidas</th>
+                  <th>Quedan</th>
+                  <th>Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.lines.map((line) => (
+                  <tr key={line.variantId}>
+                    <td>{line.size || "Única"}</td>
+                    <td>{line.orders}</td>
+                    <td>{line.sold}</td>
+                    <td>{line.remaining}</td>
+                    <td>{formatUsd(line.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {group.lines.length > 1 ? (
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <td>{group.orders}</td>
+                    <td>{group.sold}</td>
+                    <td>{group.remaining}</td>
+                    <td>{formatUsd(group.revenue)}</td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -235,6 +568,7 @@ export function AdminPage() {
     }
   }
   const parte = searchParams.get("parte");
+  const orderTab = parte === "registro" ? "registro" : "resumen";
   const queryMatches = useMemo(() => searchAdminParts(query), [query]);
 
   function setSection(id: AdminSection, nextParte?: string) {
@@ -360,6 +694,11 @@ export function AdminPage() {
   const orderReport = useMemo(
     () => buildOrderReport(orders, draft.store.products),
     [draft.store.products, orders],
+  );
+  const listedOrders = useMemo(
+    () =>
+      [...orders].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+    [orders],
   );
 
   const isDirty = useMemo(
@@ -573,7 +912,9 @@ export function AdminPage() {
   ) {
     if (!allowUploads) {
       setLogoNotice(
-        "En producción solo se editan textos. Sube fotos y archivos en local con npm run dev.",
+        IS_DEV
+          ? "Modo producción: no se puede subir ningún archivo. Cambia a modo tester para fotos y PDFs."
+          : "El sitio está en producción: no se puede subir ningún archivo. Solo se edita texto. Las fotos se agregan en local con npm run dev.",
       );
       return null;
     }
@@ -967,6 +1308,26 @@ export function AdminPage() {
     }
   }
 
+  async function onSedeTopicItemImage(
+    key: "commissions" | "volunteers",
+    index: number,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadOrWarn(file, "images");
+      if (!uploaded) return;
+      const items = [...draft[key].items];
+      items[index] = { ...items[index], image: uploaded.url };
+      setDraft({ ...draft, [key]: { ...draft[key], items } });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function onPartnerUpload(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files;
     event.target.value = "";
@@ -1028,7 +1389,7 @@ export function AdminPage() {
   );
 
   return (
-    <div className={`admin${allowUploads ? "" : " admin--text-only"}`}>
+    <div className={`admin${allowUploads ? " admin--tester" : " admin--text-only"}`}>
       <aside className="admin__side">
         <div className="admin__brand">
           <strong>JDJ Admin</strong>
@@ -1165,14 +1526,6 @@ export function AdminPage() {
           </div>
         </header>
 
-        {allowUploads ? null : (
-          <p className="admin-notice is-warning" role="status">
-            {IS_DEV
-              ? "Modo producción: no se puede subir ningún archivo. Cambia a modo tester para fotos y PDFs."
-              : "El sitio está en producción: no se puede subir ningún archivo. Solo se edita texto. Las fotos se agregan en local con npm run dev."}
-          </p>
-        )}
-
         {canPublish ? null : (
           <p className="admin-notice is-warning" role="status">
             Falta configurar GITHUB_TOKEN en Vercel: los cambios no se podrán
@@ -1182,7 +1535,12 @@ export function AdminPage() {
 
         {uploading || saving || logoNotice ? (
           <p
-            className={`admin-notice${uploading || saving ? " is-busy" : ""}`}
+            className={`admin-notice${uploading || saving ? " is-busy" : ""}${
+              logoNotice.startsWith("Modo producción:") ||
+              logoNotice.startsWith("El sitio está en producción:")
+                ? " is-warning"
+                : ""
+            }`}
             role="status"
           >
             {uploading || saving ? (
@@ -1218,16 +1576,14 @@ export function AdminPage() {
                   <div className="admin-logo-preview">
                     <img src={draft.logoUrl} alt="Logo de la portada" />
                   </div>
-                  {allowUploads ? (
-                    <label className="file-field">
-                      Subir logo
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                        onChange={onMainLogoChange}
-                      />
-                    </label>
-                  ) : null}
+                  <label className="file-field">
+                    Subir logo
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                      onChange={onMainLogoChange}
+                    />
+                  </label>
                 </div>
                 <div>
                   <p className="admin-panel__kicker">Footer / pestaña</p>
@@ -1237,16 +1593,14 @@ export function AdminPage() {
                       alt="Logo del footer"
                     />
                   </div>
-                  {allowUploads ? (
-                    <label className="file-field">
-                      Subir emblema
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                        onChange={onFooterLogoChange}
-                      />
-                    </label>
-                  ) : null}
+                  <label className="file-field">
+                    Subir emblema
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                      onChange={onFooterLogoChange}
+                    />
+                  </label>
                 </div>
               </div>
             </section>
@@ -1603,7 +1957,7 @@ export function AdminPage() {
 
         {section === "location" && (
           <div className="admin-stack">
-            <details className="admin-details" id="parte-sede" open>
+            <details className="admin-details" id="parte-sede">
               <summary>Sede</summary>
               <div className="admin-panel">
             <div className="admin-grid">
@@ -1643,8 +1997,9 @@ export function AdminPage() {
             </label>
               </div>
             </details>
-            <section className="admin-panel" id="parte-ministerios">
-              <h2>Ministerios</h2>
+            <details className="admin-details" id="parte-ministerios">
+              <summary>Ministerios</summary>
+              <div className="admin-panel">
               <div
                 className="admin-mode"
                 role="group"
@@ -1747,58 +2102,50 @@ export function AdminPage() {
                       Conservar el fondo del logo
                     </label>
                     <div className="admin-inline-actions">
-                      {allowUploads ? (
-                        <>
-                          <label
-                            className={`file-field${uploading ? " is-busy" : ""}`}
-                          >
-                            {uploading
-                              ? "Copiando…"
-                              : item.image
-                                ? "Cambiar logo"
-                                : "Subir logo"}
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                              disabled={uploading}
-                              onChange={(event) =>
-                                void onMinistryImageChange(
-                                  index,
-                                  "image",
-                                  event,
-                                )
-                              }
-                            />
-                          </label>
-                          {draft.ministriesLayout === "photos" ? (
-                            <label
-                              className={`file-field${uploading ? " is-busy" : ""}`}
-                            >
-                              {uploading
-                                ? "Copiando…"
-                                : item.photo
-                                  ? "Cambiar foto"
-                                  : "Subir foto"}
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                                disabled={uploading}
-                                onChange={(event) =>
-                                  void onMinistryImageChange(
-                                    index,
-                                    "photo",
-                                    event,
-                                  )
-                                }
-                              />
-                            </label>
-                          ) : null}
-                        </>
-                      ) : (
-                        <p className="admin-panel__hint">
-                          En producción no se suben fotos. Agrégalas en local.
-                        </p>
-                      )}
+                      <label
+                        className={`file-field${uploading ? " is-busy" : ""}`}
+                      >
+                        {uploading
+                          ? "Copiando…"
+                          : item.image
+                            ? "Cambiar logo"
+                            : "Subir logo"}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                          disabled={uploading}
+                          onChange={(event) =>
+                            void onMinistryImageChange(
+                              index,
+                              "image",
+                              event,
+                            )
+                          }
+                        />
+                      </label>
+                      {draft.ministriesLayout === "photos" ? (
+                        <label
+                          className={`file-field${uploading ? " is-busy" : ""}`}
+                        >
+                          {uploading
+                            ? "Copiando…"
+                            : item.photo
+                              ? "Cambiar foto"
+                              : "Subir foto"}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                            disabled={uploading}
+                            onChange={(event) =>
+                              void onMinistryImageChange(
+                                index,
+                                "photo",
+                                event,
+                              )
+                            }
+                          />
+                        </label>
+                      ) : null}
                       {item.image ? (
                         <button
                           type="button"
@@ -1865,7 +2212,46 @@ export function AdminPage() {
                   Agregar ministerio
                 </button>
               </div>
-            </section>
+              </div>
+            </details>
+            <AdminSedeCardsEditor
+              id="parte-comisiones"
+              heading="Comisiones"
+              path="/comisiones"
+              value={draft.commissions}
+              addLabel="Agregar comisión"
+              allowUploads={allowUploads}
+              uploading={uploading}
+              onChange={(commissions) => setDraft({ ...draft, commissions })}
+              onHeroPick={(e) =>
+                void onHeroImageChange(e, (url, current) => ({
+                  ...current,
+                  commissions: { ...current.commissions, heroImageUrl: url },
+                }))
+              }
+              onItemImage={(index, event) =>
+                void onSedeTopicItemImage("commissions", index, event)
+              }
+            />
+            <AdminSedeCardsEditor
+              id="parte-voluntarios"
+              heading="Voluntarios"
+              path="/voluntarios"
+              value={draft.volunteers}
+              addLabel="Agregar área de voluntariado"
+              allowUploads={allowUploads}
+              uploading={uploading}
+              onChange={(volunteers) => setDraft({ ...draft, volunteers })}
+              onHeroPick={(e) =>
+                void onHeroImageChange(e, (url, current) => ({
+                  ...current,
+                  volunteers: { ...current.volunteers, heroImageUrl: url },
+                }))
+              }
+              onItemImage={(index, event) =>
+                void onSedeTopicItemImage("volunteers", index, event)
+              }
+            />
             <details className="admin-details" id="parte-suchitoto">
               <summary>Suchitoto 2024</summary>
               <div className="admin-panel">
@@ -1898,7 +2284,6 @@ export function AdminPage() {
                 onChange={(e) => patchMemories({ lead: e.target.value })}
               />
             </label>
-            {allowUploads ? (
             <label className={`file-field${uploading ? " is-busy" : ""}`}>
               {uploading
                 ? "Copiando…"
@@ -1911,7 +2296,6 @@ export function AdminPage() {
                 onChange={(e) => void onMemoriesUpload(e)}
               />
             </label>
-            ) : null}
             {draft.memories.images.length === 0 ? (
               <p className="admin-empty">
                 Aún no hay fotos. Cuando las subas, la sección aparece en la
@@ -1985,7 +2369,6 @@ export function AdminPage() {
                 onChange={(e) => patchDestination({ lead: e.target.value })}
               />
             </label>
-            {allowUploads ? (
             <label className={`file-field${uploading ? " is-busy" : ""}`}>
               {uploading
                 ? "Copiando…"
@@ -1998,7 +2381,6 @@ export function AdminPage() {
                 onChange={(e) => void onDestinationUpload(e)}
               />
             </label>
-            ) : null}
             {draft.destination.images.length === 0 ? (
               <p className="admin-empty">
                 Aún no hay fotos de Jayaque. Cuando las subas, aparecen en la
@@ -2192,25 +2574,21 @@ export function AdminPage() {
                 placeholder="https://photos.app.goo.gl/…"
               />
             </label>
-            {allowUploads ? (
-              <label className={`file-field${uploading ? " is-busy" : ""}`}>
-                {uploading
-                  ? "Copiando…"
-                  : `Subir fotos (${draft.album.images.length}/${ALBUM_MAX})`}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                  multiple
-                  disabled={uploading || draft.album.images.length >= ALBUM_MAX}
-                  onChange={(e) => void onAlbumUpload(e)}
-                />
-              </label>
-            ) : null}
+            <label className={`file-field${uploading ? " is-busy" : ""}`}>
+              {uploading
+                ? "Copiando…"
+                : `Subir fotos (${draft.album.images.length}/${ALBUM_MAX})`}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                multiple
+                disabled={uploading || draft.album.images.length >= ALBUM_MAX}
+                onChange={(e) => void onAlbumUpload(e)}
+              />
+            </label>
             {draft.album.images.length === 0 ? (
               <p className="admin-empty">
-                {allowUploads
-                  ? "Aún no hay fotos. Sube varias a la vez."
-                  : "El álbum está vacío."}
+                Aún no hay fotos. Sube varias a la vez.
               </p>
             ) : (
               <div className="admin-album-grid">
@@ -2322,7 +2700,6 @@ export function AdminPage() {
                 onChange={(e) => patchCatechesis({ lead: e.target.value })}
               />
             </label>
-            {allowUploads ? (
             <label className={`file-field${uploading ? " is-busy" : ""}`}>
               {uploading ? "Copiando…" : "Subir documentos"}
               <input
@@ -2332,12 +2709,6 @@ export function AdminPage() {
                 onChange={onCatechesisUpload}
               />
             </label>
-            ) : (
-              <p className="admin-panel__hint">
-                En producción no se suben PDFs. Agrégalos en local con npm run
-                dev.
-              </p>
-            )}
             {projectDocs.length > 0 ? (
               <div className="admin-project-files">
                 <p className="admin-panel__hint">
@@ -2463,7 +2834,6 @@ export function AdminPage() {
               ) : (
                 <p className="admin-empty">Aún no hay logo de tienda.</p>
               )}
-              {allowUploads ? (
               <label className={`file-field${uploading ? " is-busy" : ""}`}>
                 {uploading ? "Copiando…" : "Subir logo de tienda"}
                 <input
@@ -2473,11 +2843,6 @@ export function AdminPage() {
                   onChange={onStoreLogoChange}
                 />
               </label>
-              ) : (
-                <p className="admin-panel__hint">
-                  En producción no se sube el logo. Cárgalo en local.
-                </p>
-              )}
             </section>
 
             <section className="admin-panel" id="parte-tienda-textos">
@@ -2687,7 +3052,6 @@ export function AdminPage() {
                         ))}
                       </div>
                     ) : null}
-                    {allowUploads ? (
                     <label className={`file-field${uploading ? " is-busy" : ""}`}>
                       {uploading ? "Copiando…" : "Agregar fotos"}
                       <input
@@ -2698,7 +3062,6 @@ export function AdminPage() {
                         onChange={(e) => void onProductImagesChange(index, e)}
                       />
                     </label>
-                    ) : null}
                     <label>
                       Título
                       <input
@@ -2839,63 +3202,155 @@ export function AdminPage() {
         )}
 
         {section === "orders" && (
-          <section className="admin-panel" id="parte-pedidos">
+          <section
+            className="admin-panel"
+            id={orderTab === "registro" ? "parte-registro" : "parte-pedidos"}
+          >
             <h2>Pedidos{orders.length ? ` (${orders.length})` : ""}</h2>
+            <div
+              className="admin-mode admin-order-tabs"
+              role="tablist"
+              aria-label="Vistas de pedidos"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={orderTab === "resumen"}
+                className={orderTab === "resumen" ? "is-active" : ""}
+                onClick={() => setSection("orders", "pedidos")}
+              >
+                Resumen
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={orderTab === "registro"}
+                className={orderTab === "registro" ? "is-active" : ""}
+                onClick={() => setSection("orders", "registro")}
+              >
+                Registro de pedidos
+                {orders.length ? ` (${orders.length})` : ""}
+              </button>
+            </div>
             <p className="admin-panel__hint">
-              Cada compra llega aquí y se abre WhatsApp con el pedido. El pago
-              es por transferencia. El stock se descuenta por talla y color;
-              si cancelas, se devuelve a esa variante.
+              {orderTab === "registro"
+                ? "Lista de cada pedido. Haz clic para ver el detalle y cambiar el estado."
+                : "Resumen general de compras, tallas y estilos. El stock se descuenta por talla y color; si cancelas, se devuelve a esa variante."}
               {ordersPersist === "memory"
                 ? " En producción, configura GITHUB_TOKEN si quieres conservarlos entre deploys."
                 : ordersPersist === "file"
                   ? " En local se guardan en src/data/savedOrders.ts."
                   : ""}
             </p>
-            <div className="admin-report">
-              <article className="admin-report__card">
-                <p>Pedidos</p>
-                <strong>{orderReport.total}</strong>
-                <span>
-                  {orderReport.byStatus.nuevo} nuevos ·{" "}
-                  {orderReport.byStatus.atendido} atendidos ·{" "}
-                  {orderReport.byStatus.cancelado} cancelados
-                </span>
-              </article>
-              <article className="admin-report__card">
-                <p>Unidades vendidas</p>
-                <strong>{orderReport.units}</strong>
-                <span>Sin contar cancelados</span>
-              </article>
-              <article className="admin-report__card">
-                <p>Total</p>
-                <strong>{formatUsd(orderReport.revenue)}</strong>
-                <span>Transferencias registradas</span>
-              </article>
-            </div>
-            {orderReport.lines.length ? (
-              <div className="admin-stock-table-wrap">
-                <table className="admin-stock-table">
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Variante</th>
-                      <th>Vendidas</th>
-                      <th>Quedan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orderReport.lines.map((line) => (
-                      <tr key={`${line.productId}-${line.variantId}`}>
-                        <td>{line.productTitle}</td>
-                        <td>{variantLabel(line)}</td>
-                        <td>{line.sold}</td>
-                        <td>{line.remaining}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {ordersNotice ? (
+              <p className="admin-panel__hint is-status">{ordersNotice}</p>
             ) : null}
+            {orderTab === "registro" ? (
+              listedOrders.length ? (
+                <div className="admin-order-list">
+                  {listedOrders.map((order) => (
+                    <AdminOrderRow
+                      key={order.id}
+                      order={order}
+                      onStatus={(id, status) =>
+                        void patchOrderStatus(id, status)
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="admin-empty">Aún no hay pedidos.</p>
+              )
+            ) : (
+              <>
+                <h3>Resumen general</h3>
+                <div className="admin-report">
+                  <article className="admin-report__card">
+                    <p>Pedidos</p>
+                    <strong>{orderReport.total}</strong>
+                    <span>
+                      {orderReport.byStatus.nuevo} nuevos ·{" "}
+                      {orderReport.byStatus.atendido} atendidos ·{" "}
+                      {orderReport.byStatus.cancelado} cancelados
+                    </span>
+                  </article>
+                  <article className="admin-report__card">
+                    <p>Unidades vendidas</p>
+                    <strong>{orderReport.units}</strong>
+                    <span>Sin contar cancelados</span>
+                  </article>
+                  <article className="admin-report__card">
+                    <p>Total</p>
+                    <strong>{formatUsd(orderReport.revenue)}</strong>
+                    <span>Transferencias registradas</span>
+                  </article>
+                  <article className="admin-report__card">
+                    <p>Estilos</p>
+                    <strong>{orderReport.products.length}</strong>
+                    <span>{orderReport.productCount} con ventas</span>
+                  </article>
+                </div>
+                {orderReport.sizes.length ? (
+                  <>
+                    <h3>Tallas</h3>
+                    <div className="admin-size-pills">
+                      {orderReport.sizes.map((item) => (
+                        <article
+                          className="admin-size-pills__item"
+                          key={item.size}
+                        >
+                          <strong>{item.size}</strong>
+                          <span>
+                            {item.sold}{" "}
+                            {item.sold === 1 ? "vendida" : "vendidas"}
+                          </span>
+                          <span>Quedan {item.remaining}</span>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+                {orderReport.products.length ? (
+                  <div className="admin-order-products">
+                    <h3>Resumen por producto</h3>
+                    <p className="admin-panel__hint">
+                      Despliega un estilo para ver sus tallas, sin repetir el
+                      nombre del producto.
+                    </p>
+                    {orderReport.products.map((product) => (
+                      <details
+                        className="admin-order-product"
+                        key={product.productId}
+                      >
+                        <summary>
+                          <strong className="admin-order-product__name">
+                            {product.productTitle}
+                          </strong>
+                          <span className="admin-order-product__stats">
+                            {unitsLabel(product.sold)} ·{" "}
+                            {formatUsd(product.revenue)} · quedan{" "}
+                            {product.remaining}
+                            {product.orders
+                              ? ` · ${product.orders} ${
+                                  product.orders === 1 ? "pedido" : "pedidos"
+                                }`
+                              : ""}
+                          </span>
+                        </summary>
+                        <div className="admin-order-product__body">
+                          <OrderSizeTable
+                            groups={product.groups}
+                            hasColors={product.hasColors}
+                          />
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="admin-empty">Aún no hay pedidos.</p>
+                )}
+              </>
+            )}
             <div className="admin-inline-actions">
               <button
                 type="button"
@@ -2906,68 +3361,6 @@ export function AdminPage() {
                 Exportar JSON
               </button>
             </div>
-            {ordersNotice ? (
-              <p className="admin-panel__hint">{ordersNotice}</p>
-            ) : null}
-            {orders.length === 0 ? (
-              <p className="admin-empty">Aún no hay pedidos.</p>
-            ) : (
-              orders.map((order) => (
-                <article className="admin-order" key={order.id}>
-                  <div className="admin-order__top">
-                    <strong>{order.id}</strong>
-                    <span className={`admin-order__status is-${order.status}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <p>
-                    {order.name} · {order.email} · {order.phone}
-                  </p>
-                  <p>
-                    {order.productTitle}
-                    {order.color ? ` · ${order.color}` : ""}
-                    {order.size ? ` · Talla ${order.size}` : ""} ·{" "}
-                    {order.quantity} {order.quantity === 1 ? "unidad" : "unidades"}{" "}
-                    · {formatUsd(order.total)} · {order.payment}
-                  </p>
-                  {order.note ? <p>Nota: {order.note}</p> : null}
-                  <p className="admin-order__date">
-                    {formatOrderDate(order.createdAt)}
-                  </p>
-                  <div className="admin-inline-actions">
-                    {order.status !== "atendido" ? (
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={() => void patchOrderStatus(order.id, "atendido")}
-                      >
-                        Marcar atendido
-                      </button>
-                    ) : null}
-                    {order.status !== "nuevo" ? (
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={() => void patchOrderStatus(order.id, "nuevo")}
-                      >
-                        Marcar nuevo
-                      </button>
-                    ) : null}
-                    {order.status !== "cancelado" ? (
-                      <button
-                        type="button"
-                        className="btn btn--danger"
-                        onClick={() =>
-                          void patchOrderStatus(order.id, "cancelado")
-                        }
-                      >
-                        Cancelar y devolver stock
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              ))
-            )}
           </section>
         )}
 
@@ -3052,7 +3445,7 @@ export function AdminPage() {
               </button>
             </div>
             {donationsNotice ? (
-              <p className="admin-panel__hint">{donationsNotice}</p>
+              <p className="admin-panel__hint is-status">{donationsNotice}</p>
             ) : null}
             {donations.filter(
               (item) =>
@@ -3284,7 +3677,6 @@ export function AdminPage() {
 
             <section className="admin-panel" id="parte-partners">
               <h2>#TodosPorTodos{partnerCount ? ` (${partnerCount})` : ""}</h2>
-              {allowUploads ? (
               <label className="file-field">
                 Subir logos
                 <input
@@ -3294,11 +3686,6 @@ export function AdminPage() {
                   onChange={onPartnerUpload}
                 />
               </label>
-              ) : (
-                <p className="admin-panel__hint">
-                  En producción no se suben logos. Agrégalos en local.
-                </p>
-              )}
               <div className="admin-logos">
                 {draft.partners.logos.map((logo, index) => (
                   <div className="admin-logo-item" key={logo.id}>

@@ -3,7 +3,7 @@ export const SEDE_TOPICS = [
     path: "/comisiones",
     title: "Comisiones",
     description:
-      "Apartado de las comisiones de la JDJ Jayaque 2026. Pronto publicaremos más información.",
+      "Las comisiones de la JDJ Jayaque 2026: logística, pastoral, animación y comunicación.",
   },
   {
     path: "/agenda",
@@ -21,7 +21,7 @@ export const SEDE_TOPICS = [
     path: "/voluntarios",
     title: "Voluntarios",
     description:
-      "Apartado de voluntarios de la JDJ Jayaque 2026. Pronto publicaremos más información.",
+      "Voluntariado de la JDJ Jayaque 2026. Cómo sumarte al equipo del encuentro.",
   },
 ] as const;
 

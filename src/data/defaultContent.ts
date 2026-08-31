@@ -126,6 +126,20 @@ export type Vicariate = {
   note: string;
 };
 
+export type SedeCardItem = {
+  id: string;
+  title: string;
+  image: string;
+  body: string;
+};
+
+export type SedeTopicContent = {
+  title: string;
+  lead: string;
+  heroImageUrl: string;
+  items: SedeCardItem[];
+};
+
 export type StoreVariant = {
   id: string;
   size: string;
@@ -316,6 +330,8 @@ export type SiteContent = {
   };
   ministries: MinistryItem[];
   ministriesLayout: MinistryLayout;
+  commissions: SedeTopicContent;
+  volunteers: SedeTopicContent;
   store: {
     logoUrl: string;
     eyebrow: string;
@@ -700,6 +716,43 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   ministries: DEFAULT_MINISTRIES.map((item) => ({ ...item })),
   ministriesLayout: DEFAULT_MINISTRY_LAYOUT,
+  commissions: {
+    title: "Comisiones",
+    lead: "",
+    heroImageUrl: "",
+    items: [
+      {
+        id: "logistica",
+        title: "Comisión de logística y operaciones",
+        image: "",
+        body: "Responsable de la planificación, coordinación y ejecución operativa de toda la Jornada, garantizando el correcto funcionamiento de los espacios, recursos y servicios necesarios para el desarrollo seguro y ordenado del evento.",
+      },
+      {
+        id: "pastoral",
+        title: "Comisión Pastoral y Litúrgica",
+        image: "",
+        body: "Esta comisión vela por el corazón espiritual y pastoral de la JDJ.",
+      },
+      {
+        id: "animacion",
+        title: "Comisión de animación, cultura y experiencia juvenil",
+        image: "",
+        body: "Esta comisión busca que los jóvenes vivan una experiencia cercana, dinámica y memorable durante toda la Jornada.",
+      },
+      {
+        id: "comunicacion",
+        title: "Comisión de comunicación y difusión",
+        image: "",
+        body: "Esta comisión es la encargada de proyectar la imagen y el mensaje oficial de la JDJ antes, durante y después del evento.",
+      },
+    ],
+  },
+  volunteers: {
+    title: "Voluntarios",
+    lead: "La JDJ se construye en equipo. Pronto publicaremos cómo sumarte en las distintas áreas del encuentro.",
+    heroImageUrl: "",
+    items: [],
+  },
   store: {
     logoUrl: "",
     eyebrow: "Tienda JDJ",

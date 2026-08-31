@@ -33,6 +33,36 @@ export type OrderReportLine = {
   color: string;
   sold: number;
   remaining: number;
+  revenue: number;
+  orders: number;
+};
+
+export type OrderReportColorGroup = {
+  color: string;
+  sold: number;
+  remaining: number;
+  revenue: number;
+  orders: number;
+  lines: OrderReportLine[];
+};
+
+export type OrderReportProduct = {
+  productId: string;
+  productTitle: string;
+  sold: number;
+  remaining: number;
+  revenue: number;
+  orders: number;
+  hasColors: boolean;
+  groups: OrderReportColorGroup[];
+  lines: OrderReportLine[];
+};
+
+export type OrderReportSize = {
+  size: string;
+  sold: number;
+  remaining: number;
+  orders: number;
 };
 
 export type OrderReport = {
@@ -40,8 +70,33 @@ export type OrderReport = {
   byStatus: Record<StoreOrderStatus, number>;
   units: number;
   revenue: number;
+  productCount: number;
+  products: OrderReportProduct[];
+  sizes: OrderReportSize[];
   lines: OrderReportLine[];
 };
+
+const SIZE_RANK: Record<string, number> = {
+  xxs: 0,
+  xs: 1,
+  s: 2,
+  m: 3,
+  l: 4,
+  xl: 5,
+  xxl: 6,
+  "2xl": 6,
+  xxxl: 7,
+  "3xl": 7,
+};
+
+export function compareStoreSize(a: string, b: string) {
+  const left = SIZE_RANK[a.trim().toLowerCase()];
+  const right = SIZE_RANK[b.trim().toLowerCase()];
+  if (left != null && right != null && left !== right) return left - right;
+  if (left != null && right == null) return -1;
+  if (left == null && right != null) return 1;
+  return a.localeCompare(b, "es", { numeric: true });
+}
 
 type LegacyProduct = StoreProductInput;
 
@@ -364,6 +419,37 @@ export function orderVariantId(order: StoreOrder, product?: StoreProduct) {
   return findVariant(product, order)?.id || "";
 }
 
+function emptyReportLine(
+  productId: string,
+  productTitle: string,
+  variantId: string,
+  size: string,
+  color: string,
+  remaining: number,
+): OrderReportLine {
+  return {
+    productId,
+    productTitle,
+    variantId,
+    size,
+    color,
+    sold: 0,
+    remaining,
+    revenue: 0,
+    orders: 0,
+  };
+}
+
+function sortReportLines(lines: OrderReportLine[]) {
+  return [...lines].sort((a, b) => {
+    const product = a.productTitle.localeCompare(b.productTitle, "es");
+    if (product) return product;
+    const color = a.color.localeCompare(b.color, "es");
+    if (color) return color;
+    return compareStoreSize(a.size, b.size);
+  });
+}
+
 export function buildOrderReport(
   orders: StoreOrder[],
   products: StoreProduct[],
@@ -379,23 +465,30 @@ export function buildOrderReport(
 
   for (const order of orders) {
     byStatus[order.status] += 1;
-    if (order.status === "cancelado") continue;
-    units += order.quantity;
-    revenue += order.total;
     const product = products.find((item) => item.id === order.productId);
     const variant = product ? findVariant(product, order) : undefined;
-    const variantId = variant?.id || order.variantId || `${order.productId}:${order.color}:${order.size}`;
+    const variantId =
+      variant?.id ||
+      order.variantId ||
+      `${order.productId}:${order.color}:${order.size}`;
     const key = `${order.productId}::${variantId}`;
-    const current = sold.get(key) ?? {
-      productId: order.productId,
-      productTitle: order.productTitle,
-      variantId,
-      size: variant?.size || order.size,
-      color: variant?.color || order.color || "",
-      sold: 0,
-      remaining: variant?.stock ?? 0,
-    };
-    current.sold += order.quantity;
+    const current =
+      sold.get(key) ??
+      emptyReportLine(
+        order.productId,
+        order.productTitle,
+        variantId,
+        variant?.size || order.size,
+        variant?.color || order.color || "",
+        variant?.stock ?? 0,
+      );
+    if (order.status !== "cancelado") {
+      units += order.quantity;
+      revenue += order.total;
+      current.sold += order.quantity;
+      current.revenue += order.total;
+      current.orders += 1;
+    }
     current.remaining = variant?.stock ?? current.remaining;
     sold.set(key, current);
   }
@@ -404,31 +497,103 @@ export function buildOrderReport(
     for (const variant of product.variants) {
       const key = `${product.id}::${variant.id}`;
       if (sold.has(key)) continue;
-      sold.set(key, {
-        productId: product.id,
-        productTitle: product.title,
-        variantId: variant.id,
-        size: variant.size,
-        color: variant.color,
-        sold: 0,
-        remaining: variant.stock,
-      });
+      sold.set(
+        key,
+        emptyReportLine(
+          product.id,
+          product.title,
+          variant.id,
+          variant.size,
+          variant.color,
+          variant.stock,
+        ),
+      );
     }
   }
 
-  const lines = [...sold.values()].sort((a, b) => {
-    const product = a.productTitle.localeCompare(b.productTitle, "es");
-    if (product) return product;
-    const color = a.color.localeCompare(b.color, "es");
-    if (color) return color;
-    return a.size.localeCompare(b.size, "es");
+  const lines = sortReportLines([...sold.values()]);
+  const productMap = new Map<string, OrderReportProduct>();
+
+  for (const line of lines) {
+    const current = productMap.get(line.productId) ?? {
+      productId: line.productId,
+      productTitle: line.productTitle,
+      sold: 0,
+      remaining: 0,
+      revenue: 0,
+      orders: 0,
+      hasColors: false,
+      groups: [],
+      lines: [],
+    };
+    current.sold += line.sold;
+    current.remaining += line.remaining;
+    current.revenue += line.revenue;
+    current.orders += line.orders;
+    if (line.color) current.hasColors = true;
+    current.lines.push(line);
+    productMap.set(line.productId, current);
+  }
+
+  const reportProducts = [...productMap.values()].map((product) => {
+    const colorMap = new Map<string, OrderReportColorGroup>();
+    for (const line of product.lines) {
+      const current = colorMap.get(line.color) ?? {
+        color: line.color,
+        sold: 0,
+        remaining: 0,
+        revenue: 0,
+        orders: 0,
+        lines: [],
+      };
+      current.sold += line.sold;
+      current.remaining += line.remaining;
+      current.revenue += line.revenue;
+      current.orders += line.orders;
+      current.lines.push(line);
+      colorMap.set(line.color, current);
+    }
+    const groups = [...colorMap.values()]
+      .map((group) => ({
+        ...group,
+        lines: [...group.lines].sort((a, b) => compareStoreSize(a.size, b.size)),
+      }))
+      .sort((a, b) => a.color.localeCompare(b.color, "es"));
+    return { ...product, groups };
   });
+
+  reportProducts.sort((a, b) => {
+    if (b.sold !== a.sold) return b.sold - a.sold;
+    return a.productTitle.localeCompare(b.productTitle, "es");
+  });
+
+  const sizeMap = new Map<string, OrderReportSize>();
+  for (const line of lines) {
+    const size = line.size || "Única";
+    const current = sizeMap.get(size) ?? {
+      size,
+      sold: 0,
+      remaining: 0,
+      orders: 0,
+    };
+    current.sold += line.sold;
+    current.remaining += line.remaining;
+    current.orders += line.orders;
+    sizeMap.set(size, current);
+  }
+
+  const sizes = [...sizeMap.values()].sort((a, b) =>
+    compareStoreSize(a.size, b.size),
+  );
 
   return {
     total: orders.length,
     byStatus,
     units,
     revenue,
+    productCount: reportProducts.filter((item) => item.sold > 0).length,
+    products: reportProducts,
+    sizes,
     lines,
   };
 }

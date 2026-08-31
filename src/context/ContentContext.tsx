@@ -151,6 +151,29 @@ function mergeSchedule(parsed: SavedContent): SiteContent["schedule"] {
   };
 }
 
+function mergeSedeTopic(
+  saved: SavedContent["commissions"] | undefined,
+  fallback: SiteContent["commissions"],
+): SiteContent["commissions"] {
+  const items = Array.isArray(saved?.items)
+    ? saved.items.map((item, index) => ({
+        id: String(item?.id || `item-${index + 1}`),
+        title: String(item?.title || ""),
+        image: item?.image && isHostedUrl(item.image) ? item.image : "",
+        body: String(item?.body || ""),
+      }))
+    : fallback.items.map((item) => ({ ...item }));
+  return {
+    title: String(saved?.title ?? fallback.title),
+    lead: String(saved?.lead ?? fallback.lead),
+    heroImageUrl:
+      saved?.heroImageUrl && isHostedUrl(saved.heroImageUrl)
+        ? saved.heroImageUrl
+        : "",
+    items,
+  };
+}
+
 function mergeMinistries(parsed: SavedContent): SiteContent["ministries"] {
   const saved = parsed.ministries;
   if (!Array.isArray(saved) || saved.length === 0) {
@@ -344,6 +367,8 @@ function mergeContent(parsed: SavedContent): SiteContent {
           ? parsed.donate.heroImageUrl
           : "",
     },
+    commissions: mergeSedeTopic(parsed.commissions, DEFAULT_CONTENT.commissions),
+    volunteers: mergeSedeTopic(parsed.volunteers, DEFAULT_CONTENT.volunteers),
     footer: {
       ...DEFAULT_CONTENT.footer,
       ...parsed.footer,

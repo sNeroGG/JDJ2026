@@ -1,0 +1,120 @@
+.sede-cards {
+  padding-top: calc(var(--section-pad) + 2.5rem);
+  min-height: 70svh;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(111, 134, 71, 0.14), transparent 60%),
+    var(--cream);
+}
+
+.sede-cards.has-hero {
+  padding-top: var(--section-pad);
+}
+
+.sede-cards__intro {
+  padding-top: calc(1.28rem + 0.85rem);
+  margin-bottom: 1.15rem;
+}
+
+.sede-cards.has-hero .sede-cards__intro {
+  padding-top: 0;
+}
+
+.sede-cards .section__title {
+  max-width: 14ch;
+}
+
+.sede-cards .section__lead {
+  max-width: 42rem;
+}
+
+.sede-cards__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.sede-cards__card {
+  display: grid;
+  grid-template-columns: minmax(11rem, 16.5rem) minmax(0, 1fr);
+  gap: clamp(1rem, 2.5vw, 1.6rem);
+  align-items: start;
+  padding: clamp(1rem, 2.2vw, 1.45rem);
+  border-radius: calc(var(--radius) + 0.15rem);
+  background: #fff;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 12px 28px rgba(28, 35, 44, 0.04);
+}
+
+.sede-cards__card:not(:has(.sede-cards__figure)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sede-cards__figure {
+  overflow: hidden;
+  width: 100%;
+  min-height: 11rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  background: #fff;
+}
+
+.sede-cards__figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 11rem;
+  object-fit: cover;
+}
+
+.sede-cards__copy h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  color: var(--navy);
+  margin-bottom: 0.7rem;
+}
+
+.sede-cards__copy p {
+  color: var(--muted);
+}
+
+.sede-cards__empty {
+  color: var(--muted);
+  max-width: 40rem;
+}
+
+.sede-cards__back {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1.75rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.sede-cards__back:hover {
+  background: var(--green-deep);
+}
+
+@media (max-width: 760px) {
+  .sede-cards__card,
+  .sede-cards__card:not(:has(.sede-cards__figure)) {
+    grid-template-columns: 1fr;
+  }
+
+  .sede-cards__figure,
+  .sede-cards__figure img {
+    min-height: 9.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sede-cards:not(.has-hero) {
+    padding-top: calc(var(--section-pad) + 1.75rem);
+  }
+}
