@@ -46,6 +46,14 @@ function catechesisPath(href: string) {
   return href === "#catequesis" ? "/catequesis" : href;
 }
 
+function withHeaderHomeLink<T extends NavLink>(items: T[]) {
+  return items.map((item) =>
+    item.id === "nav-sede"
+      ? { ...item, href: "#inicio" as T["href"], label: "Inicio" }
+      : item,
+  );
+}
+
 function withCatechesisRoute<T extends { href: string }>(items: T[]) {
   return items.map((item) => ({ ...item, href: catechesisPath(item.href) }));
 }
@@ -338,10 +346,12 @@ function mergeContent(parsed: SavedContent): SiteContent {
         withDonateNav(
           withStoreNav(
             withCatechesisRoute(
-              parsed.header?.nav?.length &&
-                !parsed.header.nav.some((item) => item.id === "nav-inicio")
-                ? parsed.header.nav
-                : DEFAULT_CONTENT.header.nav,
+              withHeaderHomeLink(
+                parsed.header?.nav?.length &&
+                  !parsed.header.nav.some((item) => item.id === "nav-inicio")
+                  ? parsed.header.nav
+                  : DEFAULT_CONTENT.header.nav,
+              ),
             ),
           ),
         ),

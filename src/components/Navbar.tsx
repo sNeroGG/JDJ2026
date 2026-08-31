@@ -18,9 +18,11 @@ export function Navbar() {
     pathname.startsWith("/donar/") ||
     isSedeTopicPath(pathname);
 
-  const links = filterNavLinks(header.nav, content).filter(
-    (item) => item.href !== "#inicio",
-  );
+  const isHome = pathname === "/";
+  const links = filterNavLinks(header.nav, content).filter((item) => {
+    if (item.href === "#inicio") return !isHome;
+    return true;
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

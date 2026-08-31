@@ -767,7 +767,11 @@ export const DEFAULT_CONTENT: SiteContent = {
   header: {
     ctaLabel: "Catequesis",
     ctaHref: "/catequesis",
-    nav: ESSENTIAL_NAV.filter((item) => item.id !== "nav-jdj"),
+    nav: ESSENTIAL_NAV.filter((item) => item.id !== "nav-jdj").map((item) =>
+      item.id === "nav-sede"
+        ? { ...item, href: "#inicio", label: "Inicio" }
+        : item,
+    ),
   },
   catechesis: {
     eyebrow: "Preparación",

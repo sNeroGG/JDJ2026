@@ -576,8 +576,8 @@ export const SAVED_CONTENT: SavedContent = {
     "nav": [
       {
         "id": "nav-sede",
-        "href": "#donde",
-        "label": "Sede"
+        "href": "#inicio",
+        "label": "Inicio"
       },
       {
         "id": "nav-recuerdos",
