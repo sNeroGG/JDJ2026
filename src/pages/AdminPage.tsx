@@ -846,15 +846,6 @@ export function AdminPage() {
     patchStore({ products });
   }
 
-  function patchHighlight(
-    index: number,
-    patch: Partial<SiteContent["hero"]["highlights"][number]>,
-  ) {
-    const highlights = [...draft.hero.highlights];
-    highlights[index] = { ...highlights[index], ...patch };
-    patchHero({ highlights });
-  }
-
   function patchScheduleItem(
     index: number,
     patch: Partial<SiteContent["schedule"]["items"][number]>,
@@ -1383,11 +1374,6 @@ export function AdminPage() {
     );
   }
 
-  const sedeHighlight = draft.hero.highlights.find((item) => item.id === "sede");
-  const parishHighlight = draft.hero.highlights.find(
-    (item) => item.id === "parroquia",
-  );
-
   return (
     <div className={`admin${allowUploads ? " admin--tester" : " admin--text-only"}`}>
       <aside className="admin__side">
@@ -1642,25 +1628,43 @@ export function AdminPage() {
                 <label>
                   Sede (tarjeta)
                   <input
-                    value={sedeHighlight?.value ?? ""}
+                    value={
+                      draft.hero.highlights.find((item) => item.id === "sede")
+                        ?.value ?? ""
+                    }
                     onChange={(e) => {
                       const index = draft.hero.highlights.findIndex(
                         (item) => item.id === "sede",
                       );
-                      if (index >= 0) patchHighlight(index, { value: e.target.value });
+                      if (index >= 0) {
+                        const highlights = [...draft.hero.highlights];
+                        highlights[index] = {
+                          ...highlights[index],
+                          value: e.target.value,
+                        };
+                        patchHero({ highlights });
+                      }
                     }}
                   />
                 </label>
                 <label>
                   Parroquia (tarjeta)
                   <input
-                    value={parishHighlight?.value ?? ""}
+                    value={
+                      draft.hero.highlights.find((item) => item.id === "parroquia")
+                        ?.value ?? ""
+                    }
                     onChange={(e) => {
                       const index = draft.hero.highlights.findIndex(
                         (item) => item.id === "parroquia",
                       );
                       if (index >= 0) {
-                        patchHighlight(index, { value: e.target.value });
+                        const highlights = [...draft.hero.highlights];
+                        highlights[index] = {
+                          ...highlights[index],
+                          value: e.target.value,
+                        };
+                        patchHero({ highlights });
                       }
                     }}
                   />
@@ -2683,8 +2687,43 @@ export function AdminPage() {
           <section className="admin-panel" id="parte-documentos">
             <h2>Documentos</h2>
             <p className="admin-panel__hint">
-              Se copian a <code>public/docs</code> y se ven en /catequesis.
+              Se copian a <code>public/docs</code>. Si “muy pronto” está activo,
+              /catequesis no los muestra y deja el aviso; la lógica de carga se
+              queda lista para publicarlos.
             </p>
+            <label className="admin-check">
+              <input
+                type="checkbox"
+                checked={draft.catechesis.comingSoon}
+                onChange={(e) =>
+                  patchCatechesis({ comingSoon: e.target.checked })
+                }
+              />
+              Mostrar “Catequesis muy pronto…” y ocultar documentos
+            </label>
+            {draft.catechesis.comingSoon ? (
+              <>
+                <label>
+                  Título del aviso
+                  <input
+                    value={draft.catechesis.comingSoonTitle}
+                    onChange={(e) =>
+                      patchCatechesis({ comingSoonTitle: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Texto pequeño
+                  <textarea
+                    rows={2}
+                    value={draft.catechesis.comingSoonText}
+                    onChange={(e) =>
+                      patchCatechesis({ comingSoonText: e.target.value })
+                    }
+                  />
+                </label>
+              </>
+            ) : null}
             <label>
               Título de la página
               <input
@@ -2907,7 +2946,9 @@ export function AdminPage() {
                 El stock se descuenta por talla y color al hacer un pedido. Si
                 hay 5 camisas S, cada compra de S baja ese número. Color es
                 opcional. Puedes subir varias fotos: en la tienda, al tocar el
-                producto se abre el carrusel.
+                producto se abre el carrusel. Marca “ocultar” para mostrarlo
+                como ????? con una camisa difuminada; la fecha de revelar es
+                opcional y cuenta los días.
               </p>
               <div className="admin-inline-actions">
                 <button
@@ -2925,6 +2966,8 @@ export function AdminPage() {
                           price: 10,
                           imageUrl: "",
                           imageUrls: [],
+                          comingSoon: false,
+                          revealAt: "",
                           variants: defaultProductVariants(id),
                         },
                       ],
@@ -2969,9 +3012,9 @@ export function AdminPage() {
                       <span className="admin-product__meta">
                         <strong>{product.title || "Producto sin título"}</strong>
                         <span>
-                          {formatUsd(product.price)}
-                          {" · "}
-                          {total} {total === 1 ? "disponible" : "disponibles"}
+                          {product.comingSoon
+                            ? "Muy pronto en la tienda"
+                            : `${formatUsd(product.price)} · ${total} ${total === 1 ? "disponible" : "disponibles"}`}
                           {photos.length
                             ? ` · ${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`
                             : ""}
@@ -3062,6 +3105,32 @@ export function AdminPage() {
                         onChange={(e) => void onProductImagesChange(index, e)}
                       />
                     </label>
+                    <label className="admin-check">
+                      <input
+                        type="checkbox"
+                        checked={product.comingSoon}
+                        onChange={(e) =>
+                          patchProduct(index, {
+                            comingSoon: e.target.checked,
+                          })
+                        }
+                      />
+                      Ocultar en la tienda (mostrar como “?????”)
+                    </label>
+                    {product.comingSoon ? (
+                      <label>
+                        Revelar el (opcional)
+                        <input
+                          type="date"
+                          value={(product.revealAt || "").slice(0, 10)}
+                          onChange={(e) =>
+                            patchProduct(index, {
+                              revealAt: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    ) : null}
                     <label>
                       Título
                       <input

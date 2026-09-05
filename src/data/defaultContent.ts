@@ -157,6 +157,10 @@ export type StoreProduct = {
   imageUrl: string;
   imageUrls: string[];
   variants: StoreVariant[];
+  /** En /tienda se ve como ????? hasta que se desactive o llegue revealAt. */
+  comingSoon: boolean;
+  /** Fecha ISO o YYYY-MM-DD. Vacío = se queda oculto mientras comingSoon. */
+  revealAt: string;
 };
 
 export type StoreOrderStatus = "nuevo" | "atendido" | "cancelado";
@@ -354,6 +358,10 @@ export type SiteContent = {
     lead: string;
     emptyTitle: string;
     emptyText: string;
+    /** Si es true, /catequesis no lista documentos y muestra el aviso. */
+    comingSoon: boolean;
+    comingSoonTitle: string;
+    comingSoonText: string;
     ctaLabel: string;
     docs: CatechesisDoc[];
     heroImageUrl: string;
@@ -409,12 +417,12 @@ export const DEFAULT_CONTENT: SiteContent = {
     ctaLabel: "Descubrir el encuentro",
     ctaHref: "#donde",
     highlights: [
-      { id: "sede", label: "Sede", value: "Jayaque", href: "#donde" },
+      { id: "sede", label: "Sede", value: "Jayaque", href: "" },
       {
         id: "parroquia",
         label: "Parroquia",
         value: "San Cristóbal",
-        href: "#donde",
+        href: "",
       },
       {
         id: "fecha",
@@ -780,6 +788,10 @@ export const DEFAULT_CONTENT: SiteContent = {
     emptyTitle: "Los materiales se publicarán pronto",
     emptyText:
       "Estamos reuniendo las catequesis de preparación. Vuelve a esta página para descargar guías, fichas y recursos del camino hacia Jayaque.",
+    comingSoon: true,
+    comingSoonTitle: "Catequesis muy pronto...",
+    comingSoonText:
+      "El material de preparación se publicará más adelante. Sigue caminando con tu grupo y estate atento: las catequesis llegarán cuando toque.",
     ctaLabel: "Ver documentos",
     docs: [],
     heroImageUrl: "",

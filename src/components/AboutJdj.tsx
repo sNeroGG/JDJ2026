@@ -133,6 +133,7 @@ export function AboutJdj() {
             </p>
             <SiteLink className="about-jdj__album-cta" href="/recuerdos">
               Ver álbum de recuerdos
+              <span aria-hidden="true">→</span>
             </SiteLink>
           </div>
         </div>

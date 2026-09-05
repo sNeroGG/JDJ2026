@@ -41,7 +41,9 @@
 
 .ministerios__card--logo .ministerios__photo {
   min-height: 0;
-  aspect-ratio: 1;
+  aspect-ratio: auto;
+  display: grid;
+  place-items: center;
   background: #fff;
 }
 
@@ -53,8 +55,11 @@
 }
 
 .ministerios__photo--logo img {
+  width: min(100%, 8.5rem);
+  height: 8.5rem;
   object-fit: contain;
-  padding: 1.1rem;
+  padding: 0.55rem;
+  margin-inline: auto;
 }
 
 .ministerios__photo--logo.has-bg img {
@@ -87,6 +92,10 @@
 .ministerios__card--logo .ministerios__copy,
 .ministerios__copy--text {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.ministerios__card--logo .ministerios__text {
+  text-align: center;
 }
 
 .ministerios__logo {
@@ -172,15 +181,39 @@
 
 @media (max-width: 760px) {
   .ministerios__list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
   }
 
   .ministerios__photo {
-    min-height: 11.5rem;
+    min-height: 7.5rem;
   }
 
   .ministerios__card--logo .ministerios__photo {
     min-height: 0;
+  }
+
+  .ministerios__photo--logo img {
+    width: 4.35rem;
+    height: 4.35rem;
+    padding: 0.3rem;
+  }
+
+  .ministerios__copy {
+    padding: 0.6rem 0.6rem 0.75rem;
+    gap: 0.45rem;
+  }
+
+  .ministerios__text {
+    text-align: center;
+  }
+
+  .ministerios__text h2 {
+    font-size: 0.86rem;
+  }
+
+  .ministerios__text p {
+    font-size: 0.75rem;
   }
 }
 
@@ -190,20 +223,29 @@
   }
 
   .ministerios__photo {
-    min-height: 10rem;
+    min-height: 6.25rem;
   }
 
   .ministerios__card--logo .ministerios__photo {
     min-height: 0;
   }
 
+  .ministerios__photo--logo img {
+    width: 3.65rem;
+    height: 3.65rem;
+  }
+
   .ministerios__logo {
-    width: 3.6rem;
-    height: 3.6rem;
+    width: 2.6rem;
+    height: 2.6rem;
   }
 
   .ministerios__copy {
-    gap: 0.7rem;
-    padding: 0.85rem 0.9rem 1rem;
+    gap: 0.4rem;
+    padding: 0.5rem 0.5rem 0.65rem;
+  }
+
+  .ministerios__text h2 {
+    font-size: 0.78rem;
   }
 }

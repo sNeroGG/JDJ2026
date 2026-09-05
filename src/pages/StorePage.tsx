@@ -10,11 +10,14 @@ import {
   findVariant,
   firstAvailableVariant,
   formatUsd,
+  isProductComingSoon,
   normalizeWhatsapp,
   productColors,
   productImages,
+  productRevealLabel,
   productSizes,
   productStock,
+  STORE_MYSTERY_SHIRT,
   variantLabel,
   whatsappOrderUrl,
   type StoreStockMap,
@@ -81,6 +84,7 @@ export function StorePage() {
     [liveStock, store.products],
   );
 
+  const buyableProducts = products.filter((item) => !isProductComingSoon(item));
   const whatsappReady = Boolean(normalizeWhatsapp(store.whatsapp));
   const selected = checkout
     ? findVariant(checkout.product, checkout)
@@ -101,6 +105,7 @@ export function StorePage() {
   }
 
   function openCheckout(product: StoreProduct) {
+    if (isProductComingSoon(product)) return;
     const variant = firstAvailableVariant(product);
     setNotice("");
     setCheckout({
@@ -245,6 +250,32 @@ export function StorePage() {
             ) : (
               <div className="store-page__grid">
                 {products.map((product) => {
+                  if (isProductComingSoon(product)) {
+                    const reveal = productRevealLabel(product);
+                    return (
+                      <article
+                        className="store-card store-card--soon reveal"
+                        key={product.id}
+                      >
+                        <div className="store-card__media store-card__media--mystery">
+                          <img
+                            src={STORE_MYSTERY_SHIRT}
+                            alt=""
+                            width={640}
+                            height={640}
+                          />
+                          <span className="store-card__badge">Próximamente</span>
+                        </div>
+                        <div className="store-card__body">
+                          <h2>?????</h2>
+                          <p>Muy pronto disponible</p>
+                          {reveal ? (
+                            <p className="store-card__reveal">{reveal}</p>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  }
                   const total = productStock(product);
                   const soldOut = total <= 0;
                   const images = productImages(product);
@@ -316,7 +347,13 @@ export function StorePage() {
                 })}
               </div>
             )}
-            {!whatsappReady && products.length > 0 ? (
+            {products.length > 0 ? (
+              <p className="store-page__aviso reveal">
+                Espera próximos productos muy pronto. Estate atento a nuestras
+                redes sociales.
+              </p>
+            ) : null}
+            {!whatsappReady && buyableProducts.length > 0 ? (
               <p className="store-page__hint">
                 Falta el número de WhatsApp. Se configura en el panel de
                 administración.

@@ -20,12 +20,40 @@ export function Location() {
         <div className="location__copy reveal">
           <div className="location__eyebrow-row">
             <p className="section__eyebrow">{location.eyebrow}</p>
-            <SiteLink
-              href="#todosxtodos"
-              className="location__hashtag"
-            >
-              #TodosPorTodos
-            </SiteLink>
+            <span className="location__hashtag-wrap">
+              <SiteLink
+                href="#todosxtodos"
+                className="location__hashtag"
+                aria-describedby="location-listen-hint"
+              >
+                #TodosPorTodos
+              </SiteLink>
+              <span className="location__listen" id="location-listen-hint">
+                <svg
+                  className="location__listen-arrow"
+                  viewBox="0 0 56 20"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="M54 10c-14-7-26-7-42 0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M22 3 8 10l14 7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Escucha esto :)
+              </span>
+            </span>
           </div>
           <h2 className="section__title">{location.title}</h2>
           <p className="section__lead">{location.lead}</p>

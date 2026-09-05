@@ -7,6 +7,7 @@ export function Catechesis() {
   const ref = useReveal<HTMLElement>();
   const { content } = useContent();
   const { catechesis } = content;
+  const comingSoon = catechesis.comingSoon;
   const count = catechesis.docs.length;
 
   return (
@@ -21,17 +22,21 @@ export function Catechesis() {
         <div className="catechesis__teaser reveal reveal-delay-1">
           <span>Materiales</span>
           <h3>
-            {count > 0
-              ? `${count} documento${count === 1 ? "" : "s"} listo${count === 1 ? "" : "s"} para descargar`
-              : catechesis.emptyTitle}
+            {comingSoon
+              ? catechesis.comingSoonTitle
+              : count > 0
+                ? `${count} documento${count === 1 ? "" : "s"} listo${count === 1 ? "" : "s"} para descargar`
+                : catechesis.emptyTitle}
           </h3>
           <p>
-            {count > 0
-              ? "Entra a la página de catequesis para ver y abrir todos los documentos de preparación."
-              : catechesis.emptyText}
+            {comingSoon
+              ? catechesis.comingSoonText
+              : count > 0
+                ? "Entra a la página de catequesis para ver y abrir todos los documentos de preparación."
+                : catechesis.emptyText}
           </p>
           <SiteLink className="catechesis__cta" href="/catequesis">
-            {catechesis.ctaLabel}
+            {comingSoon ? "Ir a catequesis" : catechesis.ctaLabel}
             <span aria-hidden="true">→</span>
           </SiteLink>
         </div>

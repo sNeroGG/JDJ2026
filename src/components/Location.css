@@ -24,6 +24,13 @@
   margin-bottom: 0;
 }
 
+.location__hashtag-wrap {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+}
+
 .location__hashtag {
   display: inline-flex;
   align-items: center;
@@ -38,6 +45,23 @@
   transition:
     background 0.2s ease,
     transform 0.2s ease;
+}
+
+.location__listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-script);
+  font-size: 1.32rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--orange);
+}
+
+.location__listen-arrow {
+  width: 2.15rem;
+  height: 0.85rem;
+  flex-shrink: 0;
 }
 
 .location__hashtag:hover {

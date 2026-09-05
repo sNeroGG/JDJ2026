@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { StoreOrder } from "../src/data/defaultContent.js";
 import {
   buildStoreOrder,
+  isProductComingSoon,
   parseCreateOrder,
   whatsappOrderUrl,
 } from "../src/utils/store.js";
@@ -48,6 +49,10 @@ export default async function handler(
       const product = listProducts().find((item) => item.id === parsed.productId);
       if (!product) {
         send(res, 404, { error: "Producto no encontrado." });
+        return;
+      }
+      if (isProductComingSoon(product)) {
+        send(res, 409, { error: "Este producto aún no está disponible." });
         return;
       }
       const order = buildStoreOrder(parsed, product);

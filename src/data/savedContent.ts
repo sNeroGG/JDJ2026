@@ -24,13 +24,13 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "sede",
         "label": "Sede",
         "value": "Jayaque",
-        "href": "#donde"
+        "href": ""
       },
       {
         "id": "parroquia",
         "label": "Parroquia",
         "value": "San Cristóbal",
-        "href": "#donde"
+        "href": ""
       },
       {
         "id": "fecha",
@@ -504,6 +504,8 @@ export const SAVED_CONTENT: SavedContent = {
           "/images/CAMISAS-STORE-PJA-02.jpg.webp",
           "/images/CAMISAS-STORE-PJA-03.jpg.webp"
         ],
+        "comingSoon": false,
+        "revealAt": "",
         "variants": [
           {
             "id": "prod-4be0843b--unica--s",
@@ -541,6 +543,8 @@ export const SAVED_CONTENT: SavedContent = {
           "/images/CAMISAS-STORE-PJA-04.jpg.webp",
           "/images/CAMISAS-STORE-PJA-05.jpg.webp"
         ],
+        "comingSoon": false,
+        "revealAt": "",
         "variants": [
           {
             "id": "prod-077167ec--unica--s",
@@ -565,6 +569,60 @@ export const SAVED_CONTENT: SavedContent = {
             "size": "XL",
             "color": "",
             "stock": 1
+          }
+        ]
+      },
+      {
+        "id": "prod-soon-1",
+        "title": "?????",
+        "description": "Muy pronto disponible",
+        "price": 0,
+        "imageUrl": "",
+        "imageUrls": [],
+        "comingSoon": true,
+        "revealAt": "",
+        "variants": [
+          {
+            "id": "prod-soon-1--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "id": "prod-soon-2",
+        "title": "?????",
+        "description": "Muy pronto disponible",
+        "price": 0,
+        "imageUrl": "",
+        "imageUrls": [],
+        "comingSoon": true,
+        "revealAt": "",
+        "variants": [
+          {
+            "id": "prod-soon-2--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "id": "prod-soon-3",
+        "title": "?????",
+        "description": "Muy pronto disponible",
+        "price": 0,
+        "imageUrl": "",
+        "imageUrls": [],
+        "comingSoon": true,
+        "revealAt": "",
+        "variants": [
+          {
+            "id": "prod-soon-3--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 0
           }
         ]
       }
@@ -607,6 +665,9 @@ export const SAVED_CONTENT: SavedContent = {
     "lead": "Aquí encontrarás los documentos para prepararte con tu parroquia, grupo o vicaría rumbo a la JDJ 2026.",
     "emptyTitle": "Los materiales se publicarán pronto",
     "emptyText": "Estamos reuniendo las catequesis de preparación. Vuelve a esta página para descargar guías, fichas y recursos del camino hacia Jayaque.",
+    "comingSoon": true,
+    "comingSoonTitle": "Catequesis muy pronto...",
+    "comingSoonText": "El material de preparación se publicará más adelante. Sigue caminando con tu grupo y estate atento: las catequesis llegarán cuando toque.",
     "ctaLabel": "Ver documentos",
     "docs": [
       {

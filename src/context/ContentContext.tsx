@@ -360,6 +360,8 @@ function mergeContent(parsed: SavedContent): SiteContent {
     catechesis: {
       ...DEFAULT_CONTENT.catechesis,
       ...parsed.catechesis,
+      comingSoon:
+        parsed.catechesis?.comingSoon ?? DEFAULT_CONTENT.catechesis.comingSoon,
       docs: (parsed.catechesis?.docs ?? DEFAULT_CONTENT.catechesis.docs).filter(
         (doc) => !doc.href || isHostedUrl(doc.href),
       ),
