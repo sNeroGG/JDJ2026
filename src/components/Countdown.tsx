@@ -10,19 +10,39 @@ const UNITS = [
   { key: "seconds", singular: "segundo", plural: "segundos" },
 ] as const;
 
-export function Countdown() {
+type CountdownProps = {
+  /** Si se pasa, cuenta hacia esa fecha exacta (sin lógica de “día del evento”). */
+  target?: Date | null;
+  title?: string;
+  eyebrow?: string;
+  liveText?: string;
+  doneText?: string;
+};
+
+export function Countdown({
+  target,
+  title,
+  eyebrow,
+  liveText,
+  doneText,
+}: CountdownProps = {}) {
   const { content } = useContent();
   const { schedule } = content;
+  const exact = target !== undefined;
   const start = useMemo(
-    () => parseEventDate(schedule.startDate),
-    [schedule.startDate],
+    () => (exact ? (target ?? null) : parseEventDate(schedule.startDate)),
+    [exact, target, schedule.startDate],
   );
-  const dayEnd = useMemo(() => (start ? endOfEventDay(start) : null), [start]);
+  const dayEnd = useMemo(
+    () => (exact || !start ? null : endOfEventDay(start)),
+    [exact, start],
+  );
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!start || !dayEnd) return;
-    if (Date.now() >= dayEnd.getTime()) return;
+    if (!start) return;
+    const until = dayEnd?.getTime() ?? start.getTime();
+    if (Date.now() >= until) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [start, dayEnd]);
@@ -31,20 +51,26 @@ export function Countdown() {
 
   const parts = getCountdown(start, now);
   const started = parts.total === 0;
-  const finished = Boolean(dayEnd && now >= dayEnd.getTime());
+  const finished = exact
+    ? started
+    : Boolean(dayEnd && now >= dayEnd.getTime());
+  const label = eyebrow ?? schedule.countdownEyebrow;
 
   return (
-    <section
-      className="countdown countdown--hero"
-      aria-label={schedule.countdownEyebrow}
-    >
+    <section className="countdown countdown--hero" aria-label={label}>
       {finished ? (
-        <p className="countdown__message">{schedule.countdownDoneText}</p>
+        <p className="countdown__message">
+          {doneText ?? schedule.countdownDoneText}
+        </p>
       ) : started ? (
-        <p className="countdown__message">{schedule.countdownLiveText}</p>
+        <p className="countdown__message">
+          {liveText ?? schedule.countdownLiveText}
+        </p>
       ) : (
         <div className="countdown__clock">
-          <span className="countdown__title">{schedule.countdownTitle}:</span>
+          <span className="countdown__title">
+            {title ?? schedule.countdownTitle}:
+          </span>
           <div className="countdown__units" aria-hidden="true">
             {UNITS.map((unit) => (
               <div className="countdown__unit" key={unit.key}>

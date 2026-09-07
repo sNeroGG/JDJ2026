@@ -1,0 +1,35 @@
+html.has-preview-banner {
+  --preview-banner-h: 2.35rem;
+}
+
+html.has-preview-banner body {
+  padding-top: var(--preview-banner-h);
+}
+
+html.has-preview-banner .navbar {
+  top: calc(0.85rem + var(--preview-banner-h));
+}
+
+.preview-banner {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #f4f7f8;
+  background: var(--navy);
+}
+
+.preview-banner strong {
+  font-weight: 700;
+}
+
+.preview-banner a,
+.preview-banner button {
+  margin-left: 0.35rem;
+  color: var(--yellow);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

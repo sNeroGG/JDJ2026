@@ -144,6 +144,25 @@ eliges **Otro monto**, y tiene que quedar entre $5 y $25.
    - Debe abrir el chat con el detalle del aporte y llevar a `/donar/gracias`.
    - En `/jdj-cms` → Donaciones, marca **Pagada** cuando llegue la transferencia.
 
+## Próximamente (cortina pública)
+
+Mientras el sitio no esté listo, **todo visitante** ve solo el logo de la JDJ y
+una cuenta regresiva. El resto de rutas públicas redirige a esa vista. La cortina
+no tiene formulario ni enlace al equipo.
+
+El equipo entra por `/equipo` (no está en el menú, el sitemap ni la cortina),
+pone la clave de `TEAM_PASSWORD` y ve el sitio real con un aviso de «vista
+interna». Esa sesión **no** abre el panel ni permite publicar.
+
+Quien administra entra por `/jdj-cms` (tampoco está en el menú), pone
+`ADMIN_PASSWORD` y usa **Ver el sitio**. El login del panel también desbloquea
+la landing, porque el equipo de publicación es parte del equipo.
+
+La fecha de apertura por defecto es el **12 de septiembre de 2026** a las 16:00
+(hora de El Salvador). Al cumplirse, el sitio se revela solo. Para cambiarla,
+define `VITE_REVEAL_AT` (por ejemplo `2026-09-12T08:00`). Para apagar la cortina
+antes de esa fecha: `VITE_COMING_SOON=false` y redeploy.
+
 ## Desarrollo local
 
 ```bash
@@ -157,10 +176,15 @@ en el JavaScript del navegador. En Vercel hay que definir una clave propia: la
 contraseña por defecto no se acepta en producción. La URL del panel es
 `/jdj-cms`; `/admin` redirige al inicio.
 
+Clave del equipo: `TEAM_PASSWORD` (en local, por defecto `equipo2026`; también
+acepta el alias `TEAM_PIN`). Misma regla: sin prefijo `VITE_`, validación en
+`/api/team-login`, y en Vercel no se admite el valor por defecto. La URL del
+equipo es `/equipo`.
+
 Si tu proyecto todavía tiene `VITE_ADMIN_PASSWORD` en Vercel, sigue funcionando
 como respaldo, pero conviene renombrarla y borrar la vieja.
 
 ## Deploy
 
 GitHub → Vercel (preset Vite). Rutas públicas: `/`, `/catequesis`, `/tienda`,
-`/donar`, `/donar/gracias`. Panel: `/jdj-cms`.
+`/donar`, `/donar/gracias`. Equipo: `/equipo`. Panel: `/jdj-cms`.

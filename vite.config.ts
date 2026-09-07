@@ -40,6 +40,7 @@ import {
 } from "./src/utils/store.ts";
 import donationsHandler from "./api/donations.ts";
 import loginHandler from "./api/login.ts";
+import teamLoginHandler from "./api/team-login.ts";
 import { isAuthorized as isAdminRequest } from "./api/_lib/auth.ts";
 
 function safeFileName(name: string) {
@@ -223,6 +224,7 @@ const LOCAL_API_ROUTES = [
   "/api/orders",
   "/api/instagram",
   "/api/login",
+  "/api/team-login",
   "/api/content",
   "/api/donations",
 ];
@@ -253,6 +255,11 @@ function localStoreApiPlugin(): Plugin {
 
           if (url === "/api/login") {
             await loginHandler(req, res);
+            return;
+          }
+
+          if (url === "/api/team-login") {
+            await teamLoginHandler(req, res);
             return;
           }
 
@@ -437,11 +444,22 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, process.cwd(), ""),
     ...process.env,
   };
-  for (const key of [...DONATION_ENV_KEYS, "ADMIN_PASSWORD", "VITE_ADMIN_PASSWORD"]) {
+  for (const key of [
+    ...DONATION_ENV_KEYS,
+    "ADMIN_PASSWORD",
+    "VITE_ADMIN_PASSWORD",
+    "TEAM_PASSWORD",
+    "TEAM_PIN",
+  ]) {
     if (env[key]) process.env[key] = env[key];
   }
 
   return {
+    define: {
+      "import.meta.env.VITE_VERCEL_ENV": JSON.stringify(
+        env.VERCEL_ENV || env.VITE_VERCEL_ENV || "",
+      ),
+    },
     plugins: [react(), localMediaPlugin(env), localStoreApiPlugin()],
     server: {
       watch: {

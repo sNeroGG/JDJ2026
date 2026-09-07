@@ -124,6 +124,7 @@ export function buildRobotsTxt(siteUrl) {
     "Allow: /",
     "Disallow: /admin",
     "Disallow: /jdj-cms",
+    "Disallow: /equipo",
     "Disallow: /api/",
   ];
   if (siteUrl) lines.push("", `Sitemap: ${siteUrl}/sitemap.xml`);

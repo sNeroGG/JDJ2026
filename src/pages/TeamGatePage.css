@@ -1,0 +1,106 @@
+.team-gate {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 100%, rgba(111, 134, 71, 0.22), transparent 58%),
+    linear-gradient(180deg, #e8f1f4 0%, var(--sky) 40%, var(--cream) 100%);
+  color: var(--navy);
+}
+
+.team-gate__card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.75rem 1.6rem 1.5rem;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(28, 35, 44, 0.08);
+  box-shadow: 0 18px 40px rgba(28, 35, 44, 0.08);
+}
+
+.team-gate__logo {
+  width: min(100%, 220px);
+  height: auto;
+  justify-self: center;
+}
+
+.team-gate__kicker {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--green);
+}
+
+.team-gate__card h1 {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--navy);
+}
+
+.team-gate__card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.team-gate__card label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--navy);
+  text-align: left;
+}
+
+.team-gate__card input {
+  border: 1px solid rgba(28, 35, 44, 0.16);
+  background: var(--white);
+  color: var(--navy);
+  border-radius: 0.75rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.team-gate__card input:focus {
+  outline: 2px solid var(--green-soft);
+  outline-offset: 1px;
+}
+
+.team-gate__card button[type="submit"] {
+  margin-top: 0.2rem;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--green);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.team-gate__card button[type="submit"]:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.team-gate__error {
+  color: #9a3b2f !important;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .team-gate {
+    padding: 1rem;
+  }
+
+  .team-gate__card {
+    padding: 1.25rem 1.1rem;
+  }
+}
