@@ -157,7 +157,7 @@ export const ADMIN_PARTS: AdminPart[] = [
     id: "documentos",
     section: "catechesis",
     label: "Documentos",
-    keywords: "pdf guias materiales",
+    keywords: "pdf guias materiales muy pronto",
   },
   {
     id: "tienda-logo",
@@ -175,7 +175,7 @@ export const ADMIN_PARTS: AdminPart[] = [
     id: "productos",
     section: "store",
     label: "Productos",
-    keywords: "camisas stock tallas",
+    keywords: "camisas stock tallas proximamente revelar",
   },
   {
     id: "pedidos",

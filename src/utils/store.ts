@@ -4,6 +4,7 @@ import type {
   StoreProduct,
   StoreVariant,
 } from "../data/defaultContent.js";
+import { getCountdown, parseEventDate } from "./dates.js";
 
 export type CreateOrderInput = {
   name: string;
@@ -145,6 +146,34 @@ export function makeVariantId(productId: string, size: string, color: string) {
   return `${productId}--${token(color)}--${token(size)}`;
 }
 
+export const STORE_MYSTERY_SHIRT = "/images/store-mystery-shirt.webp";
+
+export function isProductComingSoon(
+  product: Pick<StoreProduct, "comingSoon" | "revealAt">,
+  now = Date.now(),
+) {
+  if (!product.comingSoon) return false;
+  if (!product.revealAt) return true;
+  const date = parseEventDate(product.revealAt);
+  if (!date) return true;
+  return date.getTime() > now;
+}
+
+export function productRevealLabel(
+  product: Pick<StoreProduct, "revealAt">,
+  now = Date.now(),
+) {
+  if (!product.revealAt) return "";
+  const date = parseEventDate(product.revealAt);
+  if (!date) return "";
+  const parts = getCountdown(date, now);
+  if (parts.total <= 0) return "";
+  if (parts.days > 1) return `Aparece en ${parts.days} días`;
+  if (parts.days === 1) return "Aparece mañana";
+  if (parts.hours > 1) return `Aparece en ${parts.hours} horas`;
+  return "Aparece muy pronto";
+}
+
 export function defaultProductVariants(productId: string): StoreVariant[] {
   return DEFAULT_SIZES.map((size) => ({
     id: makeVariantId(productId, size, ""),
@@ -281,6 +310,9 @@ export function normalizeStoreProduct(
   const imageUrls = productImages(raw);
   const imageUrl = imageUrls[0] || "";
 
+  const comingSoon = Boolean(raw.comingSoon);
+  const revealAt = String(raw.revealAt || "").trim();
+
   if (Array.isArray(raw.variants) && raw.variants.length) {
     return {
       id,
@@ -289,6 +321,8 @@ export function normalizeStoreProduct(
       price,
       imageUrl,
       imageUrls,
+      comingSoon,
+      revealAt,
       variants: raw.variants.map((variant, index) =>
         normalizeVariant(id, variant, index),
       ),
@@ -309,6 +343,8 @@ export function normalizeStoreProduct(
     price,
     imageUrl,
     imageUrls,
+    comingSoon,
+    revealAt,
     variants: sizes.map((size, index) => ({
       id: makeVariantId(id, size, ""),
       size,

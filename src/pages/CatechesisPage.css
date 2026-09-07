@@ -35,6 +35,46 @@
   max-width: none;
 }
 
+.catechesis-page--soon {
+  padding-top: clamp(2.25rem, 5vw, 3.25rem);
+  padding-bottom: clamp(3rem, 6vw, 4.5rem);
+}
+
+.catechesis-page--soon .catechesis-page__layout {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  min-height: min(48svh, 26rem);
+  align-content: center;
+}
+
+.catechesis-page__soon {
+  width: min(100%, 40rem);
+  text-align: center;
+  justify-items: center;
+}
+
+.catechesis-page__soon .section__eyebrow {
+  margin-bottom: 0.85rem;
+}
+
+.catechesis-page__soon-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.35rem, 8.5vw, 4.35rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--navy);
+  margin-bottom: 0.85rem;
+}
+
+.catechesis-page__soon-text {
+  max-width: 36ch;
+  margin-inline: auto;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
 @media (max-width: 760px) {
   .catechesis-page__layout {
     grid-template-columns: 1fr;

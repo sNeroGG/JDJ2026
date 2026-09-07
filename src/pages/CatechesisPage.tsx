@@ -14,6 +14,7 @@ export function CatechesisPage() {
   const { content } = useContent();
   const { catechesis, site } = content;
   const heroImage = catechesis.heroImageUrl;
+  const comingSoon = catechesis.comingSoon;
 
   useSeo({
     title: `${catechesis.title} · ${site.name} ${site.year}`,
@@ -36,22 +37,36 @@ export function CatechesisPage() {
       />
       <main>
         <section
-          className={`section catechesis catechesis-page${heroImage ? " has-hero" : ""}`}
+          className={`section catechesis catechesis-page${heroImage ? " has-hero" : ""}${comingSoon ? " catechesis-page--soon" : ""}`}
           ref={ref}
         >
           <div className="section__inner catechesis-page__layout">
-            <div className="catechesis__intro reveal">
-              <p className="section__eyebrow">{catechesis.eyebrow}</p>
-              <h1 className="section__title">{catechesis.title}</h1>
-              <p className="section__lead">{catechesis.lead}</p>
-            </div>
-            <div className="catechesis-page__docs reveal reveal-delay-1">
-              <DocumentList
-                docs={catechesis.docs}
-                emptyTitle={catechesis.emptyTitle}
-                emptyText={catechesis.emptyText}
-              />
-            </div>
+            {comingSoon ? (
+              <div className="catechesis-page__soon reveal">
+                <p className="section__eyebrow">{catechesis.eyebrow}</p>
+                <h1 className="catechesis-page__soon-title">
+                  {catechesis.comingSoonTitle}
+                </h1>
+                <p className="catechesis-page__soon-text">
+                  {catechesis.comingSoonText}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="catechesis__intro reveal">
+                  <p className="section__eyebrow">{catechesis.eyebrow}</p>
+                  <h1 className="section__title">{catechesis.title}</h1>
+                  <p className="section__lead">{catechesis.lead}</p>
+                </div>
+                <div className="catechesis-page__docs reveal reveal-delay-1">
+                  <DocumentList
+                    docs={catechesis.docs}
+                    emptyTitle={catechesis.emptyTitle}
+                    emptyText={catechesis.emptyText}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </section>
       </main>

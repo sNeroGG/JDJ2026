@@ -15,6 +15,7 @@ export function Hero() {
     schedule.dateLabel,
   );
   const photo = hero.imageUrl;
+  const highlights = hero.highlights ?? [];
 
   return (
     <header
@@ -54,12 +55,15 @@ export function Hero() {
         <p className="hero__slogan">{hero.slogan}</p>
         <p className="hero__tagline">{hero.tagline}</p>
         <Countdown />
-        {hero.highlights?.length > 0 ? (
+        {highlights.length ? (
           <ul className="hero__highlights">
-            {hero.highlights.map((item) => {
+            {highlights.map((item) => {
               const isDate = DATE_HIGHLIGHT_IDS.has(item.id);
               const value = isDate ? eventDate : item.value;
-              const href = isDate ? "" : item.href;
+              const href =
+                isDate || item.id === "sede" || item.id === "parroquia"
+                  ? ""
+                  : item.href;
               const inner = (
                 <>
                   <span>{isDate ? "Fecha" : item.label}</span>
