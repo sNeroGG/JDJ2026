@@ -50,15 +50,18 @@ export function ComingSoonPage({
               decoding="sync"
             />
           </div>
-          <p className="coming-soon__kicker">Próximamente</p>
-          <p className="hero__slogan">{content.hero.slogan}</p>
-          <p className="hero__tagline">{content.hero.tagline}</p>
-          <Countdown
-            target={revealAt}
-            eyebrow="Cuenta regresiva"
-            title="El sitio se revela en"
-            doneText="Ha llegado el momento. En unos segundos se abre el sitio."
-          />
+          <div className="coming-soon__stage">
+            <Countdown
+              target={revealAt}
+              eyebrow="Cuenta regresiva"
+              title="El sitio se revela en"
+              doneText="Ha llegado el momento. En unos segundos se abre el sitio."
+            />
+            <p className="coming-soon__place">
+              Jornada Diocesana de la Juventud
+              <span>Arquidiócesis de San Salvador</span>
+            </p>
+          </div>
         </div>
       </header>
       {onBackToInternal ? (

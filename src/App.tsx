@@ -51,8 +51,9 @@ function AppRoutes() {
   const { pathname, search } = useLocation();
   const comingSoon = isComingSoonActive();
   const now = useComingSoonClock(comingSoon);
+  const stillComingSoon = isComingSoonActive(now);
   const locked =
-    viewingAsPublic ||
+    (viewingAsPublic && stillComingSoon) ||
     isPublicSiteLocked(isAuthenticated, isTeamAuthenticated, now);
 
   if (isAdminPath(pathname)) {
