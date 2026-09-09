@@ -230,72 +230,42 @@
 
 .admin-tabs__toggle {
   cursor: pointer;
-  list-style: none;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 0.55rem;
-  padding: 0.52rem 0.75rem;
+  width: 100%;
+  padding: 0.58rem 0.8rem;
   border-radius: 0.7rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(232, 238, 241, 0.55);
-  font-size: 0.78rem;
-  font-weight: 600;
+  color: #e8eef1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
 }
 
-.admin-tabs__toggle::-webkit-details-marker,
-.admin-tabs__toggle::marker {
-  display: none;
-  content: "";
-}
-
-.admin-tabs__toggle::after,
-.admin-nav-group__toggle::after {
+.admin-tabs__toggle::after {
   content: "+";
   color: #7ec8d4;
   font-weight: 700;
   margin-left: auto;
 }
 
-.admin-tabs.is-open > .admin-tabs__toggle::after,
-.admin-nav-group.is-open > .admin-nav-group__toggle::after {
+.admin-tabs.is-open > .admin-tabs__toggle::after {
   content: "–";
 }
 
 .admin-tabs.is-open > .admin-tabs__toggle {
   background: rgba(255, 255, 255, 0.07);
-  color: rgba(232, 238, 241, 0.7);
-}
-
-.admin-nav-group__toggle {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  width: 100%;
-  padding: 0.42rem 0.7rem 0.28rem;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(232, 238, 241, 0.4);
-  text-align: left;
-}
-
-.admin-nav-group__toggle:hover {
-  color: rgba(232, 238, 241, 0.7);
 }
 
 .admin-tabs__toggle strong {
-  color: #e8eef1;
-  font-size: 0.9rem;
   font-weight: 700;
 }
 
 .admin-tabs > nav {
   display: grid;
-  gap: 0.15rem;
+  gap: 0.12rem;
   flex: 1;
   align-content: start;
   overflow: auto;
@@ -321,18 +291,6 @@
 
 .admin-nav-item.is-active {
   background: #2d808e;
-  color: #fff;
-  box-shadow: none;
-}
-
-.admin-nav-item.is-quiet {
-  color: rgba(232, 238, 241, 0.42);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.admin-nav-item.is-quiet:hover,
-.admin-nav-item.is-quiet.is-active {
   color: #fff;
 }
 
@@ -1604,22 +1562,14 @@
   }
 
   .admin-nav-item {
-    flex: none;
-    white-space: normal;
     width: 100%;
     padding: 0.48rem 0.75rem;
     border-radius: 0.65rem;
-    background: transparent;
     font-size: 0.86rem;
   }
 
   .admin-nav-item.is-active {
     background: #2d808e;
-  }
-
-  .admin-nav-item.is-quiet {
-    background: transparent;
-    font-size: 0.8rem;
   }
 
   .admin__side-actions {

@@ -33,7 +33,6 @@ import { createId, downloadJson } from "../utils/files";
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
 import {
-  ADMIN_GROUPS,
   isAdminSection,
   searchAdminParts,
   type AdminPart,
@@ -584,13 +583,6 @@ export function AdminPage() {
     if (typeof window === "undefined") return true;
     return !window.matchMedia("(max-width: 900px)").matches;
   });
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const next: Record<string, boolean> = {};
-    for (const group of ADMIN_GROUPS) {
-      next[group.id] = true;
-    }
-    return next;
-  });
   const allowUploads = IS_DEV && testerMode;
 
   function setAdminMode(nextTester: boolean) {
@@ -616,10 +608,6 @@ export function AdminPage() {
 
   function goToSection(id: AdminSection, nextParte?: string) {
     setSection(id, nextParte);
-    const group = ADMIN_GROUPS.find((item) => item.items.includes(id));
-    if (group) {
-      setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
-    }
     if (
       typeof window !== "undefined" &&
       window.matchMedia("(max-width: 900px)").matches
@@ -970,11 +958,6 @@ export function AdminPage() {
     ],
     [itemCount, docCount, albumCount, productCount, orders.length, donations.length],
   );
-  const navById = useMemo(() => {
-    const map = new Map<AdminSection, (typeof navItems)[number]>();
-    for (const item of navItems) map.set(item.id, item);
-    return map;
-  }, [navItems]);
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
 
@@ -1648,54 +1631,26 @@ export function AdminPage() {
               type="button"
               className="admin-tabs__toggle"
               aria-expanded={tabsOpen}
+              aria-controls="admin-tabs-list"
               onClick={() => persistTabsOpen(!tabsOpen)}
             >
-              <span>Pestañas</span>
+              <span className="sr-only">Pestañas</span>
               <strong>{currentSection.label}</strong>
             </button>
             {tabsOpen ? (
-              <nav aria-label="Secciones del admin">
-                {ADMIN_GROUPS.map((group) => {
-                  const groupOpen = openGroups[group.id] !== false;
-                  return (
-                    <div
-                      key={group.id}
-                      className={`admin-nav-group${groupOpen ? " is-open" : ""}`}
-                    >
-                      <button
-                        type="button"
-                        className="admin-nav-group__toggle"
-                        aria-expanded={groupOpen}
-                        onClick={() =>
-                          setOpenGroups((prev) => ({
-                            ...prev,
-                            [group.id]: !groupOpen,
-                          }))
-                        }
-                      >
-                        {group.label}
-                      </button>
-                      {groupOpen
-                        ? group.items.map((id) => {
-                            const item = navById.get(id);
-                            if (!item) return null;
-                            return (
-                              <button
-                                key={id}
-                                type="button"
-                                className={`admin-nav-item${
-                                  section === id ? " is-active" : ""
-                                }${id === "security" ? " is-quiet" : ""}`}
-                                onClick={() => goToSection(id)}
-                              >
-                                {item.label}
-                              </button>
-                            );
-                          })
-                        : null}
-                    </div>
-                  );
-                })}
+              <nav id="admin-tabs-list" aria-label="Secciones del admin">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`admin-nav-item${
+                      section === item.id ? " is-active" : ""
+                    }`}
+                    onClick={() => goToSection(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </nav>
             ) : null}
           </div>
