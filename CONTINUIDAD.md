@@ -10,7 +10,7 @@ tiene el stack y el día a día; esto es **dónde nos quedamos** y **qué sigue*
 - El público ve **Próximamente**: logo chico arriba, contador rojo al centro
   (brillo tipo respiración), texto
   *Jornada Diocesana de la Juventud* / *Arquidiócesis de San Salvador*.
-- El **12 de septiembre de 2026 a las 16:00** (hora de El Salvador) el
+- El **12 de septiembre de 2026 a las 08:00** (hora de El Salvador) el
   contador llega a cero y **se abre sola** la landing completa. No hay que
   entrar a `/equipo` ni redeploy a esa hora.
 - En el código, la fecha está en `src/utils/comingSoon.ts`
@@ -38,7 +38,7 @@ En Vercel → Settings → Environment Variables (Production):
 
 - `ADMIN_PASSWORD` — ya debía existir
 - `TEAM_PASSWORD` — **ponerla** si aún no está; si no, `/equipo` no entra
-- `VITE_REVEAL_AT` — opcional; si falta, usa `2026-09-12T16:00`
+- `VITE_REVEAL_AT` — opcional; si falta, usa `2026-09-12T08:00`
 - `VITE_COMING_SOON=false` — solo si quieren abrir el sitio **antes** del
   contador (luego redeploy)
 - `VITE_SITE_URL` — dominio canónico cuando esté

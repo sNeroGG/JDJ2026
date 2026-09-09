@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Countdown } from "../components/Countdown";
 import { useContent } from "../context/ContentContext";
 import { useSeo } from "../hooks/useSeo";
-import { revealAtDate } from "../utils/comingSoon";
+import { formatRevealAvailability, revealAtDate } from "../utils/comingSoon";
 import "./ComingSoonPage.css";
 
 export function ComingSoonPage({
@@ -57,10 +57,19 @@ export function ComingSoonPage({
               title="El sitio se revela en"
               doneText="Ha llegado el momento. En unos segundos se abre el sitio."
             />
-            <p className="coming-soon__place">
-              Jornada Diocesana de la Juventud
-              <span>Arquidiócesis de San Salvador</span>
-            </p>
+            <div className="coming-soon__after">
+              {revealAt ? (
+                <p className="coming-soon__reveal-at">
+                  <time dateTime={revealAt.toISOString()}>
+                    {formatRevealAvailability(revealAt)}
+                  </time>
+                </p>
+              ) : null}
+              <p className="coming-soon__place">
+                Jornada Diocesana de la Juventud
+                <span>Arquidiócesis de San Salvador</span>
+              </p>
+            </div>
           </div>
         </div>
       </header>

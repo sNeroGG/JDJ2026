@@ -158,10 +158,10 @@ Quien administra entra por `/jdj-cms` (tampoco está en el menú), pone
 `ADMIN_PASSWORD` y usa **Ver el sitio**. El login del panel también desbloquea
 la landing, porque el equipo de publicación es parte del equipo.
 
-La fecha de apertura por defecto es el **12 de septiembre de 2026** a las 16:00
-(hora de El Salvador). Al cumplirse, el sitio se revela solo. Para cambiarla,
-define `VITE_REVEAL_AT` (por ejemplo `2026-09-12T08:00`). Para apagar la cortina
-antes de esa fecha: `VITE_COMING_SOON=false` y redeploy.
+La fecha de apertura por defecto es el **sábado 12 de septiembre de 2026** a las
+08:00 (hora de El Salvador). Al cumplirse, el sitio se revela solo. Para
+cambiarla, define `VITE_REVEAL_AT` (por ejemplo `2026-09-12T08:00`). Para apagar
+la cortina antes de esa fecha: `VITE_COMING_SOON=false` y redeploy.
 
 ## Desarrollo local
 

@@ -1,12 +1,54 @@
 import { useEffect, useState } from "react";
 import { parseEventDate } from "./dates";
 
-/** Apertura por defecto: 5 días a partir de la tarde del 7 sep 2026. */
-export const DEFAULT_REVEAL_AT = "2026-09-12T16:00";
+/** Apertura pública por defecto: sábado 12 sep 2026, 08:00 (El Salvador). */
+export const DEFAULT_REVEAL_AT = "2026-09-12T08:00";
+
+const WEEKDAY_STAMP: Record<string, string> = {
+  Sun: "DOM",
+  Mon: "LUN",
+  Tue: "MAR",
+  Wed: "MIE",
+  Thu: "JUE",
+  Fri: "VIE",
+  Sat: "SAB",
+};
 
 export function revealAtDate() {
   const raw = import.meta.env.VITE_REVEAL_AT || DEFAULT_REVEAL_AT;
   return parseEventDate(raw);
+}
+
+/** Fecha corta de la cortina, p. ej. `SAB 12.09.26 - 08:00AM`. */
+export function formatRevealStamp(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/El_Salvador",
+    weekday: "short",
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  const weekday = WEEKDAY_STAMP[get("weekday")] ?? "SAB";
+  const day = get("day").padStart(2, "0");
+  const month = get("month").padStart(2, "0");
+  const year = get("year").slice(-2);
+  const hour = get("hour").padStart(2, "0");
+  const minute = get("minute").padStart(2, "0");
+  const period = get("dayPeriod")
+    .replace(/\./g, "")
+    .replace(/\s/g, "")
+    .toUpperCase();
+
+  return `${weekday} ${day}.${month}.${year} - ${hour}:${minute}${period}`;
+}
+
+export function formatRevealAvailability(date: Date) {
+  return `LA PAGINA ESTARA DISPONIBLE EL: ${formatRevealStamp(date)}`;
 }
 
 export function isRevealReached(now = Date.now()) {
