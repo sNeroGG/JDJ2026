@@ -19,20 +19,68 @@ export class StoreConflictError extends Error {
 }
 
 export function isSupabaseConfigured() {
-  const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  return Boolean(url && key);
+  const env = supabaseEnv();
+  return env.hasUrl && env.hasKey;
+}
+
+function readEnv(name: string) {
+  return String(process.env[name] || "").trim();
+}
+
+export function supabaseEnv() {
+  const rawUrl = readEnv("SUPABASE_URL");
+  const key =
+    readEnv("SUPABASE_SERVICE_ROLE_KEY") || readEnv("SERVICE_ROLE_KEY");
+  let url = rawUrl.replace(/\/+$/, "");
+  const hadRestPath = /\/rest\/v1$/i.test(url);
+  url = url.replace(/\/rest\/v1$/i, "").replace(/\/+$/, "");
+
+  let host = "";
+  try {
+    if (url) host = new URL(url).host;
+  } catch {
+    host = "";
+  }
+
+  const hints: string[] = [];
+  if (!rawUrl) {
+    hints.push(
+      "Falta SUPABASE_URL. En Vercel el nombre exacto es SUPABASE_URL y el valor es https://xxxx.supabase.co (sin /rest/v1).",
+    );
+  } else if (!host) {
+    hints.push(
+      "SUPABASE_URL no es válida. Debe ser https://xxxx.supabase.co sin /rest/v1.",
+    );
+  } else if (hadRestPath) {
+    hints.push(
+      "Se ignoró /rest/v1 al final de la URL. Deja solo https://xxxx.supabase.co.",
+    );
+  }
+  if (!key) {
+    hints.push(
+      "Falta la clave. El nombre de la variable debe ser SUPABASE_SERVICE_ROLE_KEY (no SERVICE_ROLE_KEY) y el valor es la clave service_role, no la anon.",
+    );
+  }
+
+  return {
+    url,
+    key,
+    host,
+    hasUrl: Boolean(url && host),
+    hasKey: Boolean(key),
+    hint: hints.join(" "),
+  };
 }
 
 function config() {
-  const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  if (!url || !key) {
+  const env = supabaseEnv();
+  if (!env.url || !env.key) {
     throw new Error(
-      "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el servidor.",
+      env.hint ||
+        "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el servidor.",
     );
   }
-  return { url, key };
+  return env;
 }
 
 function rpcMessage(payload: unknown, fallback: string) {
@@ -251,12 +299,20 @@ export type DbTableCheck = {
 };
 
 export async function probeSupabase() {
-  if (!isSupabaseConfigured()) {
+  const env = supabaseEnv();
+  const base = {
+    hasUrl: env.hasUrl,
+    hasKey: env.hasKey,
+    host: env.host || null,
+    hint: env.hint || "",
+  };
+
+  if (!env.hasUrl || !env.hasKey) {
     return {
+      ...base,
       configured: false,
       ok: false,
-      message:
-        "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el servidor.",
+      message: env.hint || "Faltan variables de Supabase en el servidor.",
       checks: [] as DbTableCheck[],
     };
   }
@@ -285,11 +341,17 @@ export async function probeSupabase() {
       await rest(table.path, { method: "GET" });
       checks.push({ key: table.key, label: table.label, ok: true });
     } catch (error) {
+      const raw = error instanceof Error ? error.message : "No se pudo consultar.";
+      let errorText = raw;
+      if (/Invalid API key|JWT|JWSError|unauthorized/i.test(raw)) {
+        errorText =
+          "La clave no es válida. Usa service_role (secret), no anon, en SUPABASE_SERVICE_ROLE_KEY.";
+      }
       checks.push({
         key: table.key,
         label: table.label,
         ok: false,
-        error: error instanceof Error ? error.message : "No se pudo consultar.",
+        error: errorText,
       });
     }
   }
@@ -297,10 +359,11 @@ export async function probeSupabase() {
   const ok = checks.every((item) => item.ok);
   const failed = checks.filter((item) => !item.ok);
   return {
+    ...base,
     configured: true,
     ok,
     message: ok
-      ? "Conexión correcta. Donaciones, pedidos y stock responden."
+      ? `Conexión correcta con ${env.host}. Donaciones, pedidos y stock responden.`
       : failed.length === 1
         ? `${failed[0].label}: ${failed[0].error}`
         : `Hay ${failed.length} errores. ${failed.map((item) => item.label).join(", ")}.`,

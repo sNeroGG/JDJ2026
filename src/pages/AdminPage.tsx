@@ -554,6 +554,12 @@ export function AdminPage() {
   const [dbStatus, setDbStatus] = useState<{
     ok: boolean;
     message: string;
+    hint?: string;
+    host?: string | null;
+    hasUrl?: boolean;
+    hasKey?: boolean;
+    persist?: string;
+    httpStatus?: number;
     checks: { key: string; label: string; ok: boolean; error?: string }[];
   } | null>(null);
   const [query, setQuery] = useState("");
@@ -685,36 +691,130 @@ export function AdminPage() {
 
   async function checkDatabase() {
     setDbChecking(true);
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    const headers = {
+      Authorization: `Bearer ${secret}`,
+      "X-JDJ-Probe": "1",
+    };
+
+    function asText(value: unknown) {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (typeof value === "object" && "message" in value) {
+        return String((value as { message: unknown }).message || "");
+      }
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+
+    async function readJson(path: string, extraHeaders?: HeadersInit) {
+      const remote = await fetch(path, {
+        headers: { ...headers, ...extraHeaders },
+      });
+      const text = await remote.text();
+      let payload: Record<string, unknown> | null = null;
+      try {
+        payload = text ? (JSON.parse(text) as Record<string, unknown>) : null;
+      } catch {
+        payload = null;
+      }
+      return { remote, text, payload };
+    }
+
     try {
-      const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
-      const remote = await fetch("/api/db-status", {
-        headers: { Authorization: `Bearer ${secret}` },
-      });
-      const payload = (await remote.json().catch(() => null)) as {
-        ok?: boolean;
-        message?: string;
-        error?: string;
-        checks?: {
-          key: string;
-          label: string;
-          ok: boolean;
-          error?: string;
-        }[];
-      } | null;
+      const probe = await readJson("/api/orders?probe=1");
+      const probePayload = probe.payload;
+      const html =
+        /<html/i.test(probe.text || "") ||
+        (probe.remote.headers.get("content-type") || "").includes("text/html");
+      if (
+        probePayload &&
+        typeof probePayload.ok === "boolean" &&
+        !Array.isArray(probePayload.orders)
+      ) {
+        setDbStatus({
+          ok: probePayload.ok === true,
+          message:
+            asText(probePayload.message) ||
+            asText(probePayload.error) ||
+            (probePayload.ok
+              ? "Conexión correcta."
+              : "Supabase no respondió como se esperaba."),
+          hint: asText(probePayload.hint) || undefined,
+          host: typeof probePayload.host === "string" ? probePayload.host : null,
+          hasUrl: Boolean(probePayload.hasUrl),
+          hasKey: Boolean(probePayload.hasKey),
+          persist: asText(probePayload.persist) || undefined,
+          httpStatus: probe.remote.status,
+          checks: Array.isArray(probePayload.checks)
+            ? (probePayload.checks as {
+                key: string;
+                label: string;
+                ok: boolean;
+                error?: string;
+              }[])
+            : [],
+        });
+        return;
+      }
+
+      const donations = await readJson("/api/donations", { "X-JDJ-Probe": "" });
+      const persist = asText(probePayload?.persist) || "desconocida";
+      const donationError = asText(donations.payload?.error);
+      const ordersError = asText(probePayload?.error);
+      const snippet = (probe.text || "").replace(/\s+/g, " ").slice(0, 160);
+      const supabaseOn = persist === "supabase" && donations.remote.ok;
       setDbStatus({
-        ok: Boolean(payload?.ok),
-        message:
-          payload?.message ||
-          payload?.error ||
-          (remote.ok
-            ? "Conexión correcta."
-            : "No se pudo consultar la base de datos."),
-        checks: payload?.checks ?? [],
+        ok: supabaseOn,
+        message: html
+          ? "El servidor devolvió HTML en vez de la API. Hay que publicar este código y hacer Redeploy en Vercel."
+          : supabaseOn
+            ? "Pedidos y donaciones responden. La persistencia es Supabase."
+            : donationError ||
+              ordersError ||
+              `Pedidos: HTTP ${probe.remote.status} (persist=${persist}). Donaciones: HTTP ${donations.remote.status}.`,
+        hint: html
+          ? "Este sitio todavía corre un deploy viejo. Sube los cambios y en Vercel: Deployments → Redeploy (sin usar caché)."
+          : persist === "supabase"
+            ? undefined
+            : "En Vercel las variables deben llamarse SUPABASE_URL (https://xxxx.supabase.co, sin /rest/v1) y SUPABASE_SERVICE_ROLE_KEY. Luego Redeploy.",
+        hasUrl: persist === "supabase",
+        hasKey: persist === "supabase",
+        persist,
+        httpStatus: probe.remote.status,
+        checks: [
+          {
+            key: "orders",
+            label: "Pedidos",
+            ok: probe.remote.ok && persist === "supabase" && !html,
+            error: html
+              ? snippet
+              : probe.remote.ok
+                ? persist === "supabase"
+                  ? undefined
+                  : `persist=${persist}`
+                : ordersError || snippet || `HTTP ${probe.remote.status}`,
+          },
+          {
+            key: "donations",
+            label: "Donaciones",
+            ok: donations.remote.ok,
+            error: donations.remote.ok
+              ? undefined
+              : donationError || `HTTP ${donations.remote.status}`,
+          },
+        ],
       });
-    } catch {
+    } catch (error) {
       setDbStatus({
         ok: false,
-        message: "No se pudo consultar la base de datos.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Fallo de red al consultar el servidor.",
         checks: [],
       });
     } finally {
@@ -1460,13 +1560,27 @@ export function AdminPage() {
             {dbChecking ? "Consultando…" : "Consultar base de datos"}
           </button>
           {dbStatus ? (
-            <p
+            <div
               className={`admin-db__status${dbStatus.ok ? " is-ok" : " is-error"}`}
               role="status"
             >
-              {dbStatus.ok ? "Todo correcto. " : "Error. "}
-              {dbStatus.message}
-            </p>
+              <p>
+                {dbStatus.ok ? "Todo correcto. " : "Error. "}
+                {dbStatus.message}
+              </p>
+              <ul className="admin-db__meta">
+                {dbStatus.httpStatus ? (
+                  <li>HTTP {dbStatus.httpStatus}</li>
+                ) : null}
+                {dbStatus.persist ? (
+                  <li>Persistencia: {dbStatus.persist}</li>
+                ) : null}
+                <li>URL definida: {dbStatus.hasUrl ? "sí" : "no"}</li>
+                <li>Clave definida: {dbStatus.hasKey ? "sí" : "no"}</li>
+                {dbStatus.host ? <li>Proyecto: {dbStatus.host}</li> : null}
+              </ul>
+              {dbStatus.hint ? <p>{dbStatus.hint}</p> : null}
+            </div>
           ) : null}
           {dbStatus?.checks.length ? (
             <ul className="admin-db__checks">

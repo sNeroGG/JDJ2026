@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAuthorized } from "./_lib/auth.js";
 import { send } from "./_lib/http.js";
-import { probeSupabase } from "./_lib/supabase.js";
+import { probeSupabase, supabaseEnv } from "./_lib/supabase.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -17,15 +17,20 @@ export default async function handler(
   }
   try {
     const status = await probeSupabase();
-    send(res, status.ok ? 200 : 503, status);
+    send(res, 200, status);
   } catch (error) {
-    send(res, 503, {
+    const env = supabaseEnv();
+    send(res, 200, {
       configured: false,
       ok: false,
+      hasUrl: env.hasUrl,
+      hasKey: env.hasKey,
+      host: env.host || null,
+      hint: env.hint,
       message:
         error instanceof Error
           ? error.message
-          : "No se pudo consultar la base de datos.",
+          : "Fallo inesperado al consultar Supabase.",
       checks: [],
     });
   }

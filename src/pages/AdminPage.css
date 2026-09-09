@@ -143,10 +143,22 @@
 }
 
 .admin-db__status {
-  margin: 0;
   font-size: 0.74rem;
   line-height: 1.35;
   color: rgba(232, 238, 241, 0.72);
+}
+
+.admin-db__status p {
+  margin: 0;
+}
+
+.admin-db__meta {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  display: grid;
+  gap: 0.1rem;
+  color: rgba(232, 238, 241, 0.62);
+  font-weight: 500;
 }
 
 .admin-db__status.is-ok {

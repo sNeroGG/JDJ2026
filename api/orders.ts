@@ -9,6 +9,7 @@ import {
 import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
 import { clientKey, isOrderId, rateLimit } from "./_lib/safe.js";
+import { probeSupabase } from "./_lib/supabase.js";
 import {
   liveProducts,
   persistKind,
@@ -19,6 +20,21 @@ import {
   updateLiveOrderStatus,
 } from "./_lib/storeRepo.js";
 
+function wantsDbProbe(req: IncomingMessage) {
+  const header = String(req.headers["x-jdj-probe"] || "");
+  if (header === "1") return true;
+  const query = (req as { query?: Record<string, unknown> }).query?.probe;
+  if (query === "1" || (Array.isArray(query) && query[0] === "1")) return true;
+  try {
+    return (
+      new URL(req.url || "/", "http://localhost").searchParams.get("probe") ===
+      "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
@@ -27,6 +43,25 @@ export default async function handler(
     if (req.method === "GET") {
       if (!isAuthorized(req)) {
         send(res, 401, { error: "No autorizado" });
+        return;
+      }
+      if (wantsDbProbe(req)) {
+        try {
+          send(res, 200, {
+            ...(await probeSupabase()),
+            persist: persistKind(),
+          });
+        } catch (error) {
+          send(res, 200, {
+            ok: false,
+            persist: persistKind(),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Fallo al consultar Supabase.",
+            checks: [],
+          });
+        }
         return;
       }
       send(res, 200, {

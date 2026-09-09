@@ -128,8 +128,9 @@ repo. En local sin Supabase los pedidos siguen en `src/data/savedOrders.ts`.
 3. Settings → API: copia **Project URL** y la clave **service_role** (no `anon`).
 4. En Vercel → Settings → Environment Variables (Production):
 
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_URL` = `https://xxxx.supabase.co` (**sin** `/rest/v1`)
+   - `SUPABASE_SERVICE_ROLE_KEY` = clave **service_role** (secret), no `anon`
+     y no un nombre `SERVICE_ROLE_KEY`.
 
    Redeploy. En local, las mismas en `.env` y `npm run dev`.
 5. Prueba:

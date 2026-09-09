@@ -223,6 +223,7 @@ const LOCAL_API_ROUTES = [
 const DONATION_ENV_KEYS = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "SERVICE_ROLE_KEY",
 ] as const;
 
 function localStoreApiPlugin(): Plugin {
