@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
-import { storeWhatsapp } from "./_lib/runtime.js";
+import { storeWhatsapp } from "./_lib/catalog.js";
 import {
   insertDonation,
   isSupabaseConfigured,

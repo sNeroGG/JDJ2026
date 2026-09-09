@@ -3,7 +3,7 @@ import {
   DEFAULT_MINISTRY_LAYOUT,
   type MinistryItem,
   type MinistryLayout,
-} from "./ministries";
+} from "./ministries.js";
 
 export type { MinistryItem, MinistryLayout };
 

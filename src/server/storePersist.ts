@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { StoreOrder, StoreProduct } from "../data/defaultContent.ts";
-import { serializeSavedContent } from "./contentFile.ts";
+import type { StoreOrder, StoreProduct } from "../data/defaultContent.js";
+import { serializeSavedContent } from "./contentFile.js";
 import {
   normalizeStoreProducts,
   orderVariantId,
   stockMapFromProducts,
   withAdjustedVariantStock,
-} from "../utils/store.ts";
+} from "../utils/store.js";
 
 type SavedFile = {
   store?: {

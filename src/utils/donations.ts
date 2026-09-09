@@ -1,4 +1,4 @@
-import { formatUsd, normalizeWhatsapp } from "./store";
+import { formatUsd, normalizeWhatsapp } from "./store.js";
 
 export const DONATION_MIN = 5;
 export const DONATION_MAX = 25;

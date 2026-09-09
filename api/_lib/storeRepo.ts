@@ -1,6 +1,4 @@
 import fs from "node:fs";
-import { SAVED_CONTENT } from "../../src/data/savedContent.js";
-import { SAVED_ORDERS } from "../../src/data/savedOrders.js";
 import type {
   StoreOrder,
   StoreOrderStatus,
@@ -8,7 +6,6 @@ import type {
 } from "../../src/data/defaultContent.js";
 import {
   applyStockMap,
-  normalizeStoreProducts,
   orderVariantId,
   productStock,
   stockMapFromProducts,
@@ -23,6 +20,7 @@ import {
   readSavedOrders,
   writeSavedOrders,
 } from "../../src/server/storePersist.js";
+import { bundledOrders, productsFromBundle, storeWhatsapp as bundledWhatsapp } from "./catalog.js";
 import { commitFile, isGithubConfigured } from "./github.js";
 import {
   ensureStoreStock,
@@ -47,15 +45,6 @@ export function persistKind(): PersistKind {
   return "file";
 }
 
-function productsFromBundle(): StoreProduct[] {
-  const store = (
-    SAVED_CONTENT as {
-      store?: { products?: StoreProduct[] };
-    }
-  ).store;
-  return normalizeStoreProducts(store?.products);
-}
-
 export function catalogProducts(): StoreProduct[] {
   if (!process.env.VERCEL) {
     try {
@@ -75,8 +64,7 @@ export function storeWhatsapp() {
       /* fall through */
     }
   }
-  const store = (SAVED_CONTENT as { store?: { whatsapp?: string } }).store;
-  return String(store?.whatsapp || "");
+  return bundledWhatsapp();
 }
 
 function readJsonFile<T>(file: string, fallback: T): T {
@@ -108,7 +96,7 @@ function writeTmpStock(productId: string, variantId: string, stock: number) {
 }
 
 function readTmpOrders(): StoreOrder[] {
-  return readJsonFile<StoreOrder[]>(ORDERS_PATH, [...SAVED_ORDERS]);
+  return readJsonFile<StoreOrder[]>(ORDERS_PATH, bundledOrders());
 }
 
 function writeTmpOrders(orders: StoreOrder[]) {

@@ -725,7 +725,9 @@ export function AdminPage() {
     }
 
     try {
-      const probe = await readJson("/api/orders?probe=1");
+      const probe = await readJson("/api/db-status");
+      const crash = (value: string) =>
+        /FUNCTION_INVOCATION_FAILED|FUNCTION_INVOCATION_TIMEOUT/i.test(value);
       const probePayload = probe.payload;
       const html =
         /<html/i.test(probe.text || "") ||
@@ -761,47 +763,57 @@ export function AdminPage() {
         return;
       }
 
+      const orders = await readJson("/api/orders?probe=1");
       const donations = await readJson("/api/donations", { "X-JDJ-Probe": "" });
-      const persist = asText(probePayload?.persist) || "desconocida";
+      const persist = asText(orders.payload?.persist) || "desconocida";
       const donationError = asText(donations.payload?.error);
-      const ordersError = asText(probePayload?.error);
-      const snippet = (probe.text || "").replace(/\s+/g, " ").slice(0, 160);
+      const ordersError = asText(orders.payload?.error);
+      const snippet = (orders.text || probe.text || "")
+        .replace(/\s+/g, " ")
+        .slice(0, 180);
+      const crashed =
+        crash(ordersError) ||
+        crash(donationError) ||
+        crash(snippet) ||
+        crash(asText(probePayload?.error));
       const supabaseOn = persist === "supabase" && donations.remote.ok;
       setDbStatus({
         ok: supabaseOn,
-        message: html
-          ? "El servidor devolvió HTML en vez de la API. Hay que publicar este código y hacer Redeploy en Vercel."
-          : supabaseOn
-            ? "Pedidos y donaciones responden. La persistencia es Supabase."
-            : donationError ||
-              ordersError ||
-              `Pedidos: HTTP ${probe.remote.status} (persist=${persist}). Donaciones: HTTP ${donations.remote.status}.`,
-        hint: html
-          ? "Este sitio todavía corre un deploy viejo. Sube los cambios y en Vercel: Deployments → Redeploy (sin usar caché)."
-          : persist === "supabase"
-            ? undefined
-            : "En Vercel las variables deben llamarse SUPABASE_URL (https://xxxx.supabase.co, sin /rest/v1) y SUPABASE_SERVICE_ROLE_KEY. Luego Redeploy.",
+        message: crashed
+          ? "Las funciones de Vercel se caen al arrancar. No es un fallo de las variables todavía: hay que desplegar el arreglo de imports."
+          : html
+            ? "El servidor devolvió HTML en vez de la API. Hay que publicar este código y hacer Redeploy en Vercel."
+            : supabaseOn
+              ? "Pedidos y donaciones responden. La persistencia es Supabase."
+              : donationError ||
+                ordersError ||
+                `Pedidos: HTTP ${orders.remote.status} (persist=${persist}). Donaciones: HTTP ${donations.remote.status}.`,
+        hint: crashed
+          ? "FUNCTION_INVOCATION_FAILED suele ser un import que Node no puede cargar. Sube este código y en Vercel: Redeploy sin caché."
+          : html
+            ? "Este sitio todavía corre un deploy viejo. Sube los cambios y en Vercel: Deployments → Redeploy (sin usar caché)."
+            : persist === "supabase"
+              ? undefined
+              : "En Vercel las variables deben llamarse SUPABASE_URL (https://xxxx.supabase.co, sin /rest/v1) y SUPABASE_SERVICE_ROLE_KEY. Luego Redeploy.",
         hasUrl: persist === "supabase",
         hasKey: persist === "supabase",
         persist,
-        httpStatus: probe.remote.status,
+        httpStatus: probe.remote.status || orders.remote.status,
         checks: [
           {
             key: "orders",
             label: "Pedidos",
-            ok: probe.remote.ok && persist === "supabase" && !html,
-            error: html
-              ? snippet
-              : probe.remote.ok
-                ? persist === "supabase"
-                  ? undefined
-                  : `persist=${persist}`
-                : ordersError || snippet || `HTTP ${probe.remote.status}`,
+            ok: orders.remote.ok && persist === "supabase" && !html && !crashed,
+            error: orders.remote.ok
+              ? persist === "supabase"
+                ? undefined
+                : `persist=${persist}`
+              : ordersError || snippet || `HTTP ${orders.remote.status}`,
           },
           {
             key: "donations",
             label: "Donaciones",
-            ok: donations.remote.ok,
+            ok: donations.remote.ok && !crashed,
             error: donations.remote.ok
               ? undefined
               : donationError || `HTTP ${donations.remote.status}`,
