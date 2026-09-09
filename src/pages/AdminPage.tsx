@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -545,9 +546,16 @@ export function AdminPage() {
   const [donations, setDonations] = useState<DonationRecord[]>([]);
   const [donationsNotice, setDonationsNotice] = useState("");
   const [donationsTotal, setDonationsTotal] = useState(0);
+  const [donationsPersist, setDonationsPersist] = useState("");
   const [donationFilter, setDonationFilter] = useState<"all" | DonationStatus>(
     "all",
   );
+  const [dbChecking, setDbChecking] = useState(false);
+  const [dbStatus, setDbStatus] = useState<{
+    ok: boolean;
+    message: string;
+    checks: { key: string; label: string; ok: boolean; error?: string }[];
+  } | null>(null);
   const [query, setQuery] = useState("");
   const [testerMode, setTesterMode] = useState(() => {
     if (!IS_DEV) return false;
@@ -633,57 +641,111 @@ export function AdminPage() {
       });
   }, [isAuthenticated, section, draft.catechesis.docs.length]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  const loadOrders = useCallback(async () => {
     const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
-    void fetch("/api/orders", {
+    const remote = await fetch("/api/orders", {
       headers: { Authorization: `Bearer ${secret}` },
-    })
-      .then(async (remote) => {
-        const payload = (await remote.json().catch(() => null)) as {
-          orders?: StoreOrder[];
-          persist?: string;
-          error?: string;
-        } | null;
-        if (!remote.ok) {
-          setOrdersNotice(payload?.error || "No se pudieron cargar los pedidos.");
-          return;
-        }
-        setOrders(payload?.orders ?? []);
-        setOrdersPersist(payload?.persist || "");
-        setOrdersNotice("");
-      })
-      .catch(() => {
-        setOrdersNotice("No se pudieron cargar los pedidos.");
+    });
+    const payload = (await remote.json().catch(() => null)) as {
+      orders?: StoreOrder[];
+      persist?: string;
+      error?: string;
+    } | null;
+    if (!remote.ok) {
+      setOrdersNotice(payload?.error || "No se pudieron cargar los pedidos.");
+      return;
+    }
+    setOrders(payload?.orders ?? []);
+    setOrdersPersist(payload?.persist || "");
+    setOrdersNotice("");
+  }, []);
+
+  const loadDonations = useCallback(async () => {
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    const remote = await fetch("/api/donations", {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    const payload = (await remote.json().catch(() => null)) as {
+      donations?: DonationRecord[];
+      totalPaid?: number;
+      persist?: string;
+      error?: string;
+    } | null;
+    if (!remote.ok) {
+      setDonationsNotice(
+        payload?.error || "No se pudieron cargar las donaciones.",
+      );
+      return;
+    }
+    setDonations(payload?.donations ?? []);
+    setDonationsTotal(payload?.totalPaid ?? 0);
+    setDonationsPersist(payload?.persist || "");
+    setDonationsNotice("");
+  }, []);
+
+  async function checkDatabase() {
+    setDbChecking(true);
+    try {
+      const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+      const remote = await fetch("/api/db-status", {
+        headers: { Authorization: `Bearer ${secret}` },
       });
-  }, [isAuthenticated]);
+      const payload = (await remote.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+        checks?: {
+          key: string;
+          label: string;
+          ok: boolean;
+          error?: string;
+        }[];
+      } | null;
+      setDbStatus({
+        ok: Boolean(payload?.ok),
+        message:
+          payload?.message ||
+          payload?.error ||
+          (remote.ok
+            ? "Conexión correcta."
+            : "No se pudo consultar la base de datos."),
+        checks: payload?.checks ?? [],
+      });
+    } catch {
+      setDbStatus({
+        ok: false,
+        message: "No se pudo consultar la base de datos.",
+        checks: [],
+      });
+    } finally {
+      setDbChecking(false);
+    }
+  }
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
-    void fetch("/api/donations", {
-      headers: { Authorization: `Bearer ${secret}` },
-    })
-      .then(async (remote) => {
-        const payload = (await remote.json().catch(() => null)) as {
-          donations?: DonationRecord[];
-          totalPaid?: number;
-          error?: string;
-        } | null;
-        if (!remote.ok) {
-          setDonationsNotice(
-            payload?.error || "No se pudieron cargar las donaciones.",
-          );
-          return;
-        }
-        setDonations(payload?.donations ?? []);
-        setDonationsTotal(payload?.totalPaid ?? 0);
-        setDonationsNotice("");
-      })
-      .catch(() => {
-        setDonationsNotice("No se pudieron cargar las donaciones.");
-      });
-  }, [isAuthenticated]);
+    void loadOrders().catch(() => {
+      setOrdersNotice("No se pudieron cargar los pedidos.");
+    });
+    void loadDonations().catch(() => {
+      setDonationsNotice("No se pudieron cargar las donaciones.");
+    });
+  }, [isAuthenticated, loadDonations, loadOrders]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (section !== "orders" && section !== "donations") return;
+    const refresh = () => {
+      if (section === "orders") {
+        void loadOrders().catch(() => undefined);
+      } else {
+        void loadDonations().catch(() => undefined);
+      }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 12000);
+    return () => window.clearInterval(timer);
+  }, [isAuthenticated, loadDonations, loadOrders, section]);
 
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
@@ -1183,6 +1245,7 @@ export function AdminPage() {
       setOrders((prev) =>
         prev.map((item) => (item.id === id ? payload.order! : item)),
       );
+      void loadOrders().catch(() => undefined);
       const variantId =
         current.variantId ||
         findVariant(
@@ -1237,6 +1300,7 @@ export function AdminPage() {
           .reduce((sum, item) => sum + Number(item.amount || 0), 0),
       );
       setDonationsNotice("Donación actualizada.");
+      void loadDonations().catch(() => undefined);
     } catch {
       setDonationsNotice("No se pudo actualizar la donación.");
     }
@@ -1386,6 +1450,37 @@ export function AdminPage() {
                 ? "Modo producción (prueba)"
                 : "Producción: solo texto"}
           </span>
+        </div>
+        <div className="admin-db">
+          <button
+            type="button"
+            disabled={dbChecking}
+            onClick={() => void checkDatabase()}
+          >
+            {dbChecking ? "Consultando…" : "Consultar base de datos"}
+          </button>
+          {dbStatus ? (
+            <p
+              className={`admin-db__status${dbStatus.ok ? " is-ok" : " is-error"}`}
+              role="status"
+            >
+              {dbStatus.ok ? "Todo correcto. " : "Error. "}
+              {dbStatus.message}
+            </p>
+          ) : null}
+          {dbStatus?.checks.length ? (
+            <ul className="admin-db__checks">
+              {dbStatus.checks.map((item) => (
+                <li
+                  key={item.key}
+                  className={item.ok ? "is-ok" : "is-error"}
+                >
+                  {item.ok ? "OK" : "Error"} · {item.label}
+                  {item.error ? `: ${item.error}` : ""}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         <label className="admin-search">
           <span className="sr-only">Buscar qué editar</span>
@@ -3303,14 +3398,27 @@ export function AdminPage() {
             </div>
             <p className="admin-panel__hint">
               {orderTab === "registro"
-                ? "Lista de cada pedido. Haz clic para ver el detalle y cambiar el estado."
+                ? "Bitácora de cada pedido (viene de Supabase cuando está configurado). Se actualiza sola al entrar aquí."
                 : "Resumen general de compras, tallas y estilos. El stock se descuenta por talla y color; si cancelas, se devuelve a esa variante."}
-              {ordersPersist === "memory"
-                ? " En producción, configura GITHUB_TOKEN si quieres conservarlos entre deploys."
-                : ordersPersist === "file"
-                  ? " En local se guardan en src/data/savedOrders.ts."
-                  : ""}
+              {ordersPersist === "supabase"
+                ? " Pedidos y stock viven en Supabase: aguantan compras a la vez y no se pierden al redesplegar."
+                : ordersPersist === "github"
+                  ? " Los pedidos se copian al repo, pero el stock en vivo puede perderse entre deploys. Configura Supabase para producción."
+                  : ordersPersist === "memory"
+                    ? " En producción, configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para no perder pedidos ni stock."
+                    : ordersPersist === "file"
+                      ? " En local se guardan en src/data/savedOrders.ts. Con las variables de Supabase en .env usan la base."
+                      : ""}
             </p>
+            <div className="admin-inline-actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => void loadOrders().catch(() => undefined)}
+              >
+                Actualizar bitácora
+              </button>
+            </div>
             {ordersNotice ? (
               <p className="admin-panel__hint is-status">{ordersNotice}</p>
             ) : null}
@@ -3465,9 +3573,12 @@ export function AdminPage() {
           <section className="admin-panel" id="parte-donaciones">
             <h2>Donaciones{donations.length ? ` (${donations.length})` : ""}</h2>
             <p className="admin-panel__hint">
-              Cada aporte llega por WhatsApp y se paga por transferencia
-              bancaria. Queda pendiente hasta que confirmes el comprobante. El
-              total solo suma donaciones pagadas ($5 a $25).
+              Bitácora de aportes: cada registro de /donar se guarda en
+              Supabase y aparece aquí. Queda pendiente hasta que confirmes el
+              comprobante. El total solo suma donaciones pagadas ($5 a $25).
+              {donationsPersist === "supabase"
+                ? " Conectado a Supabase."
+                : " En producción necesitan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY."}
             </p>
             <div className="admin-report">
               <article className="admin-report__card">
@@ -3502,6 +3613,13 @@ export function AdminPage() {
                   <option value="expired">Vencida</option>
                 </select>
               </label>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => void loadDonations().catch(() => undefined)}
+              >
+                Actualizar bitácora
+              </button>
               <button
                 type="button"
                 className="btn btn--ghost"

@@ -21,25 +21,15 @@ import {
   loadInstagramFeed,
   normalizeHandle,
 } from "./src/server/instagramFeed.ts";
-import type { StoreOrder } from "./src/data/defaultContent.ts";
-import { isOrderId } from "./src/utils/ids.ts";
 import {
-  adjustVariantStock,
-  listStoreProducts,
   readSavedContent as readStoreContent,
-  readSavedOrders,
-  resolveOrderVariantId,
-  stockMap,
   writeSavedContent,
-  writeSavedOrders,
 } from "./src/server/storePersist.ts";
-import {
-  buildStoreOrder,
-  parseCreateOrder,
-  whatsappOrderUrl,
-} from "./src/utils/store.ts";
 import donationsHandler from "./api/donations.ts";
+import dbStatusHandler from "./api/db-status.ts";
 import loginHandler from "./api/login.ts";
+import ordersHandler from "./api/orders.ts";
+import storeHandler from "./api/store.ts";
 import teamLoginHandler from "./api/team-login.ts";
 import { isAuthorized as isAdminRequest } from "./api/_lib/auth.ts";
 
@@ -227,6 +217,7 @@ const LOCAL_API_ROUTES = [
   "/api/team-login",
   "/api/content",
   "/api/donations",
+  "/api/db-status",
 ];
 
 const DONATION_ENV_KEYS = [
@@ -250,6 +241,11 @@ function localStoreApiPlugin(): Plugin {
         void (async () => {
           if (url === "/api/donations") {
             await donationsHandler(req, res);
+            return;
+          }
+
+          if (url === "/api/db-status") {
+            await dbStatusHandler(req, res);
             return;
           }
 
@@ -304,126 +300,13 @@ function localStoreApiPlugin(): Plugin {
             sendJson(res, 200, feed);
             return;
           }
-          if (url === "/api/store" && req.method === "GET") {
-            sendJson(res, 200, {
-              stock: stockMap(listStoreProducts(root)),
-            });
+          if (url === "/api/store") {
+            await storeHandler(req, res);
             return;
           }
 
-          if (url === "/api/orders" && req.method === "GET") {
-            if (!isAdminRequest(req)) {
-              sendJson(res, 401, { error: "No autorizado" });
-              return;
-            }
-            sendJson(res, 200, {
-              orders: readSavedOrders(root).slice().reverse(),
-              persist: "file",
-            });
-            return;
-          }
-
-          if (url === "/api/orders" && req.method === "POST") {
-            const body = await readJsonBody(req);
-            const parsed = parseCreateOrder(body);
-            if ("error" in parsed) {
-              sendJson(res, 400, parsed);
-              return;
-            }
-            const products = listStoreProducts(root);
-            const product = products.find((item) => item.id === parsed.productId);
-            if (!product) {
-              sendJson(res, 404, { error: "Producto no encontrado." });
-              return;
-            }
-            const order = buildStoreOrder(parsed, product);
-            if ("error" in order) {
-              sendJson(res, 409, order);
-              return;
-            }
-            const stock = adjustVariantStock(
-              root,
-              product.id,
-              order.variantId,
-              -order.quantity,
-            );
-            if ("error" in stock) {
-              sendJson(res, 409, stock);
-              return;
-            }
-            const orders = [...readSavedOrders(root), order];
-            writeSavedOrders(root, orders);
-            const store = readStoreContent(root).store;
-            sendJson(res, 201, {
-              ok: true,
-              order,
-              stock: stock.stock,
-              total: stock.total,
-              variantId: stock.variantId,
-              whatsappUrl: whatsappOrderUrl(
-                String(store?.whatsapp || ""),
-                order,
-              ),
-            });
-            return;
-          }
-
-          if (url === "/api/orders" && req.method === "PATCH") {
-            if (!isAdminRequest(req)) {
-              sendJson(res, 401, { error: "No autorizado" });
-              return;
-            }
-            const body = await readJsonBody(req);
-            const id = String(body.id || "");
-            const status = String(body.status || "") as StoreOrder["status"];
-            if (
-              !isOrderId(id) ||
-              !["nuevo", "atendido", "cancelado"].includes(status)
-            ) {
-              sendJson(res, 400, { error: "Pedido o estado no válido." });
-              return;
-            }
-            const orders = readSavedOrders(root);
-            const index = orders.findIndex((item) => item.id === id);
-            if (index < 0) {
-              sendJson(res, 404, { error: "Pedido no encontrado." });
-              return;
-            }
-            const current = orders[index];
-            const variantId = resolveOrderVariantId(root, current);
-            if (current.status !== status && variantId) {
-              if (status === "cancelado" && current.status !== "cancelado") {
-                const restored = adjustVariantStock(
-                  root,
-                  current.productId,
-                  variantId,
-                  current.quantity,
-                );
-                if ("error" in restored) {
-                  sendJson(res, 409, restored);
-                  return;
-                }
-              }
-              if (current.status === "cancelado" && status !== "cancelado") {
-                const taken = adjustVariantStock(
-                  root,
-                  current.productId,
-                  variantId,
-                  -current.quantity,
-                );
-                if ("error" in taken) {
-                  sendJson(res, 409, taken);
-                  return;
-                }
-              }
-            }
-            orders[index] = {
-              ...current,
-              status,
-              variantId: current.variantId || variantId,
-            };
-            writeSavedOrders(root, orders);
-            sendJson(res, 200, { ok: true, order: orders[index] });
+          if (url === "/api/orders") {
+            await ordersHandler(req, res);
             return;
           }
 

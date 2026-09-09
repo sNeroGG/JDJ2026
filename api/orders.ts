@@ -8,16 +8,16 @@ import {
 } from "../src/utils/store.js";
 import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
-import {
-  adjustStock,
-  listProducts,
-  persistKind,
-  readOrders,
-  resolveOrderVariantId,
-  storeWhatsapp,
-  writeOrders,
-} from "./_lib/runtime.js";
 import { clientKey, isOrderId, rateLimit } from "./_lib/safe.js";
+import {
+  liveProducts,
+  persistKind,
+  placeLiveOrder,
+  readOrders,
+  StoreConflictError,
+  storeWhatsapp,
+  updateLiveOrderStatus,
+} from "./_lib/storeRepo.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -30,7 +30,7 @@ export default async function handler(
         return;
       }
       send(res, 200, {
-        orders: readOrders().slice().reverse(),
+        orders: await readOrders(),
         persist: persistKind(),
       });
       return;
@@ -46,7 +46,9 @@ export default async function handler(
         send(res, 400, parsed);
         return;
       }
-      const product = listProducts().find((item) => item.id === parsed.productId);
+      const product = (await liveProducts()).find(
+        (item) => item.id === parsed.productId,
+      );
       if (!product) {
         send(res, 404, { error: "Producto no encontrado." });
         return;
@@ -60,19 +62,18 @@ export default async function handler(
         send(res, 409, order);
         return;
       }
-      const stock = adjustStock(product.id, order.variantId, -order.quantity);
-      if ("error" in stock) {
-        send(res, 409, stock);
+      const placed = await placeLiveOrder(order, product);
+      if ("error" in placed) {
+        send(res, 409, placed);
         return;
       }
-      writeOrders([...readOrders(), order]);
       send(res, 201, {
         ok: true,
-        order,
-        stock: stock.stock,
-        total: stock.total,
-        variantId: stock.variantId,
-        whatsappUrl: whatsappOrderUrl(storeWhatsapp(), order),
+        order: placed.order,
+        stock: placed.stock,
+        total: placed.total,
+        variantId: placed.variantId,
+        whatsappUrl: whatsappOrderUrl(storeWhatsapp(), placed.order),
       });
       return;
     }
@@ -92,47 +93,24 @@ export default async function handler(
         send(res, 400, { error: "Pedido o estado no válido." });
         return;
       }
-      const orders = readOrders();
-      const index = orders.findIndex((item) => item.id === id);
-      if (index < 0) {
-        send(res, 404, { error: "Pedido no encontrado." });
+      const updated = await updateLiveOrderStatus(id, status);
+      if ("error" in updated) {
+        send(res, updated.http ?? 409, { error: updated.error });
         return;
       }
-      const current = orders[index];
-      const variantId = resolveOrderVariantId(current);
-      if (current.status !== status && variantId) {
-        if (status === "cancelado" && current.status !== "cancelado") {
-          const restored = adjustStock(
-            current.productId,
-            variantId,
-            current.quantity,
-          );
-          if ("error" in restored) {
-            send(res, 409, restored);
-            return;
-          }
-        }
-        if (current.status === "cancelado" && status !== "cancelado") {
-          const taken = adjustStock(
-            current.productId,
-            variantId,
-            -current.quantity,
-          );
-          if ("error" in taken) {
-            send(res, 409, taken);
-            return;
-          }
-        }
-      }
-      orders[index] = { ...current, status, variantId: current.variantId || variantId };
-      writeOrders(orders);
-      send(res, 200, { ok: true, order: orders[index] });
+      send(res, 200, { ok: true, order: updated.order });
       return;
     }
 
     send(res, 405, { error: "Método no permitido" });
   } catch (error) {
     if (sendReadError(res, error)) return;
+    if (error instanceof StoreConflictError) {
+      send(res, error.message === "Pedido no encontrado." ? 404 : 409, {
+        error: error.message,
+      });
+      return;
+    }
     send(res, 500, {
       error: error instanceof Error ? error.message : "Error en pedidos",
     });

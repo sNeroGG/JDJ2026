@@ -131,7 +131,9 @@ export function formatOrderDate(iso: string) {
 }
 
 export function createOrderId() {
-  return `JDJ-${Date.now().toString(36).toUpperCase()}`;
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `JDJ-${stamp}${rand}`.slice(0, 28);
 }
 
 export function makeVariantId(productId: string, size: string, color: string) {

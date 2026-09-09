@@ -46,6 +46,28 @@ export function isDonationStatus(value: string): value is DonationStatus {
   return (DONATION_STATUSES as readonly string[]).includes(value);
 }
 
+export function normalizeDonationRecord(
+  raw: Record<string, unknown> | null | undefined,
+): DonationRecord | null {
+  if (!raw || typeof raw !== "object") return null;
+  const id = String(raw.id || "").trim();
+  if (!id) return null;
+  const status = String(raw.status || "pending");
+  return {
+    id,
+    full_name: String(raw.full_name ?? raw.fullName ?? ""),
+    dui: String(raw.dui ?? ""),
+    email: String(raw.email ?? ""),
+    phone: String(raw.phone ?? ""),
+    parish: String(raw.parish ?? ""),
+    amount: Number(raw.amount) || 0,
+    status: isDonationStatus(status) ? status : "pending",
+    payment_method: raw.payment_method == null ? null : String(raw.payment_method),
+    paid_at: raw.paid_at == null ? null : String(raw.paid_at),
+    created_at: String(raw.created_at ?? ""),
+  };
+}
+
 export function parseDonationAmount(value: unknown) {
   const amount = typeof value === "number" ? value : Number(String(value || "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;

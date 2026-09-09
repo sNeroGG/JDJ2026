@@ -44,7 +44,9 @@ En Vercel → Settings → Environment Variables (Production):
 - `VITE_SITE_URL` — dominio canónico cuando esté
 - `GITHUB_TOKEN` — para publicar textos desde `/jdj-cms`
 - `VITE_CF_BEACON_TOKEN` — analíticas largas (ver abajo)
-- Donaciones: `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`
+- Donaciones y tienda: `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`
+  (correr `supabase/schema.sql` en el SQL Editor). Sin esto, los pedidos en
+  Vercel se pueden perder y `/donar` no guarda.
 
 Tras cambiar cualquier `VITE_*`, hay que **Redeploy**.
 
@@ -69,7 +71,8 @@ Tras cambiar cualquier `VITE_*`, hay que **Redeploy**.
 - `/equipo` con PIN en servidor (`api/team-login.ts`)
 - Merge con la otra PC: tienda (mystery shirt), Hero, sede/inicio,
   catequesis, admin, `savedContent`
-- Donaciones por transferencia + WhatsApp + Supabase (si las vars están)
+- Donaciones por transferencia + WhatsApp. Pedidos y donaciones en Supabase
+  cuando las vars y `schema.sql` están (si no, pedidos frágiles en Vercel).
 
 ## Qué sigue (prioridad)
 

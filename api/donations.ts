@@ -3,7 +3,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
 import { storeWhatsapp } from "./_lib/runtime.js";
-import { insertDonation, listDonations, updateDonation } from "./_lib/supabase.js";
+import {
+  insertDonation,
+  isSupabaseConfigured,
+  listDonations,
+  updateDonation,
+} from "./_lib/supabase.js";
 import {
   DONATION_PAYMENT,
   isDonationStatus,
@@ -17,26 +22,37 @@ export default async function handler(
   res: ServerResponse,
 ) {
   try {
+    if (
+      (req.method === "GET" || req.method === "PATCH") &&
+      !isAuthorized(req)
+    ) {
+      send(res, 401, { error: "No autorizado" });
+      return;
+    }
+    if (!isSupabaseConfigured()) {
+      send(res, 503, {
+        error:
+          "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY. Sin eso no se guardan donaciones.",
+      });
+      return;
+    }
     if (req.method === "GET") {
-      if (!isAuthorized(req)) {
-        send(res, 401, { error: "No autorizado" });
-        return;
-      }
       const donations = await listDonations();
       const paid = donations.filter((item) => item.status === "paid");
       const totalPaid = paid.reduce(
         (sum, item) => sum + Number(item.amount || 0),
         0,
       );
-      send(res, 200, { donations, totalPaid, count: donations.length });
+      send(res, 200, {
+        donations,
+        totalPaid,
+        count: donations.length,
+        persist: "supabase",
+      });
       return;
     }
 
     if (req.method === "PATCH") {
-      if (!isAuthorized(req)) {
-        send(res, 401, { error: "No autorizado" });
-        return;
-      }
       const body = await readBody(req);
       const id = String(body.id || "");
       const status = String(body.status || "");

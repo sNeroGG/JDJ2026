@@ -113,6 +113,67 @@
   font-size: 0.78rem;
 }
 
+.admin-db {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0.35rem 0.35rem;
+  padding: 0.55rem 0.6rem 0.65rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-db button {
+  width: 100%;
+  text-align: left;
+  padding: 0.48rem 0.55rem;
+  border-radius: 0.55rem;
+  color: #e8eef1;
+  background: rgba(45, 128, 142, 0.28);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.admin-db button:hover:not(:disabled) {
+  background: rgba(45, 128, 142, 0.45);
+}
+
+.admin-db button:disabled {
+  opacity: 0.7;
+}
+
+.admin-db__status {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: rgba(232, 238, 241, 0.72);
+}
+
+.admin-db__status.is-ok {
+  color: #9fd4a5;
+}
+
+.admin-db__status.is-error {
+  color: #ffb4a8;
+}
+
+.admin-db__checks {
+  list-style: none;
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  font-size: 0.7rem;
+  color: rgba(232, 238, 241, 0.62);
+}
+
+.admin-db__checks .is-ok {
+  color: #9fd4a5;
+}
+
+.admin-db__checks .is-error {
+  color: #ffb4a8;
+}
+
 .admin-search input {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1451,6 +1512,11 @@
 
   .admin__brand span {
     font-size: 0.72rem;
+  }
+
+  .admin-db {
+    margin: 0;
+    padding: 0.4rem 0.5rem;
   }
 
   .admin__side nav {

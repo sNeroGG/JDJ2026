@@ -109,40 +109,42 @@ Un detalle a tener en cuenta: Cloudflare guarda los datos sin muestrear solo 7 d
 y después los agrega a cerca del 10% del volumen, así que los números de meses
 anteriores son estimaciones, no conteos exactos.
 
-## Donaciones
+## Donaciones y tienda (Supabase)
 
-En `/donar` se elige un monto de $5 a $25, se piden datos de quién dona y se
-abre WhatsApp para completar el pago por **transferencia bancaria**. El registro
-queda pendiente en Supabase hasta que en `/jdj-cms` → **Donaciones** marques el
-comprobante como pagado.
+Las **donaciones** y los **pedidos de la tienda** (con el stock por talla/color)
+viven en Supabase cuando están `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`.
+Así varias personas pueden comprar o donar a la vez sin pisarse ni perder
+registros al redesplegar. El pago sigue siendo transferencia por WhatsApp.
 
-El número de WhatsApp es el mismo de la tienda (se configura en el panel).
+Sin esas variables: `/donar` no guarda aportes; la tienda en Vercel usa un
+archivo temporal (se puede perder) y, si hay `GITHUB_TOKEN`, copia pedidos al
+repo. En local sin Supabase los pedidos siguen en `src/data/savedOrders.ts`.
 
-**«Otro monto»:** es un botón más junto a $5–$25; el input solo aparece si
-eliges **Otro monto**, y tiene que quedar entre $5 y $25.
+### Cómo conectarlo
 
-### Siguientes pasos
-
-1. **Supabase**
-   - Crea un proyecto.
-   - En el SQL Editor corre `supabase/donations.sql` (crea o actualiza la tabla
-     `donations` con RLS y deja el pago como transferencia).
-   - Copia **Project URL** y **service_role** (Settings → API). El `anon` no
-     sirve: el servidor usa service role y RLS deja fuera al público.
-
-2. **Variables en Vercel** (Production; sin prefijo `VITE_`):
+1. Crea un proyecto en [Supabase](https://supabase.com) (plan Free alcanza).
+2. SQL Editor → New query → pega `supabase/schema.sql` → **Run**.
+   (Si ya corriste `donations.sql`, basta con `supabase/store.sql`.)
+3. Settings → API: copia **Project URL** y la clave **service_role** (no `anon`).
+4. En Vercel → Settings → Environment Variables (Production):
 
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
 
-   Redeploy después de guardarlas. En local, las mismas en `.env` y
-   `npm run dev`.
+   Redeploy. En local, las mismas en `.env` y `npm run dev`.
+5. Prueba:
+   - WhatsApp de la tienda en `/jdj-cms` → Tienda.
+   - `/tienda`: un pedido de prueba; en el CMS → Pedidos debe aparecer, y el
+     aviso debe decir que viven en Supabase.
+   - `/donar` → datos → WhatsApp → `/donar/gracias`. En Donaciones, marca
+     **Pagada** cuando llegue la transferencia.
 
-3. **Probar el flujo**
-   - Configura WhatsApp en `/jdj-cms` → Tienda.
-   - `/donar` → datos → Enviar por WhatsApp.
-   - Debe abrir el chat con el detalle del aporte y llevar a `/donar/gracias`.
-   - En `/jdj-cms` → Donaciones, marca **Pagada** cuando llegue la transferencia.
+El stock inicial de cada talla sale del catálogo la **primera** vez. Después
+manda la base: si cancelas un pedido en el panel, se devuelve a esa variante.
+Publicar textos desde el CMS **no** pisa el inventario en vivo.
+
+**«Otro monto»** en donaciones: botón junto a $5–$25; el input solo aparece si
+eliges **Otro monto**, entre $5 y $25.
 
 ## Próximamente (cortina pública)
 
