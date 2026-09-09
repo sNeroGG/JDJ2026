@@ -53,6 +53,7 @@ import {
   withSocialDefaults,
 } from "../utils/social";
 import {
+  applyStockMap,
   buildOrderReport,
   defaultProductVariants,
   findVariant,
@@ -63,6 +64,7 @@ import {
   productStock,
   withProductGallery,
   type OrderReportColorGroup,
+  type StoreStockMap,
 } from "../utils/store";
 import "./AdminPage.css";
 
@@ -148,6 +150,52 @@ function AdminHeroImage({
   );
 }
 
+function AdminHeroRow({
+  id,
+  title,
+  path,
+  url,
+  uploading,
+  onPick,
+  onClear,
+}: {
+  id: string;
+  title: string;
+  path: string;
+  url: string;
+  uploading: boolean;
+  onPick: (event: ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="admin-hero-row" id={id}>
+      <div className={`admin-hero-row__thumb${url ? "" : " is-empty"}`}>
+        {url ? <img src={url} alt="" /> : <span>Sin foto</span>}
+      </div>
+      <div className="admin-hero-row__meta">
+        <strong>{title}</strong>
+        <small>{path}</small>
+        <div className="admin-inline-actions">
+          <label className={`file-field${uploading ? " is-busy" : ""}`}>
+            {uploading ? "Copiando…" : url ? "Cambiar" : "Subir"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              disabled={uploading}
+              onChange={onPick}
+            />
+          </label>
+          {url ? (
+            <button type="button" className="btn btn--danger" onClick={onClear}>
+              Quitar
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminSedeCardsEditor({
   id,
   heading,
@@ -155,6 +203,7 @@ function AdminSedeCardsEditor({
   value,
   addLabel,
   uploading,
+  hideHero,
   onChange,
   onHeroPick,
   onItemImage,
@@ -166,6 +215,7 @@ function AdminSedeCardsEditor({
   addLabel: string;
   allowUploads?: boolean;
   uploading: boolean;
+  hideHero?: boolean;
   onChange: (next: SedeTopicContent) => void;
   onHeroPick: (event: ChangeEvent<HTMLInputElement>) => void;
   onItemImage: (index: number, event: ChangeEvent<HTMLInputElement>) => void;
@@ -181,17 +231,19 @@ function AdminSedeCardsEditor({
       <summary>{heading}</summary>
       <div className="admin-panel">
       <p className="admin-panel__hint">
-        Banner de {path}, debajo del menú, y las tarjetas de esta pestaña. Si la
-        foto header queda vacía, la página empieza con el título. Súbela en
-        local con <code>npm run dev</code>.
+        {hideHero
+          ? `Tarjetas de ${path}. La foto header se edita en Hero img.`
+          : `Banner de ${path}, debajo del menú, y las tarjetas de esta pestaña. Si la foto header queda vacía, la página empieza con el título. Súbela en local con npm run dev.`}
       </p>
-      <AdminHeroImage
-        label="Foto header"
-        url={value.heroImageUrl}
-        uploading={uploading}
-        onPick={onHeroPick}
-        onClear={() => onChange({ ...value, heroImageUrl: "" })}
-      />
+      {hideHero ? null : (
+        <AdminHeroImage
+          label="Foto header"
+          url={value.heroImageUrl}
+          uploading={uploading}
+          onPick={onHeroPick}
+          onClear={() => onChange({ ...value, heroImageUrl: "" })}
+        />
+      )}
       <label>
         Título
         <input
@@ -523,7 +575,7 @@ export function AdminPage() {
   const sectionParam = searchParams.get("seccion");
   const section: AdminSection = isAdminSection(sectionParam)
     ? sectionParam
-    : "store";
+    : "orders";
 
   const openProductId = searchParams.get("producto");
 
@@ -551,6 +603,13 @@ export function AdminPage() {
   const [donationsNotice, setDonationsNotice] = useState("");
   const [donationsTotal, setDonationsTotal] = useState(0);
   const [donationsPersist, setDonationsPersist] = useState("");
+  const [liveStock, setLiveStock] = useState<StoreStockMap | null>(null);
+  const [stockPersist, setStockPersist] = useState("");
+  const [stockNotice, setStockNotice] = useState("");
+  const stockQueue = useRef(
+    new Map<string, { productId: string; variantId: string; stock: number }>(),
+  );
+  const stockTimer = useRef<number | null>(null);
   const [donationFilter, setDonationFilter] = useState<"all" | DonationStatus>(
     "all",
   );
@@ -587,7 +646,7 @@ export function AdminPage() {
     return !window.matchMedia("(max-width: 900px)").matches;
   });
   const [configOpen, setConfigOpen] = useState(() =>
-    isConfigSection(isAdminSection(sectionParam) ? sectionParam : "store"),
+    isConfigSection(isAdminSection(sectionParam) ? sectionParam : "orders"),
   );
   const allowUploads = IS_DEV && testerMode;
 
@@ -627,7 +686,7 @@ export function AdminPage() {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (id === "store") next.delete("seccion");
+        if (id === "orders") next.delete("seccion");
         else next.set("seccion", id);
         if (id !== "store") next.delete("producto");
         if (nextParte) next.set("parte", nextParte);
@@ -688,6 +747,97 @@ export function AdminPage() {
         setProjectDocs([]);
       });
   }, [isAuthenticated, section, draft.catechesis.docs.length]);
+
+  const loadLiveStock = useCallback(async () => {
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    const remote = await fetch("/api/store", {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    const payload = (await remote.json().catch(() => null)) as {
+      stock?: StoreStockMap;
+      persist?: string;
+      error?: string;
+    } | null;
+    if (!remote.ok) {
+      setStockNotice(payload?.error || "No se pudo leer el stock vivo.");
+      return;
+    }
+    setLiveStock(payload?.stock ?? {});
+    setStockPersist(payload?.persist || "");
+    setStockNotice("");
+  }, []);
+
+  async function pushLiveStock(
+    items: { productId: string; variantId: string; stock: number }[],
+  ) {
+    if (!items.length) return;
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    const remote = await fetch("/api/store", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ items }),
+    });
+    const payload = (await remote.json().catch(() => null)) as {
+      stock?: StoreStockMap;
+      persist?: string;
+      error?: string;
+    } | null;
+    if (!remote.ok) {
+      throw new Error(payload?.error || "No se pudo guardar el stock.");
+    }
+    if (payload?.stock) setLiveStock(payload.stock);
+    if (payload?.persist) setStockPersist(payload.persist);
+  }
+
+  function queueLiveStock(
+    productId: string,
+    variantId: string,
+    stock: number,
+  ) {
+    stockQueue.current.set(`${productId}:${variantId}`, {
+      productId,
+      variantId,
+      stock,
+    });
+    setLiveStock((prev) => ({
+      ...(prev ?? {}),
+      [productId]: {
+        ...(prev?.[productId] ?? {}),
+        [variantId]: stock,
+      },
+    }));
+    if (stockTimer.current) window.clearTimeout(stockTimer.current);
+    stockTimer.current = window.setTimeout(() => {
+      void flushLiveStock().catch(() => undefined);
+    }, 400);
+  }
+
+  async function flushLiveStock() {
+    if (stockTimer.current) {
+      window.clearTimeout(stockTimer.current);
+      stockTimer.current = null;
+    }
+    const items = [...stockQueue.current.values()];
+    stockQueue.current.clear();
+    if (!items.length) return;
+    setStockNotice("Guardando stock…");
+    try {
+      await pushLiveStock(items);
+      setStockNotice(
+        stockPersist === "supabase" || stockPersist === ""
+          ? "Stock actualizado."
+          : "Stock actualizado.",
+      );
+    } catch (error) {
+      setStockNotice(
+        error instanceof Error ? error.message : "No se pudo guardar el stock.",
+      );
+      throw error;
+    }
+  }
 
   const loadOrders = useCallback(async () => {
     const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
@@ -884,7 +1034,10 @@ export function AdminPage() {
     void loadDonations().catch(() => {
       setDonationsNotice("No se pudieron cargar las donaciones.");
     });
-  }, [isAuthenticated, loadDonations, loadOrders]);
+    void loadLiveStock().catch(() => {
+      setStockNotice("No se pudo leer el stock vivo.");
+    });
+  }, [isAuthenticated, loadDonations, loadLiveStock, loadOrders]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -892,6 +1045,7 @@ export function AdminPage() {
     const refresh = () => {
       if (section === "orders") {
         void loadOrders().catch(() => undefined);
+        void loadLiveStock().catch(() => undefined);
       } else {
         void loadDonations().catch(() => undefined);
       }
@@ -899,7 +1053,7 @@ export function AdminPage() {
     refresh();
     const timer = window.setInterval(refresh, 12000);
     return () => window.clearInterval(timer);
-  }, [isAuthenticated, loadDonations, loadOrders, section]);
+  }, [isAuthenticated, loadDonations, loadLiveStock, loadOrders, section]);
 
   const partnerCount = draft.partners.logos.length;
   const docCount = draft.catechesis.docs.length;
@@ -907,9 +1061,13 @@ export function AdminPage() {
   const itemCount = draft.schedule.items.length;
   const faqCount = draft.faq.items.length;
   const productCount = draft.store.products.length;
+  const storeProducts = useMemo(
+    () => applyStockMap(draft.store.products, liveStock),
+    [draft.store.products, liveStock],
+  );
   const orderReport = useMemo(
-    () => buildOrderReport(orders, draft.store.products),
-    [draft.store.products, orders],
+    () => buildOrderReport(orders, storeProducts),
+    [storeProducts, orders],
   );
   const listedOrders = useMemo(
     () =>
@@ -925,11 +1083,6 @@ export function AdminPage() {
   const navItems = useMemo(
     (): { id: AdminSection; label: string; full: string }[] => [
       {
-        id: "store",
-        label: `Tienda${productCount ? ` (${productCount})` : ""}`,
-        full: "Logo, productos y WhatsApp",
-      },
-      {
         id: "orders",
         label: `Pedidos${orders.length ? ` (${orders.length})` : ""}`,
         full: "Pedidos de la tienda",
@@ -938,6 +1091,16 @@ export function AdminPage() {
         id: "donations",
         label: `Donaciones${donations.length ? ` (${donations.length})` : ""}`,
         full: "Donaciones por transferencia",
+      },
+      {
+        id: "store",
+        label: `Tienda${productCount ? ` (${productCount})` : ""}`,
+        full: "Logo, productos y WhatsApp",
+      },
+      {
+        id: "heroes",
+        label: "Hero img",
+        full: "Imágenes hero de cada página",
       },
       { id: "site", label: "Portada", full: "Logos y portada" },
       {
@@ -1094,7 +1257,9 @@ export function AdminPage() {
       },
       store: {
         ...next.store,
-        products: normalizeStoreProducts(next.store.products),
+        products: normalizeStoreProducts(
+          applyStockMap(next.store.products, liveStock),
+        ),
       },
     };
     contentSnapshot.current = value;
@@ -1102,6 +1267,7 @@ export function AdminPage() {
     setContent(value);
     setSaving(true);
     try {
+      await flushLiveStock().catch(() => undefined);
       const mode = await saveContent(value);
       setSavedAt(new Date().toLocaleTimeString("es-SV"));
       setLogoNotice(
@@ -1359,6 +1525,20 @@ export function AdminPage() {
     patchProduct(productIndex, { variants });
   }
 
+  function setVariantStockValue(
+    productIndex: number,
+    variantIndex: number,
+    stock: number,
+  ) {
+    const nextStock = Math.max(0, Math.floor(stock));
+    patchVariant(productIndex, variantIndex, { stock: nextStock });
+    const product = draft.store.products[productIndex];
+    const variant = product?.variants[variantIndex];
+    if (product && variant) {
+      queueLiveStock(product.id, variant.id, nextStock);
+    }
+  }
+
   function applyVariantStock(productId: string, variantId: string, delta: number) {
     const apply = (products: StoreProduct[]) =>
       products.map((item) =>
@@ -1381,6 +1561,15 @@ export function AdminPage() {
       ...prev,
       store: { ...prev.store, products: apply(prev.store.products) },
     }));
+    setLiveStock((prev) => {
+      const next = apply(applyStockMap(draft.store.products, prev));
+      return next.reduce<StoreStockMap>((map, product) => {
+        map[product.id] = Object.fromEntries(
+          product.variants.map((variant) => [variant.id, variant.stock]),
+        );
+        return map;
+      }, {});
+    });
   }
 
   async function patchOrderStatus(id: string, status: StoreOrderStatus) {
@@ -1425,6 +1614,7 @@ export function AdminPage() {
           applyVariantStock(current.productId, variantId, -current.quantity);
         }
       }
+      void loadLiveStock().catch(() => undefined);
       setOrdersNotice("Pedido actualizado.");
     } catch {
       setOrdersNotice("No se pudo actualizar el pedido.");
@@ -1609,7 +1799,7 @@ export function AdminPage() {
     >
       <aside className="admin__side" hidden={!navOpen} aria-hidden={!navOpen}>
         <div className="admin__brand">
-          <div>
+          <div className="admin__brand-copy">
             <strong>JDJ Admin</strong>
             <span>
               {allowUploads
@@ -1829,6 +2019,117 @@ export function AdminPage() {
           </p>
         ) : null}
 
+        {section === "heroes" && (
+          <section className="admin-panel" id="parte-heroes">
+            <h2>Hero img</h2>
+            <p className="admin-panel__hint">
+              Fotos de cabecera de cada página, en lista compacta. Si una queda
+              vacía, esa página empieza sin banner. Súbelas en local con{" "}
+              <code>npm run dev</code>.
+            </p>
+            <div className="admin-hero-list">
+              <AdminHeroRow
+                id="parte-hero"
+                title="Portada"
+                path="/"
+                url={draft.hero.imageUrl}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    hero: { ...current.hero, imageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    hero: { ...draft.hero, imageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-comisiones-hero"
+                title="Comisiones"
+                path="/comisiones"
+                url={draft.commissions.heroImageUrl}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    commissions: {
+                      ...current.commissions,
+                      heroImageUrl: url,
+                    },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    commissions: { ...draft.commissions, heroImageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-voluntarios-hero"
+                title="Voluntarios"
+                path="/voluntarios"
+                url={draft.volunteers.heroImageUrl}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    volunteers: { ...current.volunteers, heroImageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    volunteers: { ...draft.volunteers, heroImageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-catequesis-hero"
+                title="Catequesis"
+                path="/catequesis"
+                url={draft.catechesis.heroImageUrl}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    catechesis: { ...current.catechesis, heroImageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    catechesis: { ...draft.catechesis, heroImageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-donar-hero"
+                title="Donar"
+                path="/donar"
+                url={draft.donate.heroImageUrl}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    donate: { ...current.donate, heroImageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    donate: { ...draft.donate, heroImageUrl: "" },
+                  })
+                }
+              />
+            </div>
+          </section>
+        )}
+
         {section === "site" && (
           <div className="admin-stack">
             <details className="admin-details" id="parte-fotos" open>
@@ -1966,33 +2267,6 @@ export function AdminPage() {
               <p className="admin-panel__hint">
                 La tarjeta de fecha se toma sola del 14 de noviembre de 2026.
               </p>
-            </section>
-
-            <section className="admin-panel" id="parte-hero">
-              <h2>Imagen hero de la portada</h2>
-              <p className="admin-panel__hint">
-                Foto de fondo del inicio. Si queda vacía, se ven el cielo y las
-                colinas. Súbela en local con <code>npm run dev</code>.
-              </p>
-              <AdminHeroImage
-                label="Portada"
-                url={draft.hero.imageUrl}
-                uploading={uploading}
-                allowUploads={allowUploads}
-                onPick={(e) =>
-                  void onHeroImageChange(e, (url, current) => ({
-                    ...current,
-                    hero: { ...current.hero, imageUrl: url },
-                  }))
-                }
-                onClear={() => {
-                  const next = {
-                    ...draft,
-                    hero: { ...draft.hero, imageUrl: "" },
-                  };
-                  setDraft(next);
-                }}
-              />
             </section>
 
             <details className="admin-details" id="parte-seo">
@@ -2519,6 +2793,7 @@ export function AdminPage() {
               addLabel="Agregar comisión"
               allowUploads={allowUploads}
               uploading={uploading}
+              hideHero
               onChange={(commissions) => setDraft({ ...draft, commissions })}
               onHeroPick={(e) =>
                 void onHeroImageChange(e, (url, current) => ({
@@ -2538,6 +2813,7 @@ export function AdminPage() {
               addLabel="Agregar área de voluntariado"
               allowUploads={allowUploads}
               uploading={uploading}
+              hideHero
               onChange={(volunteers) => setDraft({ ...draft, volunteers })}
               onHeroPick={(e) =>
                 void onHeroImageChange(e, (url, current) => ({
@@ -2951,32 +3227,6 @@ export function AdminPage() {
 
         {section === "catechesis" && (
           <div className="admin-stack">
-          <section className="admin-panel" id="parte-catequesis-hero">
-            <h2>Imagen hero de catequesis</h2>
-            <p className="admin-panel__hint">
-              Banner de /catequesis, debajo del menú. Si queda vacía, la página
-              empieza con el título. Súbela en local con <code>npm run dev</code>.
-            </p>
-            <AdminHeroImage
-              label="Catequesis"
-              url={draft.catechesis.heroImageUrl}
-              uploading={uploading}
-              allowUploads={allowUploads}
-              onPick={(e) =>
-                void onHeroImageChange(e, (url, current) => ({
-                  ...current,
-                  catechesis: { ...current.catechesis, heroImageUrl: url },
-                }))
-              }
-              onClear={() => {
-                const next = {
-                  ...draft,
-                  catechesis: { ...draft.catechesis, heroImageUrl: "" },
-                };
-                setDraft(next);
-              }}
-            />
-          </section>
           <section className="admin-panel" id="parte-documentos">
             <h2>Documentos</h2>
             <p className="admin-panel__hint">
@@ -3242,7 +3492,13 @@ export function AdminPage() {
                 producto se abre el carrusel. Marca “ocultar” para mostrarlo
                 como ????? con una camisa difuminada; la fecha de revelar es
                 opcional y cuenta los días.
+                {stockPersist === "supabase"
+                  ? " Al cambiar un número de stock se guarda en Supabase; no hace falta un pedido."
+                  : " Al cambiar un número de stock se guarda en el inventario vivo."}
               </p>
+              {stockNotice ? (
+                <p className="admin-panel__hint is-status">{stockNotice}</p>
+              ) : null}
               <div className="admin-inline-actions">
                 <button
                   type="button"
@@ -3271,10 +3527,10 @@ export function AdminPage() {
                   Agregar producto
                 </button>
               </div>
-              {draft.store.products.length === 0 ? (
+              {storeProducts.length === 0 ? (
                 <p className="admin-empty">Aún no hay productos.</p>
               ) : (
-                draft.store.products.map((product, index) => {
+                storeProducts.map((product, index) => {
                   const photos = productImages(product);
                   const isOpen = openProductId === product.id;
                   const total = productStock(product);
@@ -3499,9 +3755,11 @@ export function AdminPage() {
                             step="1"
                             value={variant.stock}
                             onChange={(e) =>
-                              patchVariant(index, variantIndex, {
-                                stock: Math.max(0, Number(e.target.value) || 0),
-                              })
+                              setVariantStockValue(
+                                index,
+                                variantIndex,
+                                Number(e.target.value) || 0,
+                              )
                             }
                           />
                           <button
@@ -3741,33 +3999,6 @@ export function AdminPage() {
 
         {section === "donations" && (
           <div className="admin-stack">
-          <section className="admin-panel" id="parte-donar-hero">
-            <h2>Imagen hero de donar</h2>
-            <p className="admin-panel__hint">
-              Banner de /donar, debajo del menú. Si queda vacía, la página
-              empieza con el formulario. Súbela en local con{" "}
-              <code>npm run dev</code>.
-            </p>
-            <AdminHeroImage
-              label="Donar"
-              url={draft.donate.heroImageUrl}
-              uploading={uploading}
-              allowUploads={allowUploads}
-              onPick={(e) =>
-                void onHeroImageChange(e, (url, current) => ({
-                  ...current,
-                  donate: { ...current.donate, heroImageUrl: url },
-                }))
-              }
-              onClear={() => {
-                const next = {
-                  ...draft,
-                  donate: { ...draft.donate, heroImageUrl: "" },
-                };
-                setDraft(next);
-              }}
-            />
-          </section>
           <section className="admin-panel" id="parte-donaciones">
             <h2>Donaciones{donations.length ? ` (${donations.length})` : ""}</h2>
             <p className="admin-panel__hint">

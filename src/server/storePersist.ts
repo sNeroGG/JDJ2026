@@ -108,6 +108,41 @@ export function adjustVariantStock(
   };
 }
 
+export function setVariantStock(
+  root: string,
+  productId: string,
+  variantId: string,
+  stock: number,
+) {
+  const content = readSavedContent(root);
+  const store = { ...(content.store ?? {}) };
+  const products = normalizeStoreProducts(
+    Array.isArray(store.products) ? store.products : [],
+  );
+  const index = products.findIndex((item) => item.id === productId);
+  if (index < 0) return { error: "Producto no encontrado." };
+  const nextStock = Math.max(0, Math.floor(Number(stock) || 0));
+  const variants = products[index].variants.map((variant) =>
+    variant.id === variantId ? { ...variant, stock: nextStock } : variant,
+  );
+  if (!variants.some((variant) => variant.id === variantId)) {
+    return { error: "Talla o color no encontrado." };
+  }
+  products[index] = { ...products[index], variants };
+  store.products = products;
+  content.store = store;
+  writeSavedContent(root, content);
+  return {
+    stock: nextStock,
+    total: products[index].variants.reduce(
+      (sum, variant) => sum + Math.max(0, variant.stock),
+      0,
+    ),
+    variantId,
+    products,
+  };
+}
+
 export function resolveOrderVariantId(root: string, order: StoreOrder) {
   const product = listStoreProducts(root).find(
     (item) => item.id === order.productId,

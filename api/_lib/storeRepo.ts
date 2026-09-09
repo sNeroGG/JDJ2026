@@ -18,6 +18,7 @@ import {
   listStoreProducts,
   readSavedContent,
   readSavedOrders,
+  setVariantStock,
   writeSavedOrders,
 } from "../../src/server/storePersist.js";
 import { bundledOrders, productsFromBundle, storeWhatsapp as bundledWhatsapp } from "./catalog.js";
@@ -30,6 +31,7 @@ import {
   placeStoreOrder,
   StoreConflictError,
   updateStoreOrderStatus,
+  upsertStoreStock,
 } from "./supabase.js";
 
 const ORDERS_PATH = "/tmp/jdj-orders.json";
@@ -127,6 +129,42 @@ export async function liveStockMap(): Promise<StoreStockMap> {
     return stockMapFromProducts(overlayProducts(catalog, readTmpStock()));
   }
   return stockMapFromProducts(catalog);
+}
+
+export async function setLiveStock(
+  rows: { productId: string; variantId: string; stock: number }[],
+) {
+  const items = rows
+    .filter((row) => row.productId && row.variantId)
+    .map((row) => ({
+      productId: row.productId,
+      variantId: row.variantId,
+      stock: Math.max(0, Math.floor(Number(row.stock) || 0)),
+    }));
+  if (!items.length) return { error: "No hay stock para guardar." as const };
+
+  if (isSupabaseConfigured()) {
+    await upsertStoreStock(items);
+    return { stock: await liveStockMap(), persist: persistKind() };
+  }
+
+  if (process.env.VERCEL) {
+    for (const item of items) {
+      writeTmpStock(item.productId, item.variantId, item.stock);
+    }
+    return { stock: await liveStockMap(), persist: persistKind() };
+  }
+
+  for (const item of items) {
+    const written = setVariantStock(
+      process.cwd(),
+      item.productId,
+      item.variantId,
+      item.stock,
+    );
+    if ("error" in written) return { error: written.error };
+  }
+  return { stock: await liveStockMap(), persist: persistKind() };
 }
 
 export async function liveProducts(): Promise<StoreProduct[]> {

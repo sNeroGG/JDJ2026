@@ -66,6 +66,30 @@ begin
 end;
 $$;
 
+-- Ajuste manual de inventario desde el panel. Sí pisa el stock en vivo.
+create or replace function public.set_store_stock(p_rows jsonb)
+returns void
+language plpgsql
+as $$
+begin
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
+    return;
+  end if;
+
+  insert into public.store_stock (product_id, variant_id, stock, updated_at)
+  select
+    r->>'product_id',
+    r->>'variant_id',
+    greatest(coalesce((r->>'stock')::integer, 0), 0),
+    now()
+  from jsonb_array_elements(p_rows) as r
+  where coalesce(r->>'product_id', '') <> ''
+    and coalesce(r->>'variant_id', '') <> ''
+  on conflict (product_id, variant_id) do update
+  set stock = excluded.stock, updated_at = now();
+end;
+$$;
+
 -- Pedido + descuento de stock en una sola transacción (aguanta compras simultáneas).
 create or replace function public.place_store_order(p_order jsonb, p_seed integer)
 returns jsonb
@@ -189,8 +213,10 @@ end;
 $$;
 
 revoke all on function public.ensure_store_stock(jsonb) from public, anon, authenticated;
+revoke all on function public.set_store_stock(jsonb) from public, anon, authenticated;
 revoke all on function public.place_store_order(jsonb, integer) from public, anon, authenticated;
 revoke all on function public.update_store_order_status(text, text) from public, anon, authenticated;
 grant execute on function public.ensure_store_stock(jsonb) to service_role;
+grant execute on function public.set_store_stock(jsonb) to service_role;
 grant execute on function public.place_store_order(jsonb, integer) to service_role;
 grant execute on function public.update_store_order_status(text, text) to service_role;

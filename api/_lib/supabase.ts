@@ -174,6 +174,25 @@ function orderToPayload(order: StoreOrder) {
   };
 }
 
+export async function upsertStoreStock(
+  rows: { productId: string; variantId: string; stock: number }[],
+) {
+  const payload = rows
+    .filter((row) => row.productId && row.variantId)
+    .map((row) => ({
+      product_id: row.productId,
+      variant_id: row.variantId,
+      stock: Math.max(0, Math.floor(Number(row.stock) || 0)),
+      updated_at: new Date().toISOString(),
+    }));
+  if (!payload.length) return;
+  await rest("store_stock?on_conflict=product_id,variant_id", {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=minimal",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function ensureStoreStock(products: StoreProduct[]) {
   const rows = products.flatMap((product) =>
     product.variants.map((variant) => ({

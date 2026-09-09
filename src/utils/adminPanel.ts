@@ -5,6 +5,7 @@ export const ADMIN_SECTIONS = [
   "album",
   "catechesis",
   "store",
+  "heroes",
   "orders",
   "donations",
   "page",
@@ -18,12 +19,13 @@ export function isAdminSection(value: string | null): value is AdminSection {
 }
 
 export const ADMIN_PRIORITY: readonly AdminSection[] = [
-  "store",
   "orders",
   "donations",
 ];
 
 export const ADMIN_CONFIG: readonly AdminSection[] = [
+  "store",
+  "heroes",
   "site",
   "event",
   "location",
@@ -78,9 +80,9 @@ export const ADMIN_PARTS: AdminPart[] = [
   },
   {
     id: "hero",
-    section: "site",
-    label: "Imagen hero",
-    keywords: "fondo foto portada inicio",
+    section: "heroes",
+    label: "Hero de portada",
+    keywords: "fondo foto portada inicio hero img",
   },
   {
     id: "seo",
@@ -167,10 +169,28 @@ export const ADMIN_PARTS: AdminPart[] = [
     keywords: "polaroid fotos jayaque google photos compartido",
   },
   {
+    id: "heroes",
+    section: "heroes",
+    label: "Hero img",
+    keywords: "hero img banner header fotos portada donar catequesis comisiones voluntarios",
+  },
+  {
+    id: "comisiones-hero",
+    section: "heroes",
+    label: "Hero de comisiones",
+    keywords: "foto header comisiones hero img",
+  },
+  {
+    id: "voluntarios-hero",
+    section: "heroes",
+    label: "Hero de voluntarios",
+    keywords: "foto header voluntarios hero img",
+  },
+  {
     id: "catequesis-hero",
-    section: "catechesis",
-    label: "Imagen hero de catequesis",
-    keywords: "foto portada catequesis",
+    section: "heroes",
+    label: "Hero de catequesis",
+    keywords: "foto portada catequesis hero img",
   },
   {
     id: "documentos",
@@ -210,9 +230,9 @@ export const ADMIN_PARTS: AdminPart[] = [
   },
   {
     id: "donar-hero",
-    section: "donations",
-    label: "Imagen hero de donar",
-    keywords: "donar foto",
+    section: "heroes",
+    label: "Hero de donar",
+    keywords: "donar foto hero img",
   },
   {
     id: "donaciones",

@@ -108,19 +108,30 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.55rem;
   padding: 0.15rem 0.15rem 0.2rem;
 }
 
+.admin__brand-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  flex: 1;
+}
+
 .admin__brand strong {
+  display: block;
   font-family: var(--font-display);
   font-size: 1.12rem;
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .admin__brand span {
+  display: block;
   color: rgba(232, 238, 241, 0.5);
   font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 .admin-db {
@@ -929,6 +940,64 @@
   object-fit: cover;
 }
 
+.admin-hero-list {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.admin-hero-row {
+  display: grid;
+  grid-template-columns: 7.4rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-hero-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0.15rem;
+}
+
+.admin-hero-row__thumb {
+  width: 7.4rem;
+  height: 4.15rem;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  background: #f4f7f5;
+  border: 1px solid rgba(28, 35, 44, 0.08);
+}
+
+.admin-hero-row__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-hero-row__thumb.is-empty {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.admin-hero-row__meta {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.admin-hero-row__meta strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.admin-hero-row__meta small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .file-field.is-busy {
   opacity: 0.7;
   pointer-events: none;
@@ -1636,6 +1705,10 @@
     padding: 0.1rem 0.15rem 0.15rem;
   }
 
+  .admin__brand-copy {
+    gap: 0.12rem;
+  }
+
   .admin__brand strong {
     font-size: 1rem;
   }
@@ -1737,6 +1810,16 @@
 
   .admin-doc-preview {
     height: 200px;
+  }
+
+  .admin-hero-row {
+    grid-template-columns: 5.6rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .admin-hero-row__thumb {
+    width: 5.6rem;
+    height: 3.2rem;
   }
 }
 
