@@ -8,6 +8,7 @@ export const ADMIN_SECTIONS = [
   "orders",
   "donations",
   "page",
+  "security",
 ] as const;
 
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
@@ -29,6 +30,7 @@ export const ADMIN_GROUPS: {
   { id: "preparacion", label: "Preparación", items: ["catechesis"] },
   { id: "tienda", label: "Tienda", items: ["store", "orders"] },
   { id: "donar", label: "Donar", items: ["donations"] },
+  { id: "sistema", label: "Sistema", items: ["security"] },
 ];
 
 export type AdminPart = {
@@ -230,6 +232,12 @@ export const ADMIN_PARTS: AdminPart[] = [
     section: "page",
     label: "Pie y vicarías",
     keywords: "footer explorar pie",
+  },
+  {
+    id: "base",
+    section: "security",
+    label: "Base de datos",
+    keywords: "seguridad supabase conexion diagnostico consultar base pedidos donaciones stock",
   },
 ];
 

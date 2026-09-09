@@ -33,6 +33,7 @@ import { createId, downloadJson } from "../utils/files";
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
 import {
+  ADMIN_GROUPS,
   isAdminSection,
   searchAdminParts,
   type AdminPart,
@@ -68,6 +69,7 @@ const ALBUM_MAX = 200;
 const IS_DEV = import.meta.env.DEV;
 
 const TESTER_MODE_KEY = "jdj-admin-tester-mode";
+const TABS_OPEN_KEY = "jdj-admin-tabs-open";
 
 function AdminModeSwitch({
   isDev,
@@ -571,6 +573,24 @@ export function AdminPage() {
       return true;
     }
   });
+  const [tabsOpen, setTabsOpen] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem(TABS_OPEN_KEY);
+      if (stored === "0") return false;
+      if (stored === "1") return true;
+    } catch {
+      /* ignore */
+    }
+    if (typeof window === "undefined") return true;
+    return !window.matchMedia("(max-width: 900px)").matches;
+  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const next: Record<string, boolean> = {};
+    for (const group of ADMIN_GROUPS) {
+      next[group.id] = true;
+    }
+    return next;
+  });
   const allowUploads = IS_DEV && testerMode;
 
   function setAdminMode(nextTester: boolean) {
@@ -584,6 +604,29 @@ export function AdminPage() {
   const parte = searchParams.get("parte");
   const orderTab = parte === "registro" ? "registro" : "resumen";
   const queryMatches = useMemo(() => searchAdminParts(query), [query]);
+
+  function persistTabsOpen(next: boolean) {
+    setTabsOpen(next);
+    try {
+      sessionStorage.setItem(TABS_OPEN_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function goToSection(id: AdminSection, nextParte?: string) {
+    setSection(id, nextParte);
+    const group = ADMIN_GROUPS.find((item) => item.items.includes(id));
+    if (group) {
+      setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+    }
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 900px)").matches
+    ) {
+      persistTabsOpen(false);
+    }
+  }
 
   function setSection(id: AdminSection, nextParte?: string) {
     setSearchParams(
@@ -602,7 +645,7 @@ export function AdminPage() {
 
   function goToPart(part: AdminPart) {
     setQuery("");
-    setSection(part.section, part.id);
+    goToSection(part.section, part.id);
   }
 
   const contentSnapshot = useRef(content);
@@ -919,9 +962,19 @@ export function AdminPage() {
         label: "Página",
         full: "Textos, logos y pie",
       },
+      {
+        id: "security",
+        label: "Seguridad",
+        full: "Conexión y diagnóstico",
+      },
     ],
     [itemCount, docCount, albumCount, productCount, orders.length, donations.length],
   );
+  const navById = useMemo(() => {
+    const map = new Map<AdminSection, (typeof navItems)[number]>();
+    for (const item of navItems) map.set(item.id, item);
+    return map;
+  }, [navItems]);
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
 
@@ -1563,51 +1616,6 @@ export function AdminPage() {
                 : "Producción: solo texto"}
           </span>
         </div>
-        <div className="admin-db">
-          <button
-            type="button"
-            disabled={dbChecking}
-            onClick={() => void checkDatabase()}
-          >
-            {dbChecking ? "Consultando…" : "Consultar base de datos"}
-          </button>
-          {dbStatus ? (
-            <div
-              className={`admin-db__status${dbStatus.ok ? " is-ok" : " is-error"}`}
-              role="status"
-            >
-              <p>
-                {dbStatus.ok ? "Todo correcto. " : "Error. "}
-                {dbStatus.message}
-              </p>
-              <ul className="admin-db__meta">
-                {dbStatus.httpStatus ? (
-                  <li>HTTP {dbStatus.httpStatus}</li>
-                ) : null}
-                {dbStatus.persist ? (
-                  <li>Persistencia: {dbStatus.persist}</li>
-                ) : null}
-                <li>URL definida: {dbStatus.hasUrl ? "sí" : "no"}</li>
-                <li>Clave definida: {dbStatus.hasKey ? "sí" : "no"}</li>
-                {dbStatus.host ? <li>Proyecto: {dbStatus.host}</li> : null}
-              </ul>
-              {dbStatus.hint ? <p>{dbStatus.hint}</p> : null}
-            </div>
-          ) : null}
-          {dbStatus?.checks.length ? (
-            <ul className="admin-db__checks">
-              {dbStatus.checks.map((item) => (
-                <li
-                  key={item.key}
-                  className={item.ok ? "is-ok" : "is-error"}
-                >
-                  {item.ok ? "OK" : "Error"} · {item.label}
-                  {item.error ? `: ${item.error}` : ""}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
         <label className="admin-search">
           <span className="sr-only">Buscar qué editar</span>
           <input
@@ -1635,18 +1643,62 @@ export function AdminPage() {
             )}
           </ul>
         ) : (
-          <nav aria-label="Secciones del admin">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={section === item.id ? "is-active" : ""}
-                onClick={() => setSection(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
+          <div className={`admin-tabs${tabsOpen ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className="admin-tabs__toggle"
+              aria-expanded={tabsOpen}
+              onClick={() => persistTabsOpen(!tabsOpen)}
+            >
+              <span>Pestañas</span>
+              <strong>{currentSection.label}</strong>
+            </button>
+            {tabsOpen ? (
+              <nav aria-label="Secciones del admin">
+                {ADMIN_GROUPS.map((group) => {
+                  const groupOpen = openGroups[group.id] !== false;
+                  return (
+                    <div
+                      key={group.id}
+                      className={`admin-nav-group${groupOpen ? " is-open" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="admin-nav-group__toggle"
+                        aria-expanded={groupOpen}
+                        onClick={() =>
+                          setOpenGroups((prev) => ({
+                            ...prev,
+                            [group.id]: !groupOpen,
+                          }))
+                        }
+                      >
+                        {group.label}
+                      </button>
+                      {groupOpen
+                        ? group.items.map((id) => {
+                            const item = navById.get(id);
+                            if (!item) return null;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className={`admin-nav-item${
+                                  section === id ? " is-active" : ""
+                                }${id === "security" ? " is-quiet" : ""}`}
+                                onClick={() => goToSection(id)}
+                              >
+                                {item.label}
+                              </button>
+                            );
+                          })
+                        : null}
+                    </div>
+                  );
+                })}
+              </nav>
+            ) : null}
+          </div>
         )}
         <div className="admin__side-actions">
           <details className="admin-view-menu">
@@ -1696,41 +1748,45 @@ export function AdminPage() {
           <div>
             <p className="admin__eyebrow">{currentSection.full}</p>
             <h1>{currentSection.label}</h1>
-            <AdminModeSwitch
-              isDev={IS_DEV}
-              testerMode={allowUploads}
-              onChange={setAdminMode}
-            />
+            {section === "security" ? null : (
+              <AdminModeSwitch
+                isDev={IS_DEV}
+                testerMode={allowUploads}
+                onChange={setAdminMode}
+              />
+            )}
           </div>
-          <div className="admin__actions">
-            {isDirty ? <span className="admin__dirty">Sin guardar</span> : null}
-            {savedAt ? (
-              <span className="admin__saved">Guardado {savedAt}</span>
-            ) : null}
-            <button
-              type="button"
-              className="btn btn--ghost admin__action-discard"
-              onClick={() => {
-                setDraft(content);
-                contentSnapshot.current = content;
-                setLogoNotice("");
-              }}
-            >
-              Descartar
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={uploading || saving}
-              onClick={() => void persist().catch(() => undefined)}
-            >
-              {saving
-                ? "Guardando…"
-                : import.meta.env.DEV
-                  ? "Guardar"
-                  : "Publicar"}
-            </button>
-          </div>
+          {section === "security" ? null : (
+            <div className="admin__actions">
+              {isDirty ? <span className="admin__dirty">Sin guardar</span> : null}
+              {savedAt ? (
+                <span className="admin__saved">Guardado {savedAt}</span>
+              ) : null}
+              <button
+                type="button"
+                className="btn btn--ghost admin__action-discard"
+                onClick={() => {
+                  setDraft(content);
+                  contentSnapshot.current = content;
+                  setLogoNotice("");
+                }}
+              >
+                Descartar
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={uploading || saving}
+                onClick={() => void persist().catch(() => undefined)}
+              >
+                {saving
+                  ? "Guardando…"
+                  : import.meta.env.DEV
+                    ? "Guardar"
+                    : "Publicar"}
+              </button>
+            </div>
+          )}
         </header>
 
         {canPublish ? null : (
@@ -4103,6 +4159,66 @@ export function AdminPage() {
                 ))}
               </div>
             </details>
+          </div>
+        )}
+
+        {section === "security" && (
+          <div className="admin-stack">
+            <section className="admin-panel" id="parte-base">
+              <h2>Base de datos</h2>
+              <p className="admin-panel__hint is-status">
+                Comprueba que el sitio alcanza Supabase. No cambia textos ni
+                fotos del encuentro.
+              </p>
+              <div className="admin-db">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={dbChecking}
+                  onClick={() => void checkDatabase()}
+                >
+                  {dbChecking ? "Consultando…" : "Consultar conexión"}
+                </button>
+                {dbStatus ? (
+                  <div
+                    className={`admin-db__status${dbStatus.ok ? " is-ok" : " is-error"}`}
+                    role="status"
+                  >
+                    <p>
+                      {dbStatus.ok ? "Todo correcto. " : "Error. "}
+                      {dbStatus.message}
+                    </p>
+                    <ul className="admin-db__meta">
+                      {dbStatus.httpStatus ? (
+                        <li>HTTP {dbStatus.httpStatus}</li>
+                      ) : null}
+                      {dbStatus.persist ? (
+                        <li>Persistencia: {dbStatus.persist}</li>
+                      ) : null}
+                      <li>URL definida: {dbStatus.hasUrl ? "sí" : "no"}</li>
+                      <li>Clave definida: {dbStatus.hasKey ? "sí" : "no"}</li>
+                      {dbStatus.host ? (
+                        <li>Proyecto: {dbStatus.host}</li>
+                      ) : null}
+                    </ul>
+                    {dbStatus.hint ? <p>{dbStatus.hint}</p> : null}
+                  </div>
+                ) : null}
+                {dbStatus?.checks.length ? (
+                  <ul className="admin-db__checks">
+                    {dbStatus.checks.map((item) => (
+                      <li
+                        key={item.key}
+                        className={item.ok ? "is-ok" : "is-error"}
+                      >
+                        {item.ok ? "OK" : "Error"} · {item.label}
+                        {item.error ? `: ${item.error}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </section>
           </div>
         )}
       </main>
