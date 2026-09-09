@@ -33,7 +33,10 @@ import { createId, downloadJson } from "../utils/files";
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
 import {
+  ADMIN_CONFIG,
+  ADMIN_PRIORITY,
   isAdminSection,
+  isConfigSection,
   searchAdminParts,
   type AdminPart,
   type AdminSection,
@@ -68,7 +71,7 @@ const ALBUM_MAX = 200;
 const IS_DEV = import.meta.env.DEV;
 
 const TESTER_MODE_KEY = "jdj-admin-tester-mode";
-const TABS_OPEN_KEY = "jdj-admin-tabs-open";
+const NAV_OPEN_KEY = "jdj-admin-nav-open";
 
 function AdminModeSwitch({
   isDev,
@@ -520,7 +523,7 @@ export function AdminPage() {
   const sectionParam = searchParams.get("seccion");
   const section: AdminSection = isAdminSection(sectionParam)
     ? sectionParam
-    : "site";
+    : "store";
 
   const openProductId = searchParams.get("producto");
 
@@ -572,9 +575,9 @@ export function AdminPage() {
       return true;
     }
   });
-  const [tabsOpen, setTabsOpen] = useState(() => {
+  const [navOpen, setNavOpen] = useState(() => {
     try {
-      const stored = sessionStorage.getItem(TABS_OPEN_KEY);
+      const stored = sessionStorage.getItem(NAV_OPEN_KEY);
       if (stored === "0") return false;
       if (stored === "1") return true;
     } catch {
@@ -583,6 +586,9 @@ export function AdminPage() {
     if (typeof window === "undefined") return true;
     return !window.matchMedia("(max-width: 900px)").matches;
   });
+  const [configOpen, setConfigOpen] = useState(() =>
+    isConfigSection(isAdminSection(sectionParam) ? sectionParam : "store"),
+  );
   const allowUploads = IS_DEV && testerMode;
 
   function setAdminMode(nextTester: boolean) {
@@ -597,10 +603,10 @@ export function AdminPage() {
   const orderTab = parte === "registro" ? "registro" : "resumen";
   const queryMatches = useMemo(() => searchAdminParts(query), [query]);
 
-  function persistTabsOpen(next: boolean) {
-    setTabsOpen(next);
+  function persistNavOpen(next: boolean) {
+    setNavOpen(next);
     try {
-      sessionStorage.setItem(TABS_OPEN_KEY, next ? "1" : "0");
+      sessionStorage.setItem(NAV_OPEN_KEY, next ? "1" : "0");
     } catch {
       /* ignore */
     }
@@ -608,11 +614,12 @@ export function AdminPage() {
 
   function goToSection(id: AdminSection, nextParte?: string) {
     setSection(id, nextParte);
+    if (isConfigSection(id)) setConfigOpen(true);
     if (
       typeof window !== "undefined" &&
       window.matchMedia("(max-width: 900px)").matches
     ) {
-      persistTabsOpen(false);
+      persistNavOpen(false);
     }
   }
 
@@ -620,7 +627,7 @@ export function AdminPage() {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (id === "site") next.delete("seccion");
+        if (id === "store") next.delete("seccion");
         else next.set("seccion", id);
         if (id !== "store") next.delete("producto");
         if (nextParte) next.set("parte", nextParte);
@@ -646,6 +653,10 @@ export function AdminPage() {
       return dirty ? current : content;
     });
   }, [content]);
+
+  useEffect(() => {
+    if (isConfigSection(section)) setConfigOpen(true);
+  }, [section]);
 
   useEffect(() => {
     if (!parte) return;
@@ -913,6 +924,21 @@ export function AdminPage() {
 
   const navItems = useMemo(
     (): { id: AdminSection; label: string; full: string }[] => [
+      {
+        id: "store",
+        label: `Tienda${productCount ? ` (${productCount})` : ""}`,
+        full: "Logo, productos y WhatsApp",
+      },
+      {
+        id: "orders",
+        label: `Pedidos${orders.length ? ` (${orders.length})` : ""}`,
+        full: "Pedidos de la tienda",
+      },
+      {
+        id: "donations",
+        label: `Donaciones${donations.length ? ` (${donations.length})` : ""}`,
+        full: "Donaciones por transferencia",
+      },
       { id: "site", label: "Portada", full: "Logos y portada" },
       {
         id: "event",
@@ -931,21 +957,6 @@ export function AdminPage() {
         full: "Documentos de catequesis",
       },
       {
-        id: "store",
-        label: `Tienda${productCount ? ` (${productCount})` : ""}`,
-        full: "Logo, productos y WhatsApp",
-      },
-      {
-        id: "orders",
-        label: `Pedidos${orders.length ? ` (${orders.length})` : ""}`,
-        full: "Pedidos de la tienda",
-      },
-      {
-        id: "donations",
-        label: `Donaciones${donations.length ? ` (${donations.length})` : ""}`,
-        full: "Donaciones por transferencia",
-      },
-      {
         id: "page",
         label: "Página",
         full: "Textos, logos y pie",
@@ -958,6 +969,10 @@ export function AdminPage() {
     ],
     [itemCount, docCount, albumCount, productCount, orders.length, donations.length],
   );
+  const priorityItems = navItems.filter((item) =>
+    ADMIN_PRIORITY.includes(item.id),
+  );
+  const configItems = navItems.filter((item) => ADMIN_CONFIG.includes(item.id));
   const currentSection =
     navItems.find((item) => item.id === section) ?? navItems[0];
 
@@ -1587,17 +1602,30 @@ export function AdminPage() {
   }
 
   return (
-    <div className={`admin${allowUploads ? " admin--tester" : " admin--text-only"}`}>
-      <aside className="admin__side">
+    <div
+      className={`admin${allowUploads ? " admin--tester" : " admin--text-only"}${
+        navOpen ? " admin--nav-open" : " admin--nav-collapsed"
+      }`}
+    >
+      <aside className="admin__side" hidden={!navOpen} aria-hidden={!navOpen}>
         <div className="admin__brand">
-          <strong>JDJ Admin</strong>
-          <span>
-            {allowUploads
-              ? "Modo tester"
-              : IS_DEV
-                ? "Modo producción (prueba)"
-                : "Producción: solo texto"}
-          </span>
+          <div>
+            <strong>JDJ Admin</strong>
+            <span>
+              {allowUploads
+                ? "Modo tester"
+                : IS_DEV
+                  ? "Modo producción (prueba)"
+                  : "Producción: solo texto"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="admin__nav-min"
+            onClick={() => persistNavOpen(false)}
+          >
+            Minimizar
+          </button>
         </div>
         <label className="admin-search">
           <span className="sr-only">Buscar qué editar</span>
@@ -1626,34 +1654,56 @@ export function AdminPage() {
             )}
           </ul>
         ) : (
-          <div className={`admin-tabs${tabsOpen ? " is-open" : ""}`}>
-            <button
-              type="button"
-              className="admin-tabs__toggle"
-              aria-expanded={tabsOpen}
-              aria-controls="admin-tabs-list"
-              onClick={() => persistTabsOpen(!tabsOpen)}
-            >
-              <span className="sr-only">Pestañas</span>
-              <strong>{currentSection.label}</strong>
-            </button>
-            {tabsOpen ? (
-              <nav id="admin-tabs-list" aria-label="Secciones del admin">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`admin-nav-item${
-                      section === item.id ? " is-active" : ""
-                    }`}
-                    onClick={() => goToSection(item.id)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            ) : null}
-          </div>
+          <nav className="admin-nav" aria-label="Secciones del admin">
+            <div className="admin-nav__priority">
+              {priorityItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`admin-nav-item admin-nav-item--priority${
+                    section === item.id ? " is-active" : ""
+                  }`}
+                  onClick={() => goToSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className={`admin-nav-config${configOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className={`admin-nav-config__toggle${
+                  isConfigSection(section) ? " is-current" : ""
+                }`}
+                aria-expanded={configOpen}
+                aria-controls="admin-nav-config-list"
+                onClick={() => setConfigOpen((open) => !open)}
+              >
+                <span className="admin-nav-config__label">
+                  <strong>Configuración de página</strong>
+                  {isConfigSection(section) ? (
+                    <small>{currentSection.label}</small>
+                  ) : null}
+                </span>
+              </button>
+              {configOpen ? (
+                <div id="admin-nav-config-list" className="admin-nav-config__list">
+                  {configItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`admin-nav-item admin-nav-item--nested${
+                        section === item.id ? " is-active" : ""
+                      }`}
+                      onClick={() => goToSection(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </nav>
         )}
         <div className="admin__side-actions">
           <details className="admin-view-menu">
@@ -1700,16 +1750,27 @@ export function AdminPage() {
 
       <main className="admin__main">
         <header className="admin__top">
-          <div>
-            <p className="admin__eyebrow">{currentSection.full}</p>
-            <h1>{currentSection.label}</h1>
-            {section === "security" ? null : (
-              <AdminModeSwitch
-                isDev={IS_DEV}
-                testerMode={allowUploads}
-                onChange={setAdminMode}
-              />
+          <div className="admin__heading">
+            {navOpen ? null : (
+              <button
+                type="button"
+                className="admin__nav-open"
+                onClick={() => persistNavOpen(true)}
+              >
+                Menú
+              </button>
             )}
+            <div>
+              <p className="admin__eyebrow">{currentSection.full}</p>
+              <h1>{currentSection.label}</h1>
+              {section === "security" ? null : (
+                <AdminModeSwitch
+                  isDev={IS_DEV}
+                  testerMode={allowUploads}
+                  onChange={setAdminMode}
+                />
+              )}
+            </div>
           </div>
           {section === "security" ? null : (
             <div className="admin__actions">

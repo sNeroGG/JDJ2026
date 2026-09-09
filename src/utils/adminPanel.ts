@@ -17,20 +17,37 @@ export function isAdminSection(value: string | null): value is AdminSection {
   return ADMIN_SECTIONS.includes(value as AdminSection);
 }
 
+export const ADMIN_PRIORITY: readonly AdminSection[] = [
+  "store",
+  "orders",
+  "donations",
+];
+
+export const ADMIN_CONFIG: readonly AdminSection[] = [
+  "site",
+  "event",
+  "location",
+  "album",
+  "catechesis",
+  "page",
+  "security",
+];
+
+export function isConfigSection(value: AdminSection) {
+  return ADMIN_CONFIG.includes(value);
+}
+
 export const ADMIN_GROUPS: {
   id: string;
   label: string;
   items: AdminSection[];
 }[] = [
+  { id: "dashboard", label: "Dashboard", items: [...ADMIN_PRIORITY] },
   {
-    id: "sitio",
-    label: "Sitio",
-    items: ["site", "location", "event", "album", "page"],
+    id: "config",
+    label: "Configuración de página",
+    items: [...ADMIN_CONFIG],
   },
-  { id: "preparacion", label: "Preparación", items: ["catechesis"] },
-  { id: "tienda", label: "Tienda", items: ["store", "orders"] },
-  { id: "donar", label: "Donar", items: ["donations"] },
-  { id: "sistema", label: "Sistema", items: ["security"] },
 ];
 
 export type AdminPart = {

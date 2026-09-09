@@ -83,6 +83,10 @@
   color: var(--navy);
 }
 
+.admin.admin--nav-collapsed {
+  grid-template-columns: 1fr;
+}
+
 .admin__side {
   position: sticky;
   top: 0;
@@ -96,10 +100,16 @@
   overflow: auto;
 }
 
+.admin__side[hidden] {
+  display: none;
+}
+
 .admin__brand {
-  display: grid;
-  gap: 0.12rem;
-  padding: 0.4rem 0.65rem 0.55rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0.15rem 0.2rem;
 }
 
 .admin__brand strong {
@@ -220,56 +230,116 @@
   padding: 0.4rem 0.65rem;
 }
 
-.admin-tabs {
+.admin__nav-min,
+.admin__nav-open {
+  flex: 0 0 auto;
+  cursor: pointer;
+  border-radius: 0.55rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.admin__nav-min {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 238, 241, 0.88);
+  padding: 0.38rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.admin__nav-min:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.admin__nav-open {
+  margin-top: 0.12rem;
+  border: 1px solid rgba(28, 35, 44, 0.12);
+  background: #fff;
+  color: var(--navy);
+  padding: 0.48rem 0.78rem;
+  font-size: 0.82rem;
+}
+
+.admin__nav-open:hover {
+  border-color: rgba(45, 128, 142, 0.45);
+  color: #2d808e;
+}
+
+.admin-nav {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  overflow: auto;
 }
 
-.admin-tabs__toggle {
+.admin-nav__priority {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.admin-nav-config {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.admin-nav-config__toggle {
   cursor: pointer;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.55rem;
   width: 100%;
-  padding: 0.58rem 0.8rem;
+  padding: 0.55rem 0.75rem;
   border-radius: 0.7rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: #e8eef1;
-  font-size: 0.9rem;
-  font-weight: 700;
   text-align: left;
 }
 
-.admin-tabs__toggle::after {
+.admin-nav-config__toggle::after {
   content: "+";
   color: #7ec8d4;
   font-weight: 700;
-  margin-left: auto;
+  flex: 0 0 auto;
+  line-height: 1.2;
 }
 
-.admin-tabs.is-open > .admin-tabs__toggle::after {
+.admin-nav-config.is-open > .admin-nav-config__toggle::after {
   content: "–";
 }
 
-.admin-tabs.is-open > .admin-tabs__toggle {
+.admin-nav-config.is-open > .admin-nav-config__toggle,
+.admin-nav-config__toggle.is-current {
   background: rgba(255, 255, 255, 0.07);
 }
 
-.admin-tabs__toggle strong {
+.admin-nav-config__label {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.admin-nav-config__toggle strong {
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
-.admin-tabs > nav {
+.admin-nav-config__toggle small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7ec8d4;
+}
+
+.admin-nav-config__list {
   display: grid;
-  gap: 0.12rem;
-  flex: 1;
-  align-content: start;
-  overflow: auto;
-  padding: 0.1rem 0 0.2rem;
+  gap: 0.08rem;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0 0.15rem 0.45rem;
+  border-left: 2px solid rgba(126, 200, 212, 0.28);
 }
 
 .admin-nav-item {
@@ -282,6 +352,15 @@
   font-weight: 600;
   font-size: 0.9rem;
   line-height: 1.2;
+}
+
+.admin-nav-item--priority {
+  font-size: 0.95rem;
+}
+
+.admin-nav-item--nested {
+  font-size: 0.86rem;
+  padding: 0.46rem 0.7rem;
 }
 
 .admin-nav-item:hover {
@@ -376,6 +455,13 @@
   align-items: start;
   margin-bottom: 1.15rem;
   flex-wrap: wrap;
+}
+
+.admin__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .admin__eyebrow {
@@ -1521,7 +1607,9 @@
 }
 
 @media (max-width: 900px) {
-  .admin {
+  .admin,
+  .admin.admin--nav-open,
+  .admin.admin--nav-collapsed {
     grid-template-columns: 1fr;
   }
 
@@ -1536,9 +1624,14 @@
     box-shadow: 0 10px 24px rgba(8, 12, 16, 0.22);
   }
 
+  .admin__side[hidden] {
+    display: none;
+  }
+
   .admin__brand {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 0.45rem;
     padding: 0.1rem 0.15rem 0.15rem;
   }
@@ -1551,14 +1644,9 @@
     font-size: 0.72rem;
   }
 
-  .admin-tabs {
+  .admin-nav {
     flex: 0 0 auto;
-  }
-
-  .admin-tabs > nav {
-    display: grid;
-    max-height: min(52svh, 24rem);
-    padding: 0.15rem 0 0.35rem;
+    max-height: min(58svh, 28rem);
   }
 
   .admin-nav-item {
