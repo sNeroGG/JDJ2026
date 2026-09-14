@@ -36,6 +36,6 @@ export function rateLimit(key: string, max: number, windowMs: number) {
 
 export function eqFilter(column: "id", value: string) {
   if (column !== "id") return "";
-  if (!isUuid(value) && !isOrderId(value)) return "";
+  if (!isUuid(value) && !isOrderId(value) && !isSafeId(value)) return "";
   return `id=eq.${encodeURIComponent(value)}`;
 }
