@@ -551,7 +551,7 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-3ed2271b",
             "size": "S",
             "color": "",
-            "stock": 10
+            "stock": 999997
           },
           {
             "id": "var-40dbcdcf",
@@ -592,7 +592,7 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-e5f93e8f",
             "size": "XS",
             "color": "",
-            "stock": 0
+            "stock": 999997
           },
           {
             "id": "prod-680b4c47--unica--s",
@@ -610,7 +610,7 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-680b4c47--unica--l",
             "size": "L",
             "color": "",
-            "stock": 0
+            "stock": 999997
           },
           {
             "id": "prod-680b4c47--unica--xl",
@@ -634,7 +634,7 @@ export const SAVED_CONTENT: SavedContent = {
       },
       {
         "id": "prod-e1c396d4",
-        "title": "Camisa JDJ 2026 Verde militar",
+        "title": "Camisa JDJ 2026 Verde musgo",
         "description": "Color Verde militar",
         "price": 7.5,
         "imageUrl": "/images/3112.webp",
@@ -657,7 +657,7 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-e1c396d4--unica--s",
             "size": "S",
             "color": "",
-            "stock": 0
+            "stock": 999997
           },
           {
             "id": "prod-e1c396d4--unica--m",
@@ -710,25 +710,25 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-4be0843b--unica--s",
             "size": "S",
             "color": "",
-            "stock": 1
+            "stock": 3
           },
           {
             "id": "prod-4be0843b--unica--m",
             "size": "M",
             "color": "",
-            "stock": 0
+            "stock": 2
           },
           {
             "id": "prod-4be0843b--unica--l",
             "size": "L",
             "color": "",
-            "stock": 0
+            "stock": 1
           },
           {
             "id": "prod-4be0843b--unica--xl",
             "size": "XL",
             "color": "",
-            "stock": 0
+            "stock": 1
           }
         ]
       },
