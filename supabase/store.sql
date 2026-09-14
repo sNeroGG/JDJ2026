@@ -100,15 +100,22 @@ declare
   v_product_id text := p_order->>'product_id';
   v_variant_id text := p_order->>'variant_id';
   v_qty integer := coalesce((p_order->>'quantity')::integer, 0);
+  v_without_stock boolean := coalesce((p_order->>'without_stock')::boolean, false) or coalesce(p_seed, 0) >= 999999;
   v_stock integer;
 begin
   if v_id is null or v_product_id is null or v_variant_id is null or v_qty < 1 then
     raise exception 'ORDER_INVALID';
   end if;
 
-  insert into public.store_stock (product_id, variant_id, stock)
-  values (v_product_id, v_variant_id, greatest(coalesce(p_seed, 0), 0))
-  on conflict (product_id, variant_id) do nothing;
+  if v_without_stock then
+    insert into public.store_stock (product_id, variant_id, stock)
+    values (v_product_id, v_variant_id, 999999)
+    on conflict (product_id, variant_id) do update set stock = 999999;
+  else
+    insert into public.store_stock (product_id, variant_id, stock)
+    values (v_product_id, v_variant_id, greatest(coalesce(p_seed, 0), 0))
+    on conflict (product_id, variant_id) do nothing;
+  end if;
 
   select stock into v_stock
   from public.store_stock
@@ -119,14 +126,16 @@ begin
     raise exception 'STOCK_NOT_FOUND';
   end if;
 
-  if v_stock < v_qty then
+  if not v_without_stock and v_stock < v_qty then
     raise exception 'STOCK_INSUFFICIENT:%', v_stock;
   end if;
 
-  update public.store_stock
-  set stock = stock - v_qty, updated_at = now()
-  where product_id = v_product_id and variant_id = v_variant_id
-  returning stock into v_stock;
+  if not v_without_stock then
+    update public.store_stock
+    set stock = stock - v_qty, updated_at = now()
+    where product_id = v_product_id and variant_id = v_variant_id
+    returning stock into v_stock;
+  end if;
 
   insert into public.store_orders (
     id, created_at, name, email, phone, product_id, product_title,

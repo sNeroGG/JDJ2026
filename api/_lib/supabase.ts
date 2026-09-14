@@ -198,7 +198,7 @@ export async function ensureStoreStock(products: StoreProduct[]) {
     product.variants.map((variant) => ({
       product_id: product.id,
       variant_id: variant.id,
-      stock: Math.max(0, variant.stock),
+      stock: product.withoutStock ? 999999 : Math.max(0, variant.stock),
     })),
   );
   if (!rows.length) return;
@@ -267,11 +267,14 @@ export async function listStoreOrders() {
   return Array.from(map.values());
 }
 
-export async function placeStoreOrder(order: StoreOrder, seed: number) {
+export async function placeStoreOrder(order: StoreOrder, seed: number, withoutStock = false) {
   const placed = await rest<{ stock?: number }>("rpc/place_store_order", {
     method: "POST",
     body: JSON.stringify({
-      p_order: orderToPayload(order),
+      p_order: {
+        ...orderToPayload(order),
+        without_stock: withoutStock,
+      },
       p_seed: Math.max(0, seed),
     }),
   });

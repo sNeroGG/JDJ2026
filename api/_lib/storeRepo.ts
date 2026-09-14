@@ -188,6 +188,7 @@ export async function readOrders(): Promise<StoreOrder[]> {
 }
 
 function seedFor(product: StoreProduct, variantId: string) {
+  if (product.withoutStock) return 999999;
   const variant = product.variants.find((item) => item.id === variantId);
   return variant?.stock ?? 0;
 }
@@ -200,19 +201,27 @@ function remainingMessage(product: StoreProduct, variantId: string, left: number
 
 export async function placeLiveOrder(order: StoreOrder, catalog: StoreProduct) {
   const variantId = order.variantId;
+  const product = catalog;
+  const withoutStock = Boolean(product?.withoutStock);
+
   if (isSupabaseConfigured()) {
     try {
-      const placed = await placeStoreOrder(order, seedFor(catalog, variantId));
+      if (withoutStock) {
+        await upsertStoreStock([
+          { productId: order.productId, variantId, stock: 999999 },
+        ]).catch(() => undefined);
+      }
+      const placed = await placeStoreOrder(order, seedFor(product, variantId), withoutStock);
       const live = await liveProducts();
-      const product = live.find((item) => item.id === order.productId) ?? catalog;
-      const liveVariant = product.variants.find((item) => item.id === variantId);
+      const liveProduct = live.find((item) => item.id === order.productId) ?? catalog;
+      const liveVariant = liveProduct.variants.find((item) => item.id === variantId);
       const stock = Number.isFinite(placed.stock)
         ? placed.stock
         : (liveVariant?.stock ?? seedFor(catalog, variantId) - order.quantity);
       return {
         order,
         stock,
-        total: productStock(product),
+        total: productStock(liveProduct),
         variantId,
       };
     } catch (error) {
@@ -284,8 +293,14 @@ export async function placeLiveMultiOrder(order: StoreOrder, catalog: StoreProdu
         total: item.total,
       };
       const product = catalog.find((p) => p.id === item.productId);
+      const withoutStock = Boolean(product?.withoutStock);
+      if (withoutStock) {
+        await upsertStoreStock([
+          { productId: item.productId, variantId: item.variantId, stock: 999999 },
+        ]).catch(() => undefined);
+      }
       const seed = seedFor(product || catalog[0], item.variantId);
-      await placeStoreOrder(subOrder, seed);
+      await placeStoreOrder(subOrder, seed, withoutStock);
     }
     return { order };
   }
@@ -339,6 +354,7 @@ export async function deleteLiveOrder(id: string) {
 
     for (const item of items) {
       const product = products.find((p) => p.id === item.productId);
+      if (product?.withoutStock) continue;
       const vId =
         item.variantId ||
         (product ? orderVariantId(target, product) : "");
