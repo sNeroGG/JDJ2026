@@ -87,7 +87,7 @@ export function downloadOrderPdf(order: StoreOrder, siteName = "JDJ Jayaque 2026
         <p><strong>Correo electrónico:</strong> ${order.email}</p>
       </div>
       <div class="info-block">
-        <p><strong>Parroquia / Grupo:</strong> ${order.parish}</p>
+        <p><strong>Parroquia / Grupo:</strong> ${order.parish || "No especificada"}</p>
         <p><strong>Fecha de registro:</strong> ${dateStr}</p>
         <p><strong>Método de pago:</strong> ${order.payment}</p>
       </div>

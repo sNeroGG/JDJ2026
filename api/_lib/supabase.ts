@@ -10,7 +10,7 @@ const DONATION_COLUMNS =
   "id,full_name,dui,email,phone,parish,amount,status,payment_method,paid_at,created_at";
 
 const ORDER_COLUMNS =
-  "id,created_at,name,email,phone,product_id,product_title,variant_id,size,color,quantity,unit_price,total,payment,note,status";
+  "id,created_at,name,email,phone,parish,product_id,product_title,variant_id,size,color,quantity,unit_price,total,payment,note,status";
 
 export class StoreConflictError extends Error {
   remaining?: number;
@@ -138,6 +138,7 @@ function orderFromRow(row: Record<string, unknown>): StoreOrder {
     name: String(row.name || ""),
     email: String(row.email || ""),
     phone: String(row.phone || ""),
+    parish: String(row.parish || ""),
     productId: String(row.product_id || ""),
     productTitle: String(row.product_title || ""),
     variantId: String(row.variant_id || ""),
@@ -160,6 +161,7 @@ function orderToPayload(order: StoreOrder) {
     name: order.name,
     email: order.email,
     phone: order.phone,
+    parish: order.parish || "",
     product_id: order.productId,
     product_title: order.productTitle,
     variant_id: order.variantId,
