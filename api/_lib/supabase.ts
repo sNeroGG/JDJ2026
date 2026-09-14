@@ -283,6 +283,15 @@ export async function placeStoreOrder(order: StoreOrder, seed: number, withoutSt
       p_seed: Math.max(0, seed),
     }),
   });
+  if (order.parish) {
+    const filter = eqFilter("id", order.id);
+    if (filter) {
+      await rest(`store_orders?${filter}`, {
+        method: "PATCH",
+        body: JSON.stringify({ parish: order.parish }),
+      }).catch(() => undefined);
+    }
+  }
   return {
     order,
     stock: Number(placed?.stock),
