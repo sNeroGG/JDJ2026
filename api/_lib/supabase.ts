@@ -226,7 +226,8 @@ export async function listStoreStock(): Promise<StoreStockMap> {
 export async function deleteStoreOrder(id: string) {
   const filter = eqFilter("id", id);
   if (!filter) return false;
-  await rest(`store_orders?${filter}`, {
+  const filterItem = `id.like.${encodeURIComponent(id + "_item_*")}`;
+  await rest(`store_orders?or=(${filter},${filterItem})`, {
     method: "DELETE",
     prefer: "return=minimal",
   });
@@ -241,6 +242,7 @@ export async function listStoreOrders() {
   const map = new Map<string, StoreOrder>();
   for (const row of rows) {
     const single = orderFromRow(row);
+    const baseId = single.id.replace(/_item_\d+$/, "");
     const item = {
       productId: single.productId,
       productTitle: single.productTitle,
@@ -251,10 +253,11 @@ export async function listStoreOrders() {
       unitPrice: single.unitPrice,
       total: single.total,
     };
-    const existing = map.get(single.id);
+    const existing = map.get(baseId);
     if (!existing) {
-      map.set(single.id, {
+      map.set(baseId, {
         ...single,
+        id: baseId,
         items: [item],
       });
     } else {
@@ -296,7 +299,11 @@ export async function updateStoreOrderStatus(
     },
   );
   if (!row || typeof row !== "object") return null;
-  return orderFromRow(row);
+  const single = orderFromRow(row);
+  return {
+    ...single,
+    id: single.id.replace(/_item_\d+$/, ""),
+  };
 }
 
 export type DbTableCheck = {

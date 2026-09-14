@@ -280,9 +280,13 @@ export async function placeLiveMultiOrder(order: StoreOrder, catalog: StoreProdu
   }];
 
   if (isSupabaseConfigured()) {
+    let index = 0;
     for (const item of items) {
+      index++;
+      const subOrderId = items.length > 1 ? `${order.id}_item_${index}` : order.id;
       const subOrder: StoreOrder = {
         ...order,
+        id: subOrderId,
         productId: item.productId,
         productTitle: item.productTitle,
         variantId: item.variantId,
