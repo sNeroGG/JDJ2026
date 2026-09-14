@@ -161,6 +161,10 @@ export type StoreProduct = {
   comingSoon: boolean;
   /** Fecha ISO o YYYY-MM-DD. Vacío = se queda oculto mientras comingSoon. */
   revealAt: string;
+  /** Si es true, el producto se vende sin límite de stock (bajo demanda / pedidos grandes). */
+  withoutStock?: boolean;
+  /** Sección a la que pertenece el producto, ej. "JDJ" o "PJA". */
+  section?: string;
 };
 
 export type StoreOrderStatus = "nuevo" | "atendido" | "cancelado";
@@ -171,6 +175,7 @@ export type StoreOrder = {
   name: string;
   email: string;
   phone: string;
+  parish: string;
   productId: string;
   productTitle: string;
   variantId: string;
@@ -765,11 +770,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     logoUrl: "",
     eyebrow: "Tienda JDJ",
     title: "Lleva el encuentro contigo",
-    lead: "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
+    lead: "",
     whatsapp: "",
     paymentNote:
       "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
-    ctaLabel: "Pedir por WhatsApp",
+    ctaLabel: "Agregar al pedido",
     products: [],
   },
   header: {

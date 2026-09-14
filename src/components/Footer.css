@@ -111,6 +111,20 @@
   color: rgba(247, 245, 240, 0.45);
 }
 
+.footer__creator-link {
+  color: rgba(247, 245, 240, 0.88);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(247, 245, 240, 0.3);
+  text-underline-offset: 3px;
+  transition: all 0.2s ease;
+}
+
+.footer__creator-link:hover {
+  color: var(--yellow, #f59e0b);
+  text-decoration-color: var(--yellow, #f59e0b);
+}
+
 @media (max-width: 860px) {
   .footer__inner {
     grid-template-columns: 1fr 1fr;

@@ -12,6 +12,7 @@ import { DonateThanksPage } from "./pages/DonateThanksPage";
 import { LandingPage } from "./pages/LandingPage";
 import { SedeTopicPage } from "./pages/SedeTopicPage";
 import { StorePage } from "./pages/StorePage";
+import { StoreCheckoutPage } from "./pages/StoreCheckoutPage";
 import { TeamGatePage } from "./pages/TeamGatePage";
 import { ADMIN_ROUTE, isAdminPath } from "./utils/adminRoute";
 import {
@@ -37,6 +38,7 @@ function PublicRoutes() {
       <Route path="/catequesis" element={<CatechesisPage />} />
       <Route path="/recuerdos" element={<AlbumPage />} />
       <Route path="/tienda" element={<StorePage />} />
+      <Route path="/tienda/pedido" element={<StoreCheckoutPage />} />
       <Route path="/donar" element={<DonatePage />} />
       <Route path="/donar/gracias" element={<DonateThanksPage />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />

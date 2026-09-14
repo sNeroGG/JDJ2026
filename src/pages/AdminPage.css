@@ -1844,3 +1844,108 @@
     width: 100%;
   }
 }
+
+.admin-price-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(28, 35, 44, 0.14);
+  border-radius: 0.7rem;
+  background: #fbfcfc;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-price-input-wrap:focus-within {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(45, 128, 142, 0.15);
+  background: #ffffff;
+}
+
+.admin-price-prefix {
+  padding-left: 0.85rem;
+  padding-right: 0.25rem;
+  font-weight: 700;
+  color: var(--teal);
+  font-size: 1rem;
+  user-select: none;
+}
+
+.admin-price-input-wrap input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.7rem 0.8rem 0.7rem 0.1rem !important;
+  font-weight: 600;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.admin-variants {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.admin-variants__head {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr 1fr 1fr auto;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0 0.3rem;
+}
+
+.admin-variants__row {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-variant-move-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+}
+
+.admin-variant-move-btn {
+  width: 1.45rem;
+  height: 1.15rem;
+  border-radius: 0.35rem;
+  background: #edf2f7;
+  color: #2d3748;
+  border: 1px solid rgba(28, 35, 44, 0.12);
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.admin-variant-move-btn:hover:not(:disabled) {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.admin-variant-move-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.admin-product__header-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.admin-product__header-bar .admin-product__toggle {
+  flex: 1;
+  min-width: 0;
+}

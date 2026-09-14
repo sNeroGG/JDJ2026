@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
@@ -17,11 +18,18 @@ import {
   productRevealLabel,
   productSizes,
   productStock,
+  sortProductsBySection,
   STORE_MYSTERY_SHIRT,
   variantLabel,
   whatsappOrderUrl,
+  whatsappMultiOrderUrl,
   type StoreStockMap,
 } from "../utils/store";
+import {
+  loadStoreCart,
+  saveStoreCart,
+  type StoreCartItem,
+} from "../utils/storeCart";
 import "./StorePage.css";
 
 type Checkout = {
@@ -29,9 +37,7 @@ type Checkout = {
   name: string;
   email: string;
   phone: string;
-  size: string;
-  color: string;
-  quantity: number;
+  quantities: Record<string, number>;
   note: string;
 };
 
@@ -46,16 +52,21 @@ const EMPTY_CHECKOUT: Omit<Checkout, "product"> = {
 };
 
 export function StorePage() {
+  const navigate = useNavigate();
   const ref = useReveal<HTMLElement>();
   const { content, updateContent } = useContent();
   const { store, site } = content;
   const [liveStock, setLiveStock] = useState<StoreStockMap | null>(null);
   const [checkout, setCheckout] = useState<Checkout | null>(null);
+  const [cart, setCart] = useState<StoreCartItem[]>(loadStoreCart);
+  const [modalImgIndex, setModalImgIndex] = useState(0);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50, isZoomed: false });
   const [gallery, setGallery] = useState<{ product: StoreProduct; index: number } | null>(
     null,
   );
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
+  const [selectedSection, setSelectedSection] = useState<"ALL" | "JDJ" | "PJA">("ALL");
 
   useSeo({
     title: `${store.title} · ${site.name} ${site.year}`,
@@ -70,6 +81,15 @@ export function StorePage() {
   }, []);
 
   useEffect(() => {
+    const handleCartUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<StoreCartItem[]>;
+      if (customEvent.detail) setCart(customEvent.detail);
+    };
+    window.addEventListener("jdj-cart-update", handleCartUpdate);
+    return () => window.removeEventListener("jdj-cart-update", handleCartUpdate);
+  }, []);
+
+  useEffect(() => {
     void fetch("/api/store")
       .then(async (remote) => {
         if (!remote.ok) return;
@@ -80,20 +100,56 @@ export function StorePage() {
   }, []);
 
   const products = useMemo(
-    () => applyStockMap(store.products, liveStock),
+    () => sortProductsBySection(applyStockMap(store.products, liveStock)),
     [liveStock, store.products],
   );
 
-  const buyableProducts = products.filter((item) => !isProductComingSoon(item));
+  const visibleProducts = useMemo(() => {
+    if (selectedSection === "ALL") return products;
+    return products.filter((item) => (item.section || "JDJ") === selectedSection);
+  }, [products, selectedSection]);
+
+  const buyableProducts = useMemo(
+    () => products.filter((item) => !isProductComingSoon(item)),
+    [products],
+  );
   const whatsappReady = Boolean(normalizeWhatsapp(store.whatsapp));
-  const selected = checkout
-    ? findVariant(checkout.product, checkout)
-    : undefined;
-  const selectedStock = selected?.stock ?? 0;
-  const checkoutColors = checkout ? productColors(checkout.product) : [];
-  const checkoutSizes = checkout
-    ? productSizes(checkout.product, checkout.color)
-    : [];
+  const selectedItems = useMemo(() => {
+    if (!checkout) return [];
+    const list: Array<{ variant: StoreProduct["variants"][number]; qty: number }> = [];
+    for (const variant of checkout.product.variants) {
+      const qty = checkout.quantities[variant.id] || 0;
+      if (qty > 0) {
+        list.push({ variant, qty });
+      }
+    }
+    return list;
+  }, [checkout]);
+
+  const grandTotalQty = useMemo(
+    () => selectedItems.reduce((sum, item) => sum + item.qty, 0),
+    [selectedItems],
+  );
+
+  const grandTotalPrice = useMemo(() => {
+    if (!checkout) return 0;
+    return grandTotalQty * checkout.product.price;
+  }, [checkout, grandTotalQty]);
+
+  function setVariantQty(variantId: string, qty: number) {
+    if (!checkout) return;
+    const variant = checkout.product.variants.find((v) => v.id === variantId);
+    if (!variant) return;
+    const max = checkout.product.withoutStock ? 50 : Math.max(0, variant.stock);
+    const validQty = Math.min(Math.max(0, qty), max);
+    setCheckout({
+      ...checkout,
+      quantities: {
+        ...checkout.quantities,
+        [variantId]: validQty,
+      },
+    });
+  }
 
   function openGallery(product: StoreProduct, index = 0) {
     const images = productImages(product);
@@ -104,17 +160,114 @@ export function StorePage() {
     });
   }
 
+  const cartTotalQty = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart],
+  );
+
+  const cartTotalPrice = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity * item.productPrice, 0),
+    [cart],
+  );
+
+  function handleImageClick(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const currentTarget = e.currentTarget;
+    if (!currentTarget) return;
+    const rect = currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
+    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = isNaN(rawX) || !isFinite(rawX) ? 50 : Math.max(0, Math.min(100, rawX));
+    const y = isNaN(rawY) || !isFinite(rawY) ? 50 : Math.max(0, Math.min(100, rawY));
+
+    setZoomPos((prev) => ({
+      x,
+      y,
+      isZoomed: !prev.isZoomed,
+    }));
+  }
+
+  function handleImageMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!zoomPos.isZoomed) return;
+    const currentTarget = e.currentTarget;
+    if (!currentTarget) return;
+    const rect = currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
+    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = isNaN(rawX) || !isFinite(rawX) ? 50 : Math.max(0, Math.min(100, rawX));
+    const y = isNaN(rawY) || !isFinite(rawY) ? 50 : Math.max(0, Math.min(100, rawY));
+
+    setZoomPos({
+      x,
+      y,
+      isZoomed: true,
+    });
+  }
+
+  function handleImageMouseLeave() {
+    setZoomPos((prev) => (prev.isZoomed ? { ...prev, isZoomed: false } : prev));
+  }
+
   function openCheckout(product: StoreProduct) {
     if (isProductComingSoon(product)) return;
-    const variant = firstAvailableVariant(product);
     setNotice("");
+    setModalImgIndex(0);
+    setZoomPos({ x: 50, y: 50, isZoomed: false });
+    const initialQty: Record<string, number> = {};
+    for (const variant of product.variants) {
+      initialQty[variant.id] = 0;
+    }
     setCheckout({
       product,
-      ...EMPTY_CHECKOUT,
-      size: variant?.size || "",
-      color: variant?.color || "",
-      quantity: 1,
+      name: "",
+      email: "",
+      phone: "",
+      quantities: initialQty,
+      note: "",
     });
+  }
+
+  function handleAddToCartOnly() {
+    if (!checkout || grandTotalQty <= 0) return;
+    const currentCart = loadStoreCart();
+    const nextCart = [...currentCart];
+    const photos = productImages(checkout.product);
+    for (const item of selectedItems) {
+      const cartItemId = `${checkout.product.id}:${item.variant.id}`;
+      const existingIndex = nextCart.findIndex((c) => c.id === cartItemId);
+      if (existingIndex >= 0) {
+        nextCart[existingIndex] = {
+          ...nextCart[existingIndex],
+          quantity: nextCart[existingIndex].quantity + item.qty,
+        };
+      } else {
+        nextCart.push({
+          id: cartItemId,
+          productId: checkout.product.id,
+          productTitle: checkout.product.title,
+          productPrice: checkout.product.price,
+          imageUrl: photos[0] || "",
+          variantId: item.variant.id,
+          size: item.variant.size,
+          color: item.variant.color,
+          quantity: item.qty,
+          withoutStock: checkout.product.withoutStock,
+          maxStock: item.variant.stock || 50,
+        });
+      }
+    }
+    saveStoreCart(nextCart);
+    setCart(nextCart);
+    setCheckout(null);
+    setNotice(`✔ ${grandTotalQty} camisa(s) agregada(s) a tu pedido.`);
+  }
+
+  function handleAddToCartAndProceed() {
+    handleAddToCartOnly();
+    navigate("/tienda/pedido");
   }
 
   function patchVariantStock(
@@ -153,7 +306,9 @@ export function StorePage() {
     if (!checkout) return;
     const next = { ...checkout, ...patch };
     const variant = findVariant(next.product, next);
-    const max = Math.max(1, variant?.stock ?? 1);
+    const max = checkout.product.withoutStock
+      ? 20
+      : Math.max(1, variant?.stock ?? 1);
     setCheckout({
       ...next,
       quantity: Math.min(Math.max(1, next.quantity), max),
@@ -162,52 +317,60 @@ export function StorePage() {
 
   async function submitOrder(event: FormEvent) {
     event.preventDefault();
-    if (!checkout) return;
+    if (!checkout || grandTotalQty <= 0) {
+      setNotice("Selecciona al menos una camisa o talla.");
+      return;
+    }
     setSending(true);
     setNotice("");
     try {
-      const variant = findVariant(checkout.product, checkout);
-      const remote = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: checkout.name,
-          email: checkout.email,
-          phone: checkout.phone,
-          productId: checkout.product.id,
-          variantId: variant?.id || "",
-          size: checkout.size,
-          color: checkout.color,
-          quantity: checkout.quantity,
-          note: checkout.note,
-        }),
+      const createdOrders: StoreOrder[] = [];
+      for (const item of selectedItems) {
+        const remote = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: checkout.name,
+            email: checkout.email,
+            phone: checkout.phone,
+            productId: checkout.product.id,
+            variantId: item.variant.id,
+            size: item.variant.size,
+            color: item.variant.color,
+            quantity: item.qty,
+            note: checkout.note,
+          }),
+        });
+        const payload = (await remote.json().catch(() => null)) as {
+          error?: string;
+          order?: StoreOrder;
+          stock?: number;
+          variantId?: string;
+        } | null;
+        if (!remote.ok || !payload?.order) {
+          setNotice(payload?.error || "No se pudo registrar el pedido.");
+          setSending(false);
+          return;
+        }
+        createdOrders.push(payload.order);
+        if (typeof payload.stock === "number" && payload.variantId) {
+          patchVariantStock(
+            checkout.product.id,
+            payload.variantId,
+            payload.stock,
+          );
+        }
+      }
+
+      const url = whatsappMultiOrderUrl(store.whatsapp, createdOrders, {
+        name: checkout.name,
+        email: checkout.email,
+        phone: checkout.phone,
+        note: checkout.note,
       });
-      const payload = (await remote.json().catch(() => null)) as {
-        error?: string;
-        order?: Parameters<typeof whatsappOrderUrl>[1];
-        stock?: number;
-        variantId?: string;
-        whatsappUrl?: string;
-      } | null;
-      if (!remote.ok || !payload?.order) {
-        setNotice(payload?.error || "No se pudo registrar el pedido.");
-        return;
-      }
-      if (typeof payload.stock === "number" && payload.variantId) {
-        patchVariantStock(
-          checkout.product.id,
-          payload.variantId,
-          payload.stock,
-        );
-      }
-      const url =
-        payload.whatsappUrl ||
-        whatsappOrderUrl(store.whatsapp, payload.order);
       setCheckout(null);
       if (!url) {
-        setNotice(
-          `Pedido ${payload.order.id} registrado. Configura WhatsApp en el panel para enviarlo.`,
-        );
+        setNotice("Pedidos registrados. Configura WhatsApp en el panel.");
         return;
       }
       const opened = window.open(url, "_blank", "noopener,noreferrer");
@@ -236,10 +399,71 @@ export function StorePage() {
                 />
               ) : null}
               <p className="section__eyebrow">{store.eyebrow}</p>
-              <h1 className="section__title">{store.title}</h1>
-              <p className="section__lead">{store.lead}</p>
+              <h1 className="section__title store-title--single-line">{store.title}</h1>
+              {store.lead &&
+              store.lead !==
+                "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia." ? (
+                <p className="section__lead">{store.lead}</p>
+              ) : null}
               {store.paymentNote ? (
                 <p className="store-page__pay">{store.paymentNote}</p>
+              ) : null}
+              <div className="store-intro__actions">
+                <Link to="/tienda/pedido" className="store-cart-btn">
+                  <svg
+                    className="store-cart-btn__icon"
+                    width="19"
+                    height="19"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                  </svg>
+                  <span className="store-cart-btn__text">Ver mi pedido</span>
+                  {cartTotalQty > 0 ? (
+                    <span className="store-cart-btn__badge">{cartTotalQty}</span>
+                  ) : null}
+                </Link>
+              </div>
+
+              {products.length > 0 ? (
+                <div className="store-section-filters reveal">
+                  <button
+                    type="button"
+                    className={`store-section-filter__btn ${selectedSection === "ALL" ? "is-active" : ""}`}
+                    onClick={() => setSelectedSection("ALL")}
+                  >
+                    <span>Todas las camisas</span>
+                    <span className="store-section-filter__count">{products.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`store-section-filter__btn ${selectedSection === "JDJ" ? "is-active" : ""}`}
+                    onClick={() => setSelectedSection("JDJ")}
+                  >
+                    <span>Sección JDJ</span>
+                    <span className="store-section-filter__count">
+                      {products.filter((p) => (p.section || "JDJ") === "JDJ").length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`store-section-filter__btn ${selectedSection === "PJA" ? "is-active" : ""}`}
+                    onClick={() => setSelectedSection("PJA")}
+                  >
+                    <span>Sección PJA</span>
+                    <span className="store-section-filter__count">
+                      {products.filter((p) => p.section === "PJA").length}
+                    </span>
+                  </button>
+                </div>
               ) : null}
             </div>
 
@@ -249,7 +473,7 @@ export function StorePage() {
               </p>
             ) : (
               <div className="store-page__grid">
-                {products.map((product) => {
+                {visibleProducts.map((product) => {
                   if (isProductComingSoon(product)) {
                     const reveal = productRevealLabel(product);
                     return (
@@ -269,6 +493,9 @@ export function StorePage() {
                         <div className="store-card__body">
                           <h2>?????</h2>
                           <p>Muy pronto disponible</p>
+                          <span className="store-card__section-tag">
+                            Sección {product.section || "JDJ"}
+                          </span>
                           {reveal ? (
                             <p className="store-card__reveal">{reveal}</p>
                           ) : null}
@@ -277,9 +504,10 @@ export function StorePage() {
                     );
                   }
                   const total = productStock(product);
-                  const soldOut = total <= 0;
+                  const soldOut = !product.withoutStock && total <= 0;
                   const images = productImages(product);
                   const cover = images[0];
+                  const secondPhoto = images[1];
                   return (
                     <article
                       className={`store-card reveal${soldOut ? " is-soldout" : ""}`}
@@ -289,20 +517,27 @@ export function StorePage() {
                         {cover ? (
                           <button
                             type="button"
-                            className="store-card__photos"
-                            onClick={() => openGallery(product)}
-                            aria-label={
-                              images.length > 1
-                                ? `Ver ${images.length} fotos de ${product.title}`
-                                : `Ver foto de ${product.title}`
-                            }
+                            className="store-card__media-btn"
+                            disabled={soldOut}
+                            onClick={() => openCheckout(product)}
+                            aria-label={`Pedir ${product.title}`}
                           >
                             <img
+                              className="store-card__img store-card__img--primary"
                               src={cover}
                               alt={product.title}
                               width={640}
                               height={640}
                             />
+                            {secondPhoto ? (
+                              <img
+                                className="store-card__img store-card__img--secondary"
+                                src={secondPhoto}
+                                alt=""
+                                width={640}
+                                height={640}
+                              />
+                            ) : null}
                             {images.length > 1 ? (
                               <span className="store-card__photos-count">
                                 {images.length} fotos
@@ -314,7 +549,7 @@ export function StorePage() {
                         )}
                         {soldOut ? (
                           <span className="store-card__badge">Agotado</span>
-                        ) : (
+                        ) : product.withoutStock ? null : (
                           <span className="store-card__stock">
                             {total} {total === 1 ? "disponible" : "disponibles"}
                           </span>
@@ -323,23 +558,24 @@ export function StorePage() {
                       <div className="store-card__body">
                         <h2>{product.title}</h2>
                         {product.description ? <p>{product.description}</p> : null}
-                        <p className="store-card__variants">
-                          {variantSummary(product)}
-                        </p>
+                        <span className="store-card__section-tag">
+                          Sección {product.section || "JDJ"}
+                        </span>
+                        {variantSummary(product) ? (
+                          <p className="store-card__variants">
+                            {variantSummary(product)}
+                          </p>
+                        ) : null}
                         <p className="store-card__price">
                           {formatUsd(product.price)}
                         </p>
                         <button
                           type="button"
                           className="store-card__cta"
-                          disabled={soldOut || !whatsappReady}
+                          disabled={soldOut}
                           onClick={() => openCheckout(product)}
                         >
-                          {soldOut
-                            ? "Agotado"
-                            : whatsappReady
-                              ? store.ctaLabel
-                              : "WhatsApp pendiente"}
+                          {soldOut ? "Agotado" : store.ctaLabel || "Agregar al pedido"}
                         </button>
                       </div>
                     </article>
@@ -365,6 +601,51 @@ export function StorePage() {
       </main>
       <Footer />
 
+      {cartTotalQty > 0 ? (
+        <div className="store-floating-cart">
+          <div className="store-floating-cart__info">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+            <span>
+              {cartTotalQty} {cartTotalQty === 1 ? "producto" : "productos"}
+            </span>
+            <span className="store-floating-cart__price">
+              ({formatUsd(cartTotalPrice)})
+            </span>
+          </div>
+          <Link to="/tienda/pedido" className="store-floating-cart__btn">
+            <span>Ver mi pedido</span>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </Link>
+        </div>
+      ) : null}
+
       {gallery ? (
         <ProductGallery
           product={gallery.product}
@@ -374,163 +655,216 @@ export function StorePage() {
         />
       ) : null}
 
-      {checkout ? (
-        <div
-          className="store-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="store-checkout-title"
-        >
-          <button
-            type="button"
-            className="store-modal__backdrop"
-            aria-label="Cerrar"
-            onClick={() => !sending && setCheckout(null)}
-          />
-          <form className="store-modal__card" onSubmit={(e) => void submitOrder(e)}>
-            <p className="store-modal__eyebrow">Pedido</p>
-            <h2 id="store-checkout-title">{checkout.product.title}</h2>
-            <p className="store-modal__price">
-              {formatUsd(checkout.product.price)} · pago por transferencia
-            </p>
-            <label>
-              Nombre
-              <input
-                value={checkout.name}
-                onChange={(e) =>
-                  setCheckout({ ...checkout, name: e.target.value })
-                }
-                autoComplete="name"
-                required
-              />
-            </label>
-            <label>
-              Correo
-              <input
-                type="email"
-                value={checkout.email}
-                onChange={(e) =>
-                  setCheckout({ ...checkout, email: e.target.value })
-                }
-                autoComplete="email"
-                required
-              />
-            </label>
-            <label>
-              Teléfono
-              <input
-                type="tel"
-                value={checkout.phone}
-                onChange={(e) =>
-                  setCheckout({ ...checkout, phone: e.target.value })
-                }
-                autoComplete="tel"
-                required
-              />
-            </label>
-            <div className="store-modal__row">
-              {checkoutColors.length ? (
-                <label>
-                  Color
-                  <select
-                    value={checkout.color}
-                    onChange={(e) =>
-                      setCheckoutVariant({
-                        color: e.target.value,
-                        size:
-                          productSizes(checkout.product, e.target.value)[0] || "",
-                      })
-                    }
-                    required
-                  >
-                    {checkoutColors.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              {checkoutSizes.length ? (
-                <label>
-                  Talla
-                  <select
-                    value={checkout.size}
-                    onChange={(e) => setCheckoutVariant({ size: e.target.value })}
-                    required
-                  >
-                    {checkoutSizes.map((size) => {
-                      const variant = findVariant(checkout.product, {
-                        size,
-                        color: checkout.color,
-                      });
-                      const left = variant?.stock ?? 0;
-                      return (
-                        <option key={size} value={size} disabled={left <= 0}>
-                          {size}
-                          {left <= 0 ? " (agotada)" : ` (${left})`}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-              ) : null}
-              <label>
-                Cantidad
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, selectedStock)}
-                  value={checkout.quantity}
-                  onChange={(e) =>
-                    setCheckoutVariant({
-                      quantity: Number(e.target.value) || 1,
-                    })
-                  }
-                  required
-                />
-              </label>
-            </div>
-            {selected ? (
-              <p className="store-modal__stock">
-                {selectedStock > 0
-                  ? `${selectedStock} disponible(s) en ${variantLabel(selected)}.`
-                  : `${variantLabel(selected)} está agotada.`}
-              </p>
-            ) : null}
-            <label>
-              Nota (opcional)
-              <textarea
-                rows={2}
-                value={checkout.note}
-                onChange={(e) =>
-                  setCheckout({ ...checkout, note: e.target.value })
-                }
-                placeholder="Parroquia, vicaría o indicaciones de entrega"
-              />
-            </label>
-            <p className="store-modal__total">
-              Total: {formatUsd(checkout.product.price * checkout.quantity)}
-            </p>
-            {notice ? <p className="store-page__notice">{notice}</p> : null}
-            <div className="store-modal__actions">
+      {checkout ? (() => {
+        const modalImages = productImages(checkout.product);
+        const currentModalImg = modalImages[modalImgIndex] || modalImages[0] || "";
+        return (
+          <div
+            className="store-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="store-checkout-title"
+          >
+            <button
+              type="button"
+              className="store-modal__backdrop"
+              aria-label="Cerrar"
+              onClick={() => !sending && setCheckout(null)}
+            />
+            <form
+              className="store-modal__card"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddToCartAndProceed();
+              }}
+            >
               <button
                 type="button"
-                className="store-modal__cancel"
-                disabled={sending}
+                className="store-modal__close-btn"
+                aria-label="Cerrar modal"
                 onClick={() => setCheckout(null)}
               >
-                Cancelar
+                ✕
               </button>
-              <button
-                type="submit"
-                className="store-card__cta"
-                disabled={sending || selectedStock < checkout.quantity}
-              >
-                {sending ? "Enviando…" : "Enviar por WhatsApp"}
-              </button>
-            </div>
-          </form>
+              <div className="store-modal__grid">
+                <div className="store-modal__media">
+                  <div
+                    className={`store-modal__image-wrapper ${zoomPos.isZoomed ? "is-active-zoom" : ""}`}
+                    onClick={handleImageClick}
+                    onMouseMove={handleImageMouseMove}
+                    onMouseLeave={handleImageMouseLeave}
+                  >
+                    {currentModalImg ? (
+                      <img
+                        src={currentModalImg}
+                        alt={checkout.product.title}
+                        className={`store-modal__zoom-img ${zoomPos.isZoomed ? "is-zoomed" : ""}`}
+                        style={{
+                          transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                        }}
+                      />
+                    ) : (
+                      <div className="store-modal__image-placeholder">JDJ</div>
+                    )}
+                    {modalImages.length > 1 ? (
+                      <>
+                        <button
+                          type="button"
+                          className="store-modal__nav is-prev"
+                          aria-label="Foto anterior"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setZoomPos({ x: 50, y: 50, isZoomed: false });
+                            setModalImgIndex((prev) =>
+                              prev > 0 ? prev - 1 : modalImages.length - 1
+                            );
+                          }}
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          className="store-modal__nav is-next"
+                          aria-label="Foto siguiente"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setZoomPos({ x: 50, y: 50, isZoomed: false });
+                            setModalImgIndex((prev) =>
+                              prev < modalImages.length - 1 ? prev + 1 : 0
+                            );
+                          }}
+                        >
+                          ›
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                  {modalImages.length > 1 ? (
+                    <div className="store-modal__dots" role="tablist">
+                      {modalImages.map((url, i) => (
+                        <button
+                          key={`${url}-${i}`}
+                          type="button"
+                          className={i === modalImgIndex ? "is-active" : ""}
+                          aria-label={`Foto ${i + 1}`}
+                          onClick={() => setModalImgIndex(i)}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="store-modal__content">
+                  <p className="store-modal__eyebrow">Selecciona Tallas y Cantidades</p>
+                  <h2 id="store-checkout-title">{checkout.product.title}</h2>
+                  <p className="store-modal__price">
+                    {formatUsd(checkout.product.price)} · pago por transferencia
+                  </p>
+                  <div className="store-modal__variants-section">
+                    <label>Selecciona las tallas y cantidades:</label>
+                    <div className="store-modal__variants-list">
+                      {checkout.product.variants.map((variant) => {
+                        const qty = checkout.quantities[variant.id] || 0;
+                        const isOut =
+                          !checkout.product.withoutStock && variant.stock <= 0;
+                        return (
+                          <div className="store-modal-variant-row" key={variant.id}>
+                            <div className="store-modal-variant-info">
+                              <strong>Talla {variant.size || "Única"}</strong>
+                              {variant.color ? (
+                                <span>Color: {variant.color}</span>
+                              ) : null}
+                              {!checkout.product.withoutStock ? (
+                                <small className={isOut ? "is-out" : ""}>
+                                  {isOut
+                                    ? "Agotada"
+                                    : `${variant.stock} disponible(s)`}
+                                </small>
+                              ) : null}
+                            </div>
+                            <div className="store-modal-qty-control">
+                              <button
+                                type="button"
+                                className="store-qty-btn"
+                                disabled={qty <= 0 || isOut}
+                                onClick={() => setVariantQty(variant.id, qty - 1)}
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min={0}
+                                max={
+                                  checkout.product.withoutStock
+                                    ? 50
+                                    : variant.stock
+                                }
+                                value={qty}
+                                disabled={isOut}
+                                onChange={(e) =>
+                                  setVariantQty(variant.id, Number(e.target.value) || 0)
+                                }
+                              />
+                              <button
+                                type="button"
+                                className="store-qty-btn"
+                                disabled={
+                                  isOut ||
+                                  (!checkout.product.withoutStock &&
+                                    qty >= variant.stock)
+                                }
+                                onClick={() => setVariantQty(variant.id, qty + 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p className="store-modal__total">
+                    Total ({grandTotalQty} {grandTotalQty === 1 ? "camisa" : "camisas"}):{" "}
+                    {formatUsd(grandTotalPrice)}
+                  </p>
+                  {notice ? <p className="store-page__notice">{notice}</p> : null}
+                  <div className="store-modal__actions">
+                    <button
+                      type="button"
+                      className="store-modal__btn-add"
+                      disabled={sending || grandTotalQty <= 0}
+                      onClick={handleAddToCartOnly}
+                    >
+                      + Guardar en pedido
+                    </button>
+                    <button
+                      type="button"
+                      className="store-modal__btn-proceed"
+                      disabled={sending || grandTotalQty <= 0}
+                      onClick={handleAddToCartAndProceed}
+                    >
+                      Ir al resumen de pedido →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        );
+      })() : null}
+
+      {cartTotalQty > 0 ? (
+        <div className="store-floating-cart">
+          <div className="store-floating-cart__info">
+            <span>🛒 Tu pedido:</span>
+            <strong>
+              {cartTotalQty} {cartTotalQty === 1 ? "camisa" : "camisas"} (
+              {formatUsd(cartTotalPrice)})
+            </strong>
+          </div>
+          <Link to="/tienda/pedido" className="store-floating-cart__btn">
+            Ir al resumen de pedido →
+          </Link>
         </div>
       ) : null}
     </div>
@@ -538,6 +872,7 @@ export function StorePage() {
 }
 
 function variantSummary(product: StoreProduct) {
+  if (product.withoutStock) return "";
   const available = product.variants.filter((item) => item.stock > 0);
   if (!available.length) return "Sin unidades por talla";
   return available

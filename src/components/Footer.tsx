@@ -58,7 +58,18 @@ export function Footer() {
       </div>
 
       <div className="footer__bottom">
-        <span>{footer.bottomLeft}</span>
+        <span>
+          JDJ JAYAQUE — Web creada por {" "}
+          <a
+            href="https://www.instagram.com/delmatus_pj"
+            target="_blank"
+            rel="noreferrer"
+            className="footer__creator-link"
+          >
+            DELMATUS PJ
+          </a>{" "}
+          x COMISION DE COMUNICACIONES PJA
+        </span>
         <span>{footer.bottomRight}</span>
       </div>
     </footer>

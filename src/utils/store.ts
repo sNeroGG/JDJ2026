@@ -10,6 +10,7 @@ export type CreateOrderInput = {
   name: string;
   email: string;
   phone: string;
+  parish: string;
   productId: string;
   variantId: string;
   size: string;
@@ -101,7 +102,7 @@ export function compareStoreSize(a: string, b: string) {
 
 type LegacyProduct = StoreProductInput;
 
-const DEFAULT_SIZES = ["S", "M", "L", "XL"];
+const DEFAULT_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 export function digitsOnly(value: string) {
   return String(value || "").replace(/\D/g, "");
@@ -115,10 +116,11 @@ export function normalizeWhatsapp(value: string) {
 }
 
 export function formatUsd(amount: number) {
-  return new Intl.NumberFormat("es-SV", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
+  const num = Number(amount) || 0;
+  if (Number.isInteger(num)) {
+    return `$${num}`;
+  }
+  return `$${num.toFixed(2)}`;
 }
 
 export function formatOrderDate(iso: string) {
@@ -230,6 +232,7 @@ export function findVariant(
 }
 
 export function firstAvailableVariant(product: StoreProduct) {
+  if (product.withoutStock) return product.variants[0];
   return product.variants.find((item) => item.stock > 0) ?? product.variants[0];
 }
 
@@ -269,8 +272,8 @@ export function withAdjustedVariantStock(
 ): { product: StoreProduct; stock: number; total: number } | { error: string } {
   const index = product.variants.findIndex((item) => item.id === variantId);
   if (index < 0) return { error: "No se encontró esa talla o color." };
-  const nextStock = product.variants[index].stock + delta;
-  if (nextStock < 0) {
+  const nextStock = Math.max(0, product.variants[index].stock + delta);
+  if (!product.withoutStock && product.variants[index].stock + delta < 0) {
     return {
       error: `Solo quedan ${product.variants[index].stock} unidad(es) de ${variantLabel(product.variants[index])}.`,
     };
@@ -314,6 +317,8 @@ export function normalizeStoreProduct(
 
   const comingSoon = Boolean(raw.comingSoon);
   const revealAt = String(raw.revealAt || "").trim();
+  const withoutStock = Boolean(raw.withoutStock);
+  const section = String(raw.section || "JDJ").trim().toUpperCase() || "JDJ";
 
   if (Array.isArray(raw.variants) && raw.variants.length) {
     return {
@@ -325,6 +330,8 @@ export function normalizeStoreProduct(
       imageUrls,
       comingSoon,
       revealAt,
+      withoutStock,
+      section,
       variants: raw.variants.map((variant, index) =>
         normalizeVariant(id, variant, index),
       ),
@@ -347,6 +354,8 @@ export function normalizeStoreProduct(
     imageUrls,
     comingSoon,
     revealAt,
+    withoutStock,
+    section,
     variants: sizes.map((size, index) => ({
       id: makeVariantId(id, size, ""),
       size,
@@ -354,6 +363,22 @@ export function normalizeStoreProduct(
       stock: base + (index === 0 ? remainder : 0),
     })),
   };
+}
+
+export function sortProductsBySection(products: StoreProduct[]): StoreProduct[] {
+  const sectionPriority = (sec?: string) => {
+    const clean = String(sec || "JDJ").trim().toUpperCase();
+    if (clean === "JDJ") return 1;
+    if (clean === "PJA") return 2;
+    return 3;
+  };
+
+  return [...products].sort((a, b) => {
+    const prioA = sectionPriority(a.section);
+    const prioB = sectionPriority(b.section);
+    if (prioA !== prioB) return prioA - prioB;
+    return 0;
+  });
 }
 
 export function normalizeStoreProducts(products: LegacyProduct[] | undefined) {
@@ -369,6 +394,7 @@ export function parseCreateOrder(
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();
   const phone = digitsOnly(String(body.phone ?? ""));
+  const parish = String(body.parish ?? body.parroquia ?? "").trim();
   const productId = String(body.productId ?? "").trim();
   const variantId = String(body.variantId ?? "").trim();
   const size = String(body.size ?? "").trim();
@@ -381,6 +407,9 @@ export function parseCreateOrder(
     return { error: "Escribe un correo válido." };
   }
   if (phone.length < 8) return { error: "Escribe un número de teléfono." };
+  if (parish.length < 2) {
+    return { error: "Escribe tu Parroquia o Movimiento." };
+  }
   if (!productId || !/^[a-z0-9][a-z0-9_-]{1,79}$/i.test(productId)) {
     return { error: "Falta el producto." };
   }
@@ -399,6 +428,7 @@ export function parseCreateOrder(
     name,
     email,
     phone,
+    parish,
     productId,
     variantId,
     size,
@@ -421,13 +451,15 @@ export function buildStoreOrder(
     if (needsSize && !input.size) return { error: "Elige una talla." };
     return { error: "Esa talla o color no está disponible." };
   }
-  if (variant.stock <= 0) {
-    return { error: `${variantLabel(variant)} está agotada.` };
-  }
-  if (input.quantity > variant.stock) {
-    return {
-      error: `Solo quedan ${variant.stock} unidad(es) de ${variantLabel(variant)}.`,
-    };
+  if (!product.withoutStock) {
+    if (variant.stock <= 0) {
+      return { error: `${variantLabel(variant)} está agotada.` };
+    }
+    if (input.quantity > variant.stock) {
+      return {
+        error: `Solo quedan ${variant.stock} unidad(es) de ${variantLabel(variant)}.`,
+      };
+    }
   }
 
   const unitPrice = Number(product.price) || 0;
@@ -437,6 +469,7 @@ export function buildStoreOrder(
     name: input.name,
     email: input.email,
     phone: input.phone,
+    parish: input.parish,
     productId: product.id,
     productTitle: product.title,
     variantId: variant.id,
@@ -661,6 +694,45 @@ export function whatsappOrderUrl(whatsapp: string, order: StoreOrder) {
   const phone = normalizeWhatsapp(whatsapp);
   if (!phone) return "";
   return `https://wa.me/${phone}?text=${encodeURIComponent(buildOrderMessage(order))}`;
+}
+
+export function buildMultiOrderMessage(
+  orders: StoreOrder[],
+  contact: { name: string; email: string; phone: string; parish: string; note?: string },
+) {
+  const grandTotal = orders.reduce((sum, item) => sum + item.total, 0);
+  const totalQty = orders.reduce((sum, item) => sum + item.quantity, 0);
+  const lines = [
+    `Hola, quiero hacer un pedido de la Tienda JDJ 2026.`,
+    "",
+    `Nombre: ${contact.name}`,
+    `Correo: ${contact.email}`,
+    `Teléfono: ${contact.phone}`,
+    `Parroquia / Movimiento: ${contact.parish}`,
+    "",
+    `Resumen del pedido (${totalQty} ${totalQty === 1 ? "unidad" : "unidades"}):`,
+    ...orders.map(
+      (item) =>
+        `• ${item.productTitle}${item.color ? ` (${item.color})` : ""} - Talla ${item.size || "Única"}: ${item.quantity} ud. (${formatUsd(item.total)})`,
+    ),
+    "",
+    `Total a pagar: ${formatUsd(grandTotal)}`,
+    `Pago: Transferencia`,
+    "",
+    `* Nota: El envío no está incluido en el precio y se coordinará por WhatsApp si es necesario.`,
+  ];
+  if (contact.note) lines.push(`* Indicaciones: ${contact.note}`);
+  return lines.join("\n");
+}
+
+export function whatsappMultiOrderUrl(
+  whatsapp: string,
+  orders: StoreOrder[],
+  contact: { name: string; email: string; phone: string; parish: string; note?: string },
+) {
+  const phone = normalizeWhatsapp(whatsapp);
+  if (!phone) return "";
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildMultiOrderMessage(orders, contact))}`;
 }
 
 function normalizeVariant(

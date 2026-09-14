@@ -32,6 +32,7 @@ import {
 import { createId, downloadJson } from "../utils/files";
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
+import { AdminImageUploader } from "../components/AdminImageUploader";
 import {
   ADMIN_CONFIG,
   ADMIN_PRIORITY,
@@ -74,6 +75,57 @@ const IS_DEV = import.meta.env.DEV;
 
 const TESTER_MODE_KEY = "jdj-admin-tester-mode";
 const NAV_OPEN_KEY = "jdj-admin-nav-open";
+
+function AdminPriceInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (val: number) => void;
+}) {
+  const [strVal, setStrVal] = useState<string>(
+    value === 0 ? "" : String(value)
+  );
+
+  useEffect(() => {
+    const currentNum = parseFloat(strVal);
+    if (isNaN(currentNum) && value === 0) return;
+    if (currentNum !== value) {
+      setStrVal(value === 0 ? "" : String(value));
+    }
+  }, [value]);
+
+  return (
+    <div className="admin-price-input-wrap">
+      <span className="admin-price-prefix">$</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        placeholder="0.00"
+        value={strVal}
+        onChange={(e) => {
+          const raw = e.target.value.replace(/[^0-9.]/g, "");
+          const parts = raw.split(".");
+          const clean =
+            parts[0] + (parts.length > 1 ? "." + parts.slice(1).join("") : "");
+          setStrVal(clean);
+          const num = parseFloat(clean);
+          onChange(isNaN(num) ? 0 : num);
+        }}
+        onBlur={() => {
+          const num = parseFloat(strVal);
+          if (isNaN(num) || num <= 0) {
+            setStrVal("");
+            onChange(0);
+          } else {
+            setStrVal(String(num));
+            onChange(num);
+          }
+        }}
+      />
+    </div>
+  );
+}
 
 function AdminModeSwitch({
   isDev,
@@ -1378,42 +1430,16 @@ export function AdminPage() {
     try {
       const uploaded = await uploadOrWarn(file, "images");
       if (!uploaded) return;
-      const next = {
-        ...draft,
-        store: { ...draft.store, logoUrl: uploaded.url },
-      };
-      setDraft(next);
+      setDraft((prev) => ({
+        ...prev,
+        store: { ...prev.store, logoUrl: uploaded.url },
+      }));
     } finally {
       setUploading(false);
     }
   }
 
-  async function onProductImagesChange(
-    index: number,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const files = event.target.files;
-    event.target.value = "";
-    if (!files?.length) return;
-    setUploading(true);
-    try {
-      const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
-        const result = await uploadOrWarn(file, "images");
-        if (result) uploaded.push(result.url);
-      }
-      if (!uploaded.length) return;
-      const products = [...draft.store.products];
-      products[index] = withProductGallery(products[index], [
-        ...productImages(products[index]),
-        ...uploaded,
-      ]);
-      const next = { ...draft, store: { ...draft.store, products } };
-      setDraft(next);
-    } finally {
-      setUploading(false);
-    }
-  }
+
 
   async function onMemoriesUpload(event: ChangeEvent<HTMLInputElement>) {
     const files = event.target.files;
@@ -3412,19 +3438,37 @@ export function AdminPage() {
               {draft.store.logoUrl ? (
                 <div className="admin-logo-preview">
                   <img src={draft.store.logoUrl} alt="Logo de la tienda" />
+                  <button
+                    type="button"
+                    className="btn btn--ghost is-small"
+                    style={{ marginTop: "0.5rem" }}
+                    onClick={() =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        store: { ...prev.store, logoUrl: "" },
+                      }))
+                    }
+                  >
+                    Quitar logo
+                  </button>
                 </div>
               ) : (
                 <p className="admin-empty">Aún no hay logo de tienda.</p>
               )}
-              <label className={`file-field${uploading ? " is-busy" : ""}`}>
-                {uploading ? "Copiando…" : "Subir logo de tienda"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                  disabled={uploading}
-                  onChange={onStoreLogoChange}
-                />
-              </label>
+              <AdminImageUploader
+                allowUploads={allowUploads}
+                multiple={false}
+                buttonText="Subir logo de tienda"
+                hint="Acepta JPG, JPEG, PNG, WEBP, SVG, etc. Compresión automática a WebP."
+                onUpload={(newUrls) => {
+                  if (newUrls[0]) {
+                    setDraft((prev) => ({
+                      ...prev,
+                      store: { ...prev.store, logoUrl: newUrls[0] },
+                    }));
+                  }
+                }}
+              />
             </section>
 
             <section className="admin-panel" id="parte-tienda-textos">
@@ -3539,40 +3583,77 @@ export function AdminPage() {
                     className={`admin-card admin-product${isOpen ? " is-open" : ""}`}
                     key={product.id}
                   >
-                    <button
-                      type="button"
-                      className="admin-product__toggle"
-                      aria-expanded={isOpen}
-                      onClick={() =>
-                        setOpenProduct(isOpen ? null : product.id)
-                      }
-                    >
-                      {photos[0] ? (
-                        <img
-                          className="admin-product__thumb"
-                          src={photos[0]}
-                          alt=""
-                        />
-                      ) : (
-                        <span className="admin-product__thumb is-empty">
-                          JDJ
+                    <div className="admin-product__header-bar">
+                      <div className="admin-variant-move-btns">
+                        <button
+                          type="button"
+                          className="admin-variant-move-btn"
+                          disabled={index === 0}
+                          title="Mover producto arriba"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const nextProducts = [...draft.store.products];
+                            const temp = nextProducts[index - 1];
+                            nextProducts[index - 1] = nextProducts[index];
+                            nextProducts[index] = temp;
+                            patchStore({ products: nextProducts });
+                          }}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-variant-move-btn"
+                          disabled={index === storeProducts.length - 1}
+                          title="Mover producto abajo"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const nextProducts = [...draft.store.products];
+                            const temp = nextProducts[index + 1];
+                            nextProducts[index + 1] = nextProducts[index];
+                            nextProducts[index] = temp;
+                            patchStore({ products: nextProducts });
+                          }}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="admin-product__toggle"
+                        aria-expanded={isOpen}
+                        onClick={() =>
+                          setOpenProduct(isOpen ? null : product.id)
+                        }
+                      >
+                        {photos[0] ? (
+                          <img
+                            className="admin-product__thumb"
+                            src={photos[0]}
+                            alt=""
+                          />
+                        ) : (
+                          <span className="admin-product__thumb is-empty">
+                            JDJ
+                          </span>
+                        )}
+                        <span className="admin-product__meta">
+                          <strong>{product.title || "Producto sin título"}</strong>
+                          <span>
+                            Sección {product.section || "JDJ"} ·{" "}
+                            {product.comingSoon
+                              ? "Muy pronto en la tienda"
+                              : `${formatUsd(product.price)}${product.withoutStock ? " · Sin límite de stock" : ` · ${total} ${total === 1 ? "disponible" : "disponibles"}`}`}
+                            {photos.length
+                              ? ` · ${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`
+                              : ""}
+                          </span>
                         </span>
-                      )}
-                      <span className="admin-product__meta">
-                        <strong>{product.title || "Producto sin título"}</strong>
-                        <span>
-                          {product.comingSoon
-                            ? "Muy pronto en la tienda"
-                            : `${formatUsd(product.price)} · ${total} ${total === 1 ? "disponible" : "disponibles"}`}
-                          {photos.length
-                            ? ` · ${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`
-                            : ""}
+                        <span className="admin-product__arrow" aria-hidden="true">
+                          ▾
                         </span>
-                      </span>
-                      <span className="admin-product__arrow" aria-hidden="true">
-                        ▾
-                      </span>
-                    </button>
+                      </button>
+                    </div>
                     {isOpen ? (
                     <div className="admin-product__body">
                     {photos.length ? (
@@ -3644,16 +3725,26 @@ export function AdminPage() {
                         ))}
                       </div>
                     ) : null}
-                    <label className={`file-field${uploading ? " is-busy" : ""}`}>
-                      {uploading ? "Copiando…" : "Agregar fotos"}
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                        multiple
-                        disabled={uploading}
-                        onChange={(e) => void onProductImagesChange(index, e)}
-                      />
-                    </label>
+                    <AdminImageUploader
+                      allowUploads={allowUploads}
+                      buttonText="Agregar fotos al producto"
+                      hint="Soporta JPG, JPEG, PNG, WEBP, GIF, HEIC, AVIF, TIFF, SVG, etc. Compresión automática a WebP."
+                      onUpload={(newUrls) => {
+                        setDraft((prev) => {
+                          const products = [...prev.store.products];
+                          const target = products[index];
+                          if (!target) return prev;
+                          products[index] = withProductGallery(target, [
+                            ...productImages(target),
+                            ...newUrls,
+                          ]);
+                          return {
+                            ...prev,
+                            store: { ...prev.store, products },
+                          };
+                        });
+                      }}
+                    />
                     <label className="admin-check">
                       <input
                         type="checkbox"
@@ -3701,36 +3792,90 @@ export function AdminPage() {
                     </label>
                     <div className="admin-grid">
                       <label>
-                        Precio (USD)
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={product.price}
+                        Sección de la tienda
+                        <select
+                          value={product.section || "JDJ"}
                           onChange={(e) =>
-                            patchProduct(index, {
-                              price: Number(e.target.value) || 0,
-                            })
+                            patchProduct(index, { section: e.target.value })
+                          }
+                        >
+                          <option value="JDJ">Sección JDJ</option>
+                          <option value="PJA">Sección PJA</option>
+                        </select>
+                      </label>
+                      <label>
+                        Precio (USD)
+                        <AdminPriceInput
+                          value={product.price}
+                          onChange={(price) =>
+                            patchProduct(index, { price })
                           }
                         />
                       </label>
                       <label>
-                        Stock total
-                        <input
-                          value={productStock(product)}
-                          readOnly
-                        />
+                        Modo de inventario
+                        <select
+                          value={product.withoutStock ? "without_stock" : "with_stock"}
+                          onChange={(e) =>
+                            patchProduct(index, {
+                              withoutStock: e.target.value === "without_stock",
+                            })
+                          }
+                        >
+                          <option value="with_stock">Trabajar con stock (Límite por unidades)</option>
+                          <option value="without_stock">Trabajar sin stock (Sin límite de unidades)</option>
+                        </select>
                       </label>
                     </div>
+                    <p className="admin-panel__hint">
+                      {product.withoutStock ? (
+                        <>⚡ <strong>Trabajar sin stock:</strong> El producto acepta pedidos de cualquier cantidad sin agotarse. Puedes asignar el mismo color a varias tallas (ej. Azul en S, M, L) o combinar varios colores.</>
+                      ) : (
+                        <>📦 <strong>Trabajar con stock:</strong> El sistema descuenta unidades por talla/color y muestra “Agotado” al llegar a 0.</>
+                      )}
+                    </p>
                     <div className="admin-variants">
                       <div className="admin-variants__head">
-                        <span>Talla</span>
-                        <span>Color</span>
-                        <span>Stock</span>
+                        <span />
+                        <span>Talla (ej. S, M, L)</span>
+                        <span>Color (ej. Azul, Rojo)</span>
+                        <span>{product.withoutStock ? "Stock" : "Stock disponible"}</span>
                         <span />
                       </div>
                       {product.variants.map((variant, variantIndex) => (
                         <div className="admin-variants__row" key={variant.id}>
+                          <div className="admin-variant-move-btns">
+                            <button
+                              type="button"
+                              className="admin-variant-move-btn"
+                              disabled={variantIndex === 0}
+                              title="Mover arriba"
+                              onClick={() => {
+                                const nextVariants = [...product.variants];
+                                const temp = nextVariants[variantIndex - 1];
+                                nextVariants[variantIndex - 1] = nextVariants[variantIndex];
+                                nextVariants[variantIndex] = temp;
+                                patchProduct(index, { variants: nextVariants });
+                              }}
+                            >
+                              ▲
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-variant-move-btn"
+                              disabled={variantIndex === product.variants.length - 1}
+                              title="Mover abajo"
+                              onClick={() => {
+                                const nextVariants = [...product.variants];
+                                const temp = nextVariants[variantIndex + 1];
+                                nextVariants[variantIndex + 1] = nextVariants[variantIndex];
+                                nextVariants[variantIndex] = temp;
+                                patchProduct(index, { variants: nextVariants });
+                              }}
+                            >
+                              ▼
+                            </button>
+                          </div>
                           <input
                             value={variant.size}
                             placeholder="S"
@@ -3742,26 +3887,32 @@ export function AdminPage() {
                           />
                           <input
                             value={variant.color}
-                            placeholder="Azul"
+                            placeholder="Azul (opcional)"
                             onChange={(e) =>
                               patchVariant(index, variantIndex, {
                                 color: e.target.value,
                               })
                             }
                           />
-                          <input
-                            type="number"
-                            min={0}
-                            step="1"
-                            value={variant.stock}
-                            onChange={(e) =>
-                              setVariantStockValue(
-                                index,
-                                variantIndex,
-                                Number(e.target.value) || 0,
-                              )
-                            }
-                          />
+                          {product.withoutStock ? (
+                            <span style={{ display: "inline-grid", placeItems: "center", padding: "0.4rem 0.6rem", fontSize: "0.82rem", background: "#edf2f7", borderRadius: "0.4rem", color: "#4a5568", fontWeight: 600 }}>
+                              Ilimitado
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              step="1"
+                              value={variant.stock}
+                              onChange={(e) =>
+                                setVariantStockValue(
+                                  index,
+                                  variantIndex,
+                                  Number(e.target.value) || 0,
+                                )
+                              }
+                            />
+                          )}
                           <button
                             type="button"
                             className="btn btn--danger"
@@ -3778,25 +3929,55 @@ export function AdminPage() {
                         </div>
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn--ghost"
-                      onClick={() =>
-                        patchProduct(index, {
-                          variants: [
-                            ...product.variants,
-                            {
+                    <div className="admin-inline-actions" style={{ gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() =>
+                          patchProduct(index, {
+                            variants: [
+                              ...product.variants,
+                              {
+                                id: createId("var"),
+                                size: "",
+                                color: product.variants[product.variants.length - 1]?.color || "",
+                                stock: 0,
+                              },
+                            ],
+                          })
+                        }
+                      >
+                        + Agregar talla/color
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => {
+                          const currentColor = product.variants[product.variants.length - 1]?.color || product.variants[0]?.color || "";
+                          const newSizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+                          const existingSizes = new Set(
+                            product.variants
+                              .filter((v) => (v.color || "").toLowerCase() === currentColor.toLowerCase())
+                              .map((v) => v.size.toUpperCase())
+                          );
+                          const added = newSizes
+                            .filter((s) => !existingSizes.has(s))
+                            .map((s) => ({
                               id: createId("var"),
-                              size: "",
-                              color: "",
-                              stock: 0,
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      Agregar talla o color
-                    </button>
+                              size: s,
+                              color: currentColor,
+                              stock: 10,
+                            }));
+                          if (added.length) {
+                            patchProduct(index, {
+                              variants: [...product.variants, ...added],
+                            });
+                          }
+                        }}
+                      >
+                        + Tallas XS, S, M, L, XL, XXL, XXXL
+                      </button>
+                    </div>
                     <button
                       type="button"
                       className="btn btn--danger"

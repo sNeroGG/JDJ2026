@@ -34,9 +34,21 @@ import teamLoginHandler from "./api/team-login.ts";
 import { isAuthorized as isAdminRequest } from "./api/_lib/auth.ts";
 
 function safeFileName(name: string) {
-  const base = path.basename(name).replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/gi, "-");
-  return base.replace(/^-+|-+$/g, "") || `archivo-${Date.now()}`;
+  const cleanName = name.replace(/(\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|avif|tiff|svg)){2,}$/i, (m) => path.extname(m));
+  const ext = path.extname(cleanName).toLowerCase();
+  const stem = path.basename(cleanName, ext).replace(/[^\w\-áéíóúñÁÉÍÓÚÑ]+/gi, "-").replace(/^-+|-+$/g, "");
+  return `${stem || `archivo-${Date.now()}`}${ext || ".jpg"}`;
 }
+
+const SERVED_MIME_TYPES: Record<string, string> = {
+  ".webp": "image/webp",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".pdf": "application/pdf",
+};
 
 function nextSequentialImageStem(dir: string) {
   let max = 0;
@@ -107,6 +119,20 @@ function localMediaPlugin(env: BuildEnv): Plugin {
 
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] || "";
+
+        if (url.startsWith("/images/") || url.startsWith("/docs/")) {
+          const filePath = path.join(root, "public", url);
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mime = SERVED_MIME_TYPES[ext] || "application/octet-stream";
+            res.statusCode = 200;
+            res.setHeader("Content-Type", mime);
+            res.setHeader("Cache-Control", "no-cache");
+            fs.createReadStream(filePath).pipe(res);
+            return;
+          }
+        }
+
         if (!url.startsWith("/__admin/")) {
           next();
           return;

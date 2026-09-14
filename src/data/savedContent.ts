@@ -485,20 +485,216 @@ export const SAVED_CONTENT: SavedContent = {
     }
   ],
   "ministriesLayout": "logo",
+  "commissions": {
+    "title": "Comisiones",
+    "lead": "",
+    "heroImageUrl": "",
+    "items": [
+      {
+        "id": "logistica",
+        "title": "Comisión de logística y operaciones",
+        "image": "",
+        "body": "Responsable de la planificación, coordinación y ejecución operativa de toda la Jornada, garantizando el correcto funcionamiento de los espacios, recursos y servicios necesarios para el desarrollo seguro y ordenado del evento."
+      },
+      {
+        "id": "pastoral",
+        "title": "Comisión Pastoral y Litúrgica",
+        "image": "",
+        "body": "Esta comisión vela por el corazón espiritual y pastoral de la JDJ."
+      },
+      {
+        "id": "animacion",
+        "title": "Comisión de animación, cultura y experiencia juvenil",
+        "image": "",
+        "body": "Esta comisión busca que los jóvenes vivan una experiencia cercana, dinámica y memorable durante toda la Jornada."
+      },
+      {
+        "id": "comunicacion",
+        "title": "Comisión de comunicación y difusión",
+        "image": "",
+        "body": "Esta comisión es la encargada de proyectar la imagen y el mensaje oficial de la JDJ antes, durante y después del evento."
+      }
+    ]
+  },
+  "volunteers": {
+    "title": "Voluntarios",
+    "lead": "La JDJ se construye en equipo. Pronto publicaremos cómo sumarte en las distintas áreas del encuentro.",
+    "heroImageUrl": "",
+    "items": []
+  },
   "store": {
-    "logoUrl": "/images/LOGO-STORE-PJA_Mesa-de-trabajo-1-02.webp",
+    "logoUrl": "/images/LOGOSTORE.webp",
     "eyebrow": "Tienda JDJ",
     "title": "Lleva el encuentro contigo",
-    "lead": "Camisas y recuerdos de la JDJ 2026. Pides por WhatsApp y pagas por transferencia.",
+    "lead": "",
     "whatsapp": "50362865945",
     "paymentNote": "El pago es por transferencia. Al enviar el pedido por WhatsApp te compartimos los datos bancarios para completar la compra.",
-    "ctaLabel": "Pedir por WhatsApp",
+    "ctaLabel": "Agregar al pedido",
     "products": [
       {
+        "id": "prod-soon-2",
+        "title": "Camisa JDJ 2026 Basic",
+        "description": "Verde militar Basic",
+        "price": 7,
+        "imageUrl": "/images/0002.webp",
+        "imageUrls": [
+          "/images/0002.webp",
+          "/images/0001.webp"
+        ],
+        "comingSoon": false,
+        "revealAt": "",
+        "withoutStock": true,
+        "section": "JDJ",
+        "variants": [
+          {
+            "id": "var-3ed2271b",
+            "size": "S",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-40dbcdcf",
+            "size": "M",
+            "color": "",
+            "stock": 8
+          },
+          {
+            "id": "var-8a5eaac0",
+            "size": "L",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-3af6e666",
+            "size": "XL",
+            "color": "",
+            "stock": 10
+          }
+        ]
+      },
+      {
+        "id": "prod-680b4c47",
+        "title": "Camisa JDJ 2026 Terracota",
+        "description": "Color Terracota",
+        "price": 7.5,
+        "imageUrl": "/images/1111.webp",
+        "imageUrls": [
+          "/images/1111.webp",
+          "/images/1112.webp"
+        ],
+        "comingSoon": false,
+        "revealAt": "",
+        "withoutStock": true,
+        "section": "JDJ",
+        "variants": [
+          {
+            "id": "var-e5f93e8f",
+            "size": "XS",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-680b4c47--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-680b4c47--unica--m",
+            "size": "M",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-680b4c47--unica--l",
+            "size": "L",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-680b4c47--unica--xl",
+            "size": "XL",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "var-3c08d372",
+            "size": "XXL",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "var-105ca702",
+            "size": "XXXL",
+            "color": "",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "id": "prod-e1c396d4",
+        "title": "Camisa JDJ 2026 Verde militar",
+        "description": "Color Verde militar",
+        "price": 7.5,
+        "imageUrl": "/images/3112.webp",
+        "imageUrls": [
+          "/images/3112.webp",
+          "/images/3111.webp"
+        ],
+        "comingSoon": false,
+        "revealAt": "",
+        "withoutStock": true,
+        "section": "JDJ",
+        "variants": [
+          {
+            "id": "prod-e1c396d4--unica--xs",
+            "size": "XS",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--s",
+            "size": "S",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--m",
+            "size": "M",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--l",
+            "size": "L",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--xl",
+            "size": "XL",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--xxl",
+            "size": "XXL",
+            "color": "",
+            "stock": 0
+          },
+          {
+            "id": "prod-e1c396d4--unica--xxxl",
+            "size": "XXXL",
+            "color": "",
+            "stock": 0
+          }
+        ]
+      },
+      {
         "id": "prod-4be0843b",
-        "title": "Camisa JDJ 2026",
+        "title": "Camisa Nuestra Señora del Rosario",
         "description": "",
-        "price": 13.99,
+        "price": 10,
         "imageUrl": "/images/CAMISAS-STORE-PJA-02.jpg.webp",
         "imageUrls": [
           "/images/CAMISAS-STORE-PJA-02.jpg.webp",
@@ -506,6 +702,8 @@ export const SAVED_CONTENT: SavedContent = {
         ],
         "comingSoon": false,
         "revealAt": "",
+        "withoutStock": true,
+        "section": "PJA",
         "variants": [
           {
             "id": "prod-4be0843b--unica--s",
@@ -545,6 +743,8 @@ export const SAVED_CONTENT: SavedContent = {
         ],
         "comingSoon": false,
         "revealAt": "",
+        "withoutStock": true,
+        "section": "PJA",
         "variants": [
           {
             "id": "prod-077167ec--unica--s",
@@ -569,60 +769,6 @@ export const SAVED_CONTENT: SavedContent = {
             "size": "XL",
             "color": "",
             "stock": 1
-          }
-        ]
-      },
-      {
-        "id": "prod-soon-1",
-        "title": "?????",
-        "description": "Muy pronto disponible",
-        "price": 0,
-        "imageUrl": "",
-        "imageUrls": [],
-        "comingSoon": true,
-        "revealAt": "",
-        "variants": [
-          {
-            "id": "prod-soon-1--unica--s",
-            "size": "S",
-            "color": "",
-            "stock": 0
-          }
-        ]
-      },
-      {
-        "id": "prod-soon-2",
-        "title": "?????",
-        "description": "Muy pronto disponible",
-        "price": 0,
-        "imageUrl": "",
-        "imageUrls": [],
-        "comingSoon": true,
-        "revealAt": "",
-        "variants": [
-          {
-            "id": "prod-soon-2--unica--s",
-            "size": "S",
-            "color": "",
-            "stock": 0
-          }
-        ]
-      },
-      {
-        "id": "prod-soon-3",
-        "title": "?????",
-        "description": "Muy pronto disponible",
-        "price": 0,
-        "imageUrl": "",
-        "imageUrls": [],
-        "comingSoon": true,
-        "revealAt": "",
-        "variants": [
-          {
-            "id": "prod-soon-3--unica--s",
-            "size": "S",
-            "color": "",
-            "stock": 0
           }
         ]
       }

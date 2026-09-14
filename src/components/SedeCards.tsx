@@ -48,9 +48,15 @@ export function SedeCards({
               </article>
             ))}
           </div>
-        ) : emptyText && !lead ? (
-          <p className="sede-cards__empty reveal">{emptyText}</p>
-        ) : null}
+        ) : (
+          <div className="sede-cards__soon reveal">
+            <span className="sede-cards__soon-badge">Próximamente</span>
+            <p className="sede-cards__empty">
+              {emptyText ||
+                "Este apartado se irá completando muy pronto. Estate atento a nuestras publicaciones."}
+            </p>
+          </div>
+        )}
 
         <SiteLink className="sede-cards__back" href="#donde">
           Volver a Sede
