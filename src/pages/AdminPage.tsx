@@ -29,6 +29,7 @@ import {
   type StoreProduct,
   type StoreVariant,
 } from "../data/defaultContent";
+import { downloadOrderPdf, downloadReportPdf } from "../utils/orderPdf";
 import { createId, downloadJson } from "../utils/files";
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
@@ -64,7 +65,6 @@ import {
   productImages,
   productStock,
   withProductGallery,
-  type OrderReportColorGroup,
   type StoreStockMap,
 } from "../utils/store";
 import "./AdminPage.css";
@@ -187,7 +187,7 @@ function AdminHeroImage({
           {uploading ? "Copiando…" : url ? "Cambiar imagen" : "Subir imagen"}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+            accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif"
             disabled={uploading}
             onChange={onPick}
           />
@@ -232,7 +232,7 @@ function AdminHeroRow({
             {uploading ? "Copiando…" : url ? "Cambiar" : "Subir"}
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif"
               disabled={uploading}
               onChange={onPick}
             />
@@ -419,19 +419,25 @@ const ORDER_STATUS_LABELS: Record<StoreOrderStatus, string> = {
 function AdminOrderRow({
   order,
   onStatus,
+  onDelete,
 }: {
   order: StoreOrder;
   onStatus: (id: string, status: StoreOrderStatus) => void;
+  onDelete: (id: string) => void;
 }) {
-  const summaryMeta = [
-    order.productTitle,
-    order.color,
-    order.size ? `Talla ${order.size}` : null,
-    unitsLabel(order.quantity),
-    formatUsd(order.total),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const hasItems = Boolean(order.items && order.items.length > 0);
+  const summaryMeta = hasItems
+    ? `${order.items!.length} prendas · ${unitsLabel(order.quantity)} · ${formatUsd(order.total)}`
+    : [
+        order.productTitle,
+        order.color,
+        order.size ? `Talla ${order.size}` : null,
+        unitsLabel(order.quantity),
+        formatUsd(order.total),
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
   return (
     <details className="admin-order-row">
@@ -448,7 +454,7 @@ function AdminOrderRow({
       <div className="admin-order-row__body">
         <dl className="admin-order-row__facts">
           <div>
-            <dt>Nombre</dt>
+            <dt>Cliente</dt>
             <dd>{order.name}</dd>
           </div>
           <div>
@@ -459,29 +465,15 @@ function AdminOrderRow({
             <dt>Teléfono</dt>
             <dd>{order.phone}</dd>
           </div>
-          <div>
-            <dt>Producto</dt>
-            <dd>{order.productTitle}</dd>
-          </div>
-          {order.color ? (
+          {order.parish ? (
             <div>
-              <dt>Color</dt>
-              <dd>{order.color}</dd>
-            </div>
-          ) : null}
-          {order.size ? (
-            <div>
-              <dt>Talla</dt>
-              <dd>{order.size}</dd>
+              <dt>Parroquia / Grupo</dt>
+              <dd>{order.parish}</dd>
             </div>
           ) : null}
           <div>
-            <dt>Cantidad</dt>
-            <dd>{unitsLabel(order.quantity)}</dd>
-          </div>
-          <div>
-            <dt>Total</dt>
-            <dd>{formatUsd(order.total)}</dd>
+            <dt>Fecha</dt>
+            <dd>{formatOrderDate(order.createdAt)}</dd>
           </div>
           <div>
             <dt>Pago</dt>
@@ -491,18 +483,84 @@ function AdminOrderRow({
             <dt>Estado</dt>
             <dd>{ORDER_STATUS_LABELS[order.status]}</dd>
           </div>
-          <div>
-            <dt>Fecha</dt>
-            <dd>{formatOrderDate(order.createdAt)}</dd>
-          </div>
-          {order.note ? (
-            <div className="admin-order-row__note">
-              <dt>Nota</dt>
-              <dd>{order.note}</dd>
-            </div>
-          ) : null}
         </dl>
-        <div className="admin-inline-actions">
+
+        {hasItems ? (
+          <div className="admin-order-items-table-wrap" style={{ marginTop: "0.8rem" }}>
+            <table className="admin-stock-table" style={{ width: "100%", fontSize: "0.88rem" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>Producto</th>
+                  <th style={{ textAlign: "center" }}>Talla</th>
+                  <th style={{ textAlign: "center" }}>Color</th>
+                  <th style={{ textAlign: "center" }}>Cant.</th>
+                  <th style={{ textAlign: "right" }}>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.items!.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{item.productTitle}</td>
+                    <td style={{ textAlign: "center" }}>{item.size || "Única"}</td>
+                    <td style={{ textAlign: "center" }}>{item.color || "-"}</td>
+                    <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                    <td style={{ textAlign: "right" }}>{formatUsd(item.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colSpan={3} style={{ textAlign: "right" }}>Total ({unitsLabel(order.quantity)}):</th>
+                  <th style={{ textAlign: "center" }}>{order.quantity}</th>
+                  <th style={{ textAlign: "right", color: "var(--brand-gold, #f59e0b)" }}>{formatUsd(order.total)}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <dl className="admin-order-row__facts" style={{ marginTop: "0.5rem" }}>
+            <div>
+              <dt>Producto</dt>
+              <dd>{order.productTitle}</dd>
+            </div>
+            {order.color ? (
+              <div>
+                <dt>Color</dt>
+                <dd>{order.color}</dd>
+              </div>
+            ) : null}
+            {order.size ? (
+              <div>
+                <dt>Talla</dt>
+                <dd>{order.size}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Cantidad</dt>
+              <dd>{unitsLabel(order.quantity)}</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd>{formatUsd(order.total)}</dd>
+            </div>
+          </dl>
+        )}
+
+        {order.note ? (
+          <div className="admin-order-row__note" style={{ marginTop: "0.5rem" }}>
+            <dt>Nota / Indicaciones</dt>
+            <dd>{order.note}</dd>
+          </div>
+        ) : null}
+
+        <div className="admin-inline-actions" style={{ marginTop: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => downloadOrderPdf(order)}
+          >
+            📄 Descargar PDF
+          </button>
           {order.status !== "atendido" ? (
             <button
               type="button"
@@ -524,72 +582,47 @@ function AdminOrderRow({
           {order.status !== "cancelado" ? (
             <button
               type="button"
-              className="btn btn--danger"
+              className="btn btn--ghost"
               onClick={() => onStatus(order.id, "cancelado")}
             >
               Cancelar y devolver stock
             </button>
           ) : null}
+          {confirmingDelete ? (
+            <>
+              <button
+                type="button"
+                className="btn btn--danger"
+                onClick={() => {
+                  setConfirmingDelete(false);
+                  onDelete(order.id);
+                }}
+              >
+                ⚠️ Confirmar eliminación
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setConfirmingDelete(false)}
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              🗑️ Eliminar pedido
+            </button>
+          )}
         </div>
       </div>
     </details>
   );
 }
 
-function OrderSizeTable({
-  groups,
-  hasColors,
-}: {
-  groups: OrderReportColorGroup[];
-  hasColors: boolean;
-}) {
-  return (
-    <div className="admin-order-sizes">
-      {groups.map((group) => (
-        <div key={group.color || "unica"}>
-          {hasColors ? (
-            <h4>{group.color || "Sin color"}</h4>
-          ) : null}
-          <div className="admin-stock-table-wrap">
-            <table className="admin-stock-table">
-              <thead>
-                <tr>
-                  <th>Talla</th>
-                  <th>Pedidos</th>
-                  <th>Vendidas</th>
-                  <th>Quedan</th>
-                  <th>Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.lines.map((line) => (
-                  <tr key={line.variantId}>
-                    <td>{line.size || "Única"}</td>
-                    <td>{line.orders}</td>
-                    <td>{line.sold}</td>
-                    <td>{line.remaining}</td>
-                    <td>{formatUsd(line.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              {group.lines.length > 1 ? (
-                <tfoot>
-                  <tr>
-                    <th>Total</th>
-                    <td>{group.orders}</td>
-                    <td>{group.sold}</td>
-                    <td>{group.remaining}</td>
-                    <td>{formatUsd(group.revenue)}</td>
-                  </tr>
-                </tfoot>
-              ) : null}
-            </table>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
   soon: "Próximamente",
@@ -700,6 +733,65 @@ export function AdminPage() {
   const [configOpen, setConfigOpen] = useState(() =>
     isConfigSection(isAdminSection(sectionParam) ? sectionParam : "orders"),
   );
+  const [exportPdfModalOpen, setExportPdfModalOpen] = useState(false);
+  const [exportReportType, setExportReportType] = useState<"all" | "month">("all");
+  const [exportSelectedMonth, setExportSelectedMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    const d = new Date();
+    const currentKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    set.add(currentKey);
+
+    for (const order of orders) {
+      if (order.createdAt) {
+        const date = new Date(order.createdAt);
+        if (!isNaN(date.getTime())) {
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          set.add(key);
+        }
+      }
+    }
+
+    ["2026-08", "2026-09", "2026-10", "2026-11", "2026-12"].forEach((m) => set.add(m));
+
+    const sorted = Array.from(set).sort();
+    return sorted.map((yearMonth) => {
+      const [year, month] = yearMonth.split("-").map(Number);
+      const date = new Date(year, month - 1, 1);
+      const label = new Intl.DateTimeFormat("es-SV", {
+        month: "long",
+        year: "numeric",
+      }).format(date);
+      const capitalized = label.charAt(0).toUpperCase() + label.slice(1);
+      return { key: yearMonth, label: capitalized };
+    });
+  }, [orders]);
+
+  function handleGeneratePdfReport() {
+    let targetOrders = orders;
+    let periodLabel = "Resumen General Acumulado";
+
+    if (exportReportType === "month") {
+      const [yearStr, monthStr] = exportSelectedMonth.split("-");
+      const yr = Number(yearStr);
+      const mo = Number(monthStr);
+      targetOrders = orders.filter((o) => {
+        if (!o.createdAt) return false;
+        const d = new Date(o.createdAt);
+        return d.getFullYear() === yr && d.getMonth() + 1 === mo;
+      });
+      const foundMonth = availableMonths.find((m) => m.key === exportSelectedMonth);
+      periodLabel = foundMonth ? foundMonth.label : exportSelectedMonth;
+    }
+
+    const reportToPrint = buildOrderReport(targetOrders, storeProducts);
+    downloadReportPdf(reportToPrint, periodLabel);
+    setExportPdfModalOpen(false);
+  }
   const allowUploads = IS_DEV && testerMode;
 
   function setAdminMode(nextTester: boolean) {
@@ -1422,22 +1514,7 @@ export function AdminPage() {
     }
   }
 
-  async function onStoreLogoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      const uploaded = await uploadOrWarn(file, "images");
-      if (!uploaded) return;
-      setDraft((prev) => ({
-        ...prev,
-        store: { ...prev.store, logoUrl: uploaded.url },
-      }));
-    } finally {
-      setUploading(false);
-    }
-  }
+
 
 
 
@@ -1646,6 +1723,69 @@ export function AdminPage() {
       setOrdersNotice("No se pudo actualizar el pedido.");
     }
   }
+
+  async function deleteOrder(id: string) {
+    const target = orders.find((item) => item.id === id);
+    if (!target) return;
+    const isAlreadyCancelled = target.status === "cancelado";
+
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    setOrdersNotice("Eliminando pedido…");
+    try {
+      const remote = await fetch("/api/orders", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ id }),
+      });
+      const payload = (await remote.json().catch(() => null)) as {
+        error?: string;
+        ok?: boolean;
+      } | null;
+      if (!remote.ok || !payload?.ok) {
+        setOrdersNotice(payload?.error || "No se pudo eliminar el pedido.");
+        return;
+      }
+
+      if (!isAlreadyCancelled) {
+        const items =
+          target.items && target.items.length > 0
+            ? target.items
+            : [
+                {
+                  productId: target.productId,
+                  variantId: target.variantId,
+                  size: target.size,
+                  color: target.color,
+                  quantity: target.quantity,
+                },
+              ];
+        for (const item of items) {
+          const vId =
+            item.variantId ||
+            findVariant(
+              draft.store.products.find((p) => p.id === item.productId) || {
+                variants: [],
+              },
+              item,
+            )?.id;
+          if (vId) {
+            applyVariantStock(item.productId, vId, item.quantity);
+          }
+        }
+      }
+
+      setOrders((prev) => prev.filter((item) => item.id !== id));
+      void loadOrders().catch(() => undefined);
+      void loadLiveStock().catch(() => undefined);
+      setOrdersNotice("Pedido eliminado.");
+    } catch {
+      setOrdersNotice("No se pudo eliminar el pedido.");
+    }
+  }
+
 
   async function patchDonationStatus(id: string, status: DonationStatus) {
     const current = donations.find((item) => item.id === id);
@@ -2049,7 +2189,7 @@ export function AdminPage() {
           <section className="admin-panel" id="parte-heroes">
             <h2>Hero img</h2>
             <p className="admin-panel__hint">
-              Fotos de cabecera de cada página, en lista compacta. Si una queda
+              Fotos o GIFs animados de cabecera de cada página, en lista compacta. Si una queda
               vacía, esa página empieza sin banner. Súbelas en local con{" "}
               <code>npm run dev</code>.
             </p>
@@ -2070,6 +2210,44 @@ export function AdminPage() {
                   setDraft({
                     ...draft,
                     hero: { ...draft.hero, imageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-agenda-hero"
+                title="Agenda"
+                path="/agenda"
+                url={draft.schedule.heroImageUrl || ""}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    schedule: { ...current.schedule, heroImageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    schedule: { ...draft.schedule, heroImageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-ministerios-hero"
+                title="Ministerios"
+                path="/ministerios"
+                url={draft.ministriesHeroImageUrl || ""}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    ministriesHeroImageUrl: url,
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    ministriesHeroImageUrl: "",
                   })
                 }
               />
@@ -2149,6 +2327,25 @@ export function AdminPage() {
                   setDraft({
                     ...draft,
                     donate: { ...draft.donate, heroImageUrl: "" },
+                  })
+                }
+              />
+              <AdminHeroRow
+                id="parte-tienda-hero"
+                title="Tienda"
+                path="/tienda"
+                url={draft.store.heroImageUrl || ""}
+                uploading={uploading}
+                onPick={(e) =>
+                  void onHeroImageChange(e, (url, current) => ({
+                    ...current,
+                    store: { ...current.store, heroImageUrl: url },
+                  }))
+                }
+                onClear={() =>
+                  setDraft({
+                    ...draft,
+                    store: { ...draft.store, heroImageUrl: "" },
                   })
                 }
               />
@@ -4069,6 +4266,9 @@ export function AdminPage() {
                       onStatus={(id, status) =>
                         void patchOrderStatus(id, status)
                       }
+                      onDelete={(id) =>
+                        void deleteOrder(id)
+                      }
                     />
                   ))}
                 </div>
@@ -4118,61 +4318,27 @@ export function AdminPage() {
                             {item.sold}{" "}
                             {item.sold === 1 ? "vendida" : "vendidas"}
                           </span>
-                          <span>Quedan {item.remaining}</span>
                         </article>
                       ))}
                     </div>
                   </>
                 ) : null}
-                {orderReport.products.length ? (
-                  <div className="admin-order-products">
-                    <h3>Resumen por producto</h3>
-                    <p className="admin-panel__hint">
-                      Despliega un estilo para ver sus tallas, sin repetir el
-                      nombre del producto.
-                    </p>
-                    {orderReport.products.map((product) => (
-                      <details
-                        className="admin-order-product"
-                        key={product.productId}
-                      >
-                        <summary>
-                          <strong className="admin-order-product__name">
-                            {product.productTitle}
-                          </strong>
-                          <span className="admin-order-product__stats">
-                            {unitsLabel(product.sold)} ·{" "}
-                            {formatUsd(product.revenue)} · quedan{" "}
-                            {product.remaining}
-                            {product.orders
-                              ? ` · ${product.orders} ${
-                                  product.orders === 1 ? "pedido" : "pedidos"
-                                }`
-                              : ""}
-                          </span>
-                        </summary>
-                        <div className="admin-order-product__body">
-                          <OrderSizeTable
-                            groups={product.groups}
-                            hasColors={product.hasColors}
-                          />
-                        </div>
-                      </details>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="admin-empty">Aún no hay pedidos.</p>
-                )}
               </>
             )}
             <div className="admin-inline-actions">
               <button
                 type="button"
                 className="btn btn--ghost"
-                disabled={!orders.length}
                 onClick={() => downloadJson("jdj2026-pedidos.json", orders)}
               >
                 Exportar JSON
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => setExportPdfModalOpen(true)}
+              >
+                📄 Exportar PDF
               </button>
             </div>
           </section>
@@ -4647,6 +4813,106 @@ export function AdminPage() {
                 ) : null}
               </div>
             </section>
+          </div>
+        )}
+
+        {exportPdfModalOpen && (
+          <div
+            className="admin-modal-backdrop"
+            onClick={() => setExportPdfModalOpen(false)}
+          >
+            <div
+              className="admin-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Exportar Informe en PDF</h3>
+              <p>
+                Elige si deseas exportar el resumen histórico completo o filtrar por
+                un mes específico.
+              </p>
+
+              <div className="admin-modal__options">
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="reportType"
+                    checked={exportReportType === "all"}
+                    onChange={() => setExportReportType("all")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Resumen General Acumulado</strong>
+                    <small>
+                      Incluye todo el histórico completo de compras registradas.
+                    </small>
+                  </span>
+                </label>
+
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="reportType"
+                    checked={exportReportType === "month"}
+                    onChange={() => setExportReportType("month")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Por Mes Específico</strong>
+                    <small>
+                      Filtra y evalúa únicamente las compras registradas en un mes.
+                    </small>
+                  </span>
+                </label>
+
+                {exportReportType === "month" && (
+                  <div className="admin-modal__select-wrap">
+                    <label htmlFor="select-export-month">Selecciona el mes a evaluar:</label>
+                    <select
+                      id="select-export-month"
+                      value={exportSelectedMonth}
+                      onChange={(e) => setExportSelectedMonth(e.target.value)}
+                    >
+                      {availableMonths.map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="admin-modal__badge">
+                <span>Pedidos incluidos:</span>
+                <strong>
+                  {exportReportType === "all"
+                    ? `${orders.length} pedido(s)`
+                    : `${
+                        orders.filter((o) => {
+                          if (!o.createdAt) return false;
+                          const d = new Date(o.createdAt);
+                          const [y, m] = exportSelectedMonth.split("-").map(Number);
+                          return d.getFullYear() === y && d.getMonth() + 1 === m;
+                        }).length
+                      } pedido(s)`}
+                </strong>
+              </div>
+
+              <div className="admin-inline-actions" style={{ justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => setExportPdfModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={handleGeneratePdfReport}
+                >
+                  📄 Generar y Descargar PDF
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

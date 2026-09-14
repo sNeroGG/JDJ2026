@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import type { StoreOrder } from "../data/defaultContent";
-import { formatUsd, normalizeWhatsapp, whatsappMultiOrderUrl } from "../utils/store";
+import { formatUsd, normalizeWhatsapp, whatsappOrderUrl } from "../utils/store";
 import {
   clearStoreCart,
   loadStoreCart,
@@ -15,7 +15,6 @@ import {
 import "./StorePage.css";
 
 export function StoreCheckoutPage() {
-  const navigate = useNavigate();
   const { content } = useContent();
   const { store, site } = content;
   const [cart, setCart] = useState<StoreCartItem[]>(loadStoreCart);
@@ -26,12 +25,16 @@ export function StoreCheckoutPage() {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
+  const [completedOrder, setCompletedOrder] = useState<StoreOrder | null>(null);
+  const [completedWaUrl, setCompletedWaUrl] = useState("");
+  const [waSent, setWaSent] = useState(false);
 
   useSeo({
     title: `Resumen de Pedido · ${store.title} · ${site.name}`,
     description: "Revisa tu pedido de la Tienda JDJ 2026, completa tus datos y confirma por WhatsApp.",
     path: "/tienda/pedido",
     siteUrl: site.url,
+    image: site.ogImage,
   });
 
   useEffect(() => {
@@ -41,13 +44,13 @@ export function StoreCheckoutPage() {
   useEffect(() => {
     const handleCartUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<StoreCartItem[]>;
-      if (customEvent.detail) {
+      if (customEvent.detail && !completedOrder) {
         setCart(customEvent.detail);
       }
     };
     window.addEventListener("jdj-cart-update", handleCartUpdate);
     return () => window.removeEventListener("jdj-cart-update", handleCartUpdate);
-  }, []);
+  }, [completedOrder]);
 
   function updateQty(id: string, delta: number) {
     const next = cart
@@ -105,54 +108,51 @@ export function StoreCheckoutPage() {
     setNotice("");
 
     try {
-      const createdOrders: StoreOrder[] = [];
-      for (const item of cart) {
-        const remote = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-            email,
-            phone,
-            parish,
-            productId: item.productId,
-            variantId: item.variantId,
-            size: item.size,
-            color: item.color,
-            quantity: item.quantity,
-            note,
-          }),
-        });
-        const payload = (await remote.json().catch(() => null)) as {
-          error?: string;
-          order?: StoreOrder;
-        } | null;
-        if (!remote.ok || !payload?.order) {
-          setNotice(payload?.error || "No se pudo registrar una de las líneas.");
-          setSending(false);
-          return;
-        }
-        createdOrders.push(payload.order);
-      }
-
-      const waUrl = whatsappMultiOrderUrl(store.whatsapp, createdOrders, {
+      const payload = {
         name,
         email,
         phone,
         parish,
         note,
+        items: cart.map((item) => ({
+          productId: item.productId,
+          productTitle: item.productTitle,
+          variantId: item.variantId,
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+          productPrice: item.productPrice,
+        })),
+      };
+
+      const remote = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      clearStoreCart();
-      setCart([]);
+      const resData = (await remote.json().catch(() => null)) as {
+        error?: string;
+        order?: StoreOrder;
+        whatsappUrl?: string;
+      } | null;
 
-      if (!waUrl) {
-        setNotice("Pedido registrado correctamente. Configura WhatsApp en el panel.");
+      if (!remote.ok || !resData?.order) {
+        setNotice(resData?.error || "No se pudo registrar el pedido.");
+        setSending(false);
         return;
       }
 
-      const opened = window.open(waUrl, "_blank", "noopener,noreferrer");
-      if (!opened) window.location.href = waUrl;
+      const order = resData.order;
+      const waUrl = resData.whatsappUrl || whatsappOrderUrl(store.whatsapp, order);
+
+      clearStoreCart();
+      setCart([]);
+      setCompletedOrder(order);
+      setCompletedWaUrl(waUrl);
+
+      // Auto scroll to top for step 3
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setNotice("Fallo de conexión al procesar el pedido.");
     } finally {
@@ -169,20 +169,206 @@ export function StoreCheckoutPage() {
             <Link to="/tienda" className="store-checkout__back">
               ← Volver al catálogo de la tienda
             </Link>
-            <h1 className="store-checkout__title">Resumen de tu Pedido</h1>
+            <h1 className="store-checkout__title">
+              {completedOrder ? "Paso 3: Confirmación por WhatsApp" : "Resumen de tu Pedido"}
+            </h1>
             <p className="store-checkout__subtitle">
-              Revisa las camisas y tallas seleccionadas, ingresa tus datos de parroquia o grupo y confirma tu solicitud por WhatsApp.
+              {completedOrder
+                ? waSent
+                  ? "¡Muchas gracias! Tu solicitud ha sido enviada por WhatsApp."
+                  : "Por favor presiona el botón para enviar los detalles de tu pedido por WhatsApp."
+                : "Revisa las camisas y tallas seleccionadas, ingresa tus datos de parroquia o grupo y confirma tu solicitud."}
             </p>
             <div className="store-checkout__steps">
-              <span className="step is-active">1. Productos</span>
+              <span className={`step ${!completedOrder ? "is-active" : "is-done"}`}>1. Productos</span>
               <span className="step-arrow">→</span>
-              <span className="step is-active">2. Parroquia / Datos</span>
+              <span className={`step ${!completedOrder ? "is-active" : "is-done"}`}>2. Parroquia / Datos</span>
               <span className="step-arrow">→</span>
-              <span className="step">3. Confirmación por WhatsApp</span>
+              <span className={`step ${completedOrder ? "is-active" : ""}`}>3. Confirmación por WhatsApp</span>
             </div>
           </div>
 
-          {cart.length === 0 ? (
+          {completedOrder ? (
+            <div className="store-checkout__completed-box">
+              <div className="store-completed__card">
+                {waSent ? (
+                  <div className="store-completed__header">
+                    <div className="store-completed__badge">
+                      <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <h2>¡Agradecemos tu pedido! 🎉</h2>
+                    <p className="store-completed__code">
+                      Código de pedido: <strong className="store-completed__code-tag">{completedOrder.id}</strong>
+                    </p>
+                    <div className="store-completed__notice">
+                      <p>
+                        📌 <strong>Información Importante:</strong> El seguimiento de tu pedido estará siendo enviado a tu WhatsApp. Recibirás allí las instrucciones para realizar la transferencia bancaria.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="store-completed__header">
+                    <div className="store-completed__ticket-icon">
+                      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <h2 className="store-completed__title-resumen">Resumen de pedido:</h2>
+                    <p className="store-completed__code">
+                      Código de pedido: <strong className="store-completed__code-tag">{completedOrder.id}</strong>
+                    </p>
+                  </div>
+                )}
+
+                <div className="store-completed__summary">
+                  {/* Customer Info Grid */}
+                  <div className="store-completed__info-grid">
+                    <div className="store-completed__info-tile">
+                      <span className="info-icon">👤</span>
+                      <div>
+                        <span className="info-label">Cliente</span>
+                        <strong className="info-value">{completedOrder.name}</strong>
+                      </div>
+                    </div>
+
+                    <div className="store-completed__info-tile">
+                      <span className="info-icon">📱</span>
+                      <div>
+                        <span className="info-label">Teléfono / WhatsApp</span>
+                        <strong className="info-value">{completedOrder.phone}</strong>
+                      </div>
+                    </div>
+
+                    <div className="store-completed__info-tile">
+                      <span className="info-icon">✉️</span>
+                      <div>
+                        <span className="info-label">Correo</span>
+                        <strong className="info-value">{completedOrder.email}</strong>
+                      </div>
+                    </div>
+
+                    <div className="store-completed__info-tile">
+                      <span className="info-icon">⛪</span>
+                      <div>
+                        <span className="info-label">Parroquia / Grupo</span>
+                        <strong className="info-value">{completedOrder.parish || "General"}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items Table */}
+                  <div className="store-completed__table-card">
+                    <h3 className="store-completed__section-title">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Detalle del Pedido
+                    </h3>
+                    <div className="store-completed__table-scroll">
+                      <table className="store-completed__table-custom">
+                        <thead>
+                          <tr>
+                            <th className="col-product">Producto</th>
+                            <th className="col-center">Talla</th>
+                            <th className="col-center">Color</th>
+                            <th className="col-center">Cantidad</th>
+                            <th className="col-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {completedOrder.items && completedOrder.items.length > 0 ? (
+                            completedOrder.items.map((item, idx) => (
+                              <tr key={idx}>
+                                <td className="col-product">
+                                  <strong className="table-product-title">{item.productTitle}</strong>
+                                </td>
+                                <td className="col-center">
+                                  <span className="table-badge-talla">{item.size || "Única"}</span>
+                                </td>
+                                <td className="col-center">
+                                  {item.color ? <span className="table-badge-color">{item.color}</span> : <span className="table-text-muted">-</span>}
+                                </td>
+                                <td className="col-center">
+                                  <span className="table-badge-qty">x{item.quantity}</span>
+                                </td>
+                                <td className="col-right table-subtotal">
+                                  {formatUsd(item.total)}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td className="col-product">
+                                <strong className="table-product-title">{completedOrder.productTitle}</strong>
+                              </td>
+                              <td className="col-center">
+                                <span className="table-badge-talla">{completedOrder.size || "Única"}</span>
+                              </td>
+                              <td className="col-center">
+                                {completedOrder.color ? <span className="table-badge-color">{completedOrder.color}</span> : <span className="table-text-muted">-</span>}
+                              </td>
+                              <td className="col-center">
+                                <span className="table-badge-qty">x{completedOrder.quantity}</span>
+                              </td>
+                              <td className="col-right table-subtotal">
+                                {formatUsd(completedOrder.total)}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Financial Summary */}
+                    <div className="store-completed__grand-box">
+                      <div className="summary-line">
+                        <span>Total de prendas:</span>
+                        <strong>{completedOrder.quantity} unidades</strong>
+                      </div>
+                      <div className="summary-line">
+                        <span>Costo de envío:</span>
+                        <span className="shipping-badge">Sin costo en sede (a coordinar por WhatsApp)</span>
+                      </div>
+                      <div className="summary-line grand-total-line">
+                        <span>Total a pagar:</span>
+                        <span className="grand-total-amount">{formatUsd(completedOrder.total)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {completedOrder.note ? (
+                    <div className="store-completed__note">
+                      <strong>📝 Indicaciones:</strong> {completedOrder.note}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="store-completed__actions-center">
+                  {completedWaUrl ? (
+                    <a
+                      href={completedWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setWaSent(true)}
+                      className="btn-whatsapp-centered"
+                    >
+                      <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                        <path d="M12.012 2c-5.508 0-9.987 4.479-9.987 9.987 0 1.763.459 3.483 1.332 5.004L2 22l5.127-1.341a9.96 9.96 0 004.885 1.28c5.508 0 9.987-4.479 9.987-9.987 0-5.508-4.479-9.987-9.987-9.987zm.006 17.514a8.27 8.27 0 01-4.218-1.155l-.302-.18-3.04.796.81-2.964-.197-.313a8.27 8.27 0 01-1.272-4.437c0-4.564 3.714-8.278 8.278-8.278 4.564 0 8.278 3.714 8.278 8.278 0 4.564-3.714 8.278-8.337 8.278z" />
+                      </svg>
+                      <span>
+                        {waSent ? "Volver a enviar por WhatsApp" : "Enviar pedido por WhatsApp"}
+                      </span>
+                    </a>
+                  ) : null}
+                  <p className="store-completed__trust-hint">
+                    🔒 Tu pedido queda registrado. El pago es por transferencia tras enviar tu pedido por WhatsApp.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : cart.length === 0 ? (
             <div className="store-checkout__empty reveal">
               <div className="store-checkout__empty-icon">🛒</div>
               <h2>Tu pedido está vacío</h2>
@@ -276,17 +462,9 @@ export function StoreCheckoutPage() {
                 <div className="store-checkout-card">
                   <h2>2. Datos y Confirmación</h2>
 
-                  <div className="checkout-shipping-alert">
-                    <span className="checkout-shipping-alert__icon" role="img" aria-label="Envío">
-                      🚚
-                    </span>
-                    <div className="checkout-shipping-alert__text">
-                      <strong>Información sobre el Envío</strong>
-                      <p>
-                        Este precio no incluye costo de envío. Todos los pedidos se entregan sin costo adicional en el punto de encuentro de la <strong>JDJ Jayaque 2026</strong>. Si necesitas envío a domicilio, se coordinará por WhatsApp tras confirmar.
-                      </p>
-                    </div>
-                  </div>
+                  <p className="checkout-shipping-note">
+                    * El precio no incluye costo de envío.
+                  </p>
 
                   <form onSubmit={(e) => void submitOrder(e)} className="store-checkout-form">
                     <label>
@@ -382,3 +560,4 @@ export function StoreCheckoutPage() {
     </div>
   );
 }
+

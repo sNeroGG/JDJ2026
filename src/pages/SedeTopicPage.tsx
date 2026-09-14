@@ -77,6 +77,10 @@ export function SedeTopicPage() {
     return (
       <div className="app">
         <Navbar />
+        <PageHero
+          src={content.ministriesHeroImageUrl || ""}
+          alt={`Ministerios de la ${site.name} ${site.year}`}
+        />
         <main>
           <Ministerios />
         </main>
@@ -89,6 +93,10 @@ export function SedeTopicPage() {
     return (
       <div className="app">
         <Navbar />
+        <PageHero
+          src={schedule.heroImageUrl || ""}
+          alt={`Agenda de la ${site.name} ${site.year}`}
+        />
         <main>
           <Schedule page />
         </main>

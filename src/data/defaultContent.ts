@@ -169,13 +169,24 @@ export type StoreProduct = {
 
 export type StoreOrderStatus = "nuevo" | "atendido" | "cancelado";
 
+export type StoreOrderItem = {
+  productId: string;
+  productTitle: string;
+  variantId: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+};
+
 export type StoreOrder = {
   id: string;
   createdAt: string;
   name: string;
   email: string;
   phone: string;
-  parish: string;
+  parish?: string;
   productId: string;
   productTitle: string;
   variantId: string;
@@ -187,6 +198,7 @@ export type StoreOrder = {
   payment: "Transferencia";
   note: string;
   status: StoreOrderStatus;
+  items?: StoreOrderItem[];
 };
 
 export type SiteContent = {
@@ -290,6 +302,7 @@ export type SiteContent = {
     items: EventItem[];
   };
   schedule: {
+    heroImageUrl?: string;
     eyebrow: string;
     title: string;
     lead: string;
@@ -339,9 +352,11 @@ export type SiteContent = {
   };
   ministries: MinistryItem[];
   ministriesLayout: MinistryLayout;
+  ministriesHeroImageUrl?: string;
   commissions: SedeTopicContent;
   volunteers: SedeTopicContent;
   store: {
+    heroImageUrl?: string;
     logoUrl: string;
     eyebrow: string;
     title: string;

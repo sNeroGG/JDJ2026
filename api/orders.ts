@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { StoreOrder } from "../src/data/defaultContent.js";
 import {
+  buildMultiItemStoreOrder,
   buildStoreOrder,
   isProductComingSoon,
   parseCreateOrder,
@@ -11,9 +12,10 @@ import { readBody, send, sendReadError } from "./_lib/http.js";
 import { clientKey, isOrderId, rateLimit } from "./_lib/safe.js";
 import { probeSupabase } from "./_lib/supabase.js";
 import {
+  deleteLiveOrder,
   liveProducts,
   persistKind,
-  placeLiveOrder,
+  placeLiveMultiOrder,
   readOrders,
   StoreConflictError,
   storeWhatsapp,
@@ -76,28 +78,35 @@ export default async function handler(
         send(res, 429, { error: "Demasiados intentos. Espera unos minutos." });
         return;
       }
-      const parsed = parseCreateOrder(await readBody(req));
-      if ("error" in parsed) {
-        send(res, 400, parsed);
-        return;
+      const body = await readBody(req);
+      const products = await liveProducts();
+      let order: StoreOrder | { error: string };
+
+      if (Array.isArray(body.items) && body.items.length > 0) {
+        order = buildMultiItemStoreOrder(body as any, products);
+      } else {
+        const parsed = parseCreateOrder(body);
+        if ("error" in parsed) {
+          send(res, 400, parsed);
+          return;
+        }
+        const product = products.find((item) => item.id === parsed.productId);
+        if (!product) {
+          send(res, 404, { error: "Producto no encontrado." });
+          return;
+        }
+        if (isProductComingSoon(product)) {
+          send(res, 409, { error: "Este producto aún no está disponible." });
+          return;
+        }
+        order = buildStoreOrder(parsed, product);
       }
-      const product = (await liveProducts()).find(
-        (item) => item.id === parsed.productId,
-      );
-      if (!product) {
-        send(res, 404, { error: "Producto no encontrado." });
-        return;
-      }
-      if (isProductComingSoon(product)) {
-        send(res, 409, { error: "Este producto aún no está disponible." });
-        return;
-      }
-      const order = buildStoreOrder(parsed, product);
+
       if ("error" in order) {
         send(res, 409, order);
         return;
       }
-      const placed = await placeLiveOrder(order, product);
+      const placed = await placeLiveMultiOrder(order, products);
       if ("error" in placed) {
         send(res, 409, placed);
         return;
@@ -105,9 +114,6 @@ export default async function handler(
       send(res, 201, {
         ok: true,
         order: placed.order,
-        stock: placed.stock,
-        total: placed.total,
-        variantId: placed.variantId,
         whatsappUrl: whatsappOrderUrl(storeWhatsapp(), placed.order),
       });
       return;
@@ -136,6 +142,27 @@ export default async function handler(
       send(res, 200, { ok: true, order: updated.order });
       return;
     }
+
+    if (req.method === "DELETE") {
+      if (!isAuthorized(req)) {
+        send(res, 401, { error: "No autorizado" });
+        return;
+      }
+      const body = await readBody(req);
+      const id = String(body.id || "");
+      if (!isOrderId(id)) {
+        send(res, 400, { error: "ID de pedido no válido." });
+        return;
+      }
+      const result = await deleteLiveOrder(id);
+      if ("error" in result) {
+        send(res, 404, { error: result.error });
+        return;
+      }
+      send(res, 200, { ok: true });
+      return;
+    }
+
 
     send(res, 405, { error: "Método no permitido" });
   } catch (error) {

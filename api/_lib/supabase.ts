@@ -223,11 +223,48 @@ export async function listStoreStock(): Promise<StoreStockMap> {
   return map;
 }
 
+export async function deleteStoreOrder(id: string) {
+  const filter = eqFilter("id", id);
+  if (!filter) return false;
+  await rest(`store_orders?${filter}`, {
+    method: "DELETE",
+    prefer: "return=minimal",
+  });
+  return true;
+}
+
 export async function listStoreOrders() {
   const rows = await rest<Record<string, unknown>[]>(
     `store_orders?select=${ORDER_COLUMNS}&order=created_at.desc`,
   );
-  return (rows || []).map(orderFromRow);
+  if (!rows || !rows.length) return [];
+  const map = new Map<string, StoreOrder>();
+  for (const row of rows) {
+    const single = orderFromRow(row);
+    const item = {
+      productId: single.productId,
+      productTitle: single.productTitle,
+      variantId: single.variantId,
+      size: single.size,
+      color: single.color,
+      quantity: single.quantity,
+      unitPrice: single.unitPrice,
+      total: single.total,
+    };
+    const existing = map.get(single.id);
+    if (!existing) {
+      map.set(single.id, {
+        ...single,
+        items: [item],
+      });
+    } else {
+      existing.items = existing.items || [];
+      existing.items.push(item);
+      existing.quantity += single.quantity;
+      existing.total += single.total;
+    }
+  }
+  return Array.from(map.values());
 }
 
 export async function placeStoreOrder(order: StoreOrder, seed: number) {

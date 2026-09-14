@@ -1,4 +1,4 @@
-import type { StoreProduct, StoreVariant } from "../data/defaultContent.js";
+
 
 export type StoreCartItem = {
   id: string; // unique key: `${productId}:${variantId}`

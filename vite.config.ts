@@ -196,6 +196,13 @@ function localMediaPlugin(env: BuildEnv): Plugin {
             const dest = path.join(destDir, filename);
             fs.writeFileSync(dest, buffer);
             if (folder === "images") {
+              const extLower = ext.toLowerCase();
+              if (extLower === ".gif") {
+                sendJson(res, 200, {
+                  url: `/${folder}/${filename}`,
+                });
+                return;
+              }
               await optimizeImage(dest);
               const webpPath = await toWebp(dest);
               await writeThumb(webpPath).catch((error: unknown) => {

@@ -1949,3 +1949,117 @@
   flex: 1;
   min-width: 0;
 }
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.admin-modal {
+  background: #ffffff;
+  color: var(--navy, #1c232c);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  width: min(100%, 500px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  display: grid;
+  gap: 1.1rem;
+}
+
+.admin-modal h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.admin-modal p {
+  color: var(--muted, #64748b);
+  font-size: 0.92rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.admin-modal__options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-modal__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(28, 35, 44, 0.12);
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin-modal__option:hover {
+  background: #f1f5f9;
+  border-color: rgba(45, 128, 142, 0.4);
+}
+
+.admin-modal__option input[type="radio"] {
+  margin-top: 0.2rem;
+  accent-color: #2d808e;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.admin-modal__option-copy strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #142838;
+}
+
+.admin-modal__option-copy small {
+  display: block;
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.admin-modal__select-wrap {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  padding-left: 1.85rem;
+}
+
+.admin-modal__select-wrap label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin-modal__select-wrap select {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(28, 35, 44, 0.18);
+  background: #ffffff;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.admin-modal__badge {
+  background: #eef7f6;
+  border: 1px solid #bce3df;
+  color: #1b635c;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

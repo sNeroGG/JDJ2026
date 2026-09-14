@@ -336,7 +336,8 @@ export const SAVED_CONTENT: SavedContent = {
         "title": "Concierto final",
         "text": "Momento final de nuestra Jornada Diocesana de la Juventud con un gran concierto de cierre."
       }
-    ]
+    ],
+    "heroImageUrl": "/images/0914.gif"
   },
   "registration": {
     "enabled": false,
@@ -650,7 +651,7 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-e1c396d4--unica--xs",
             "size": "XS",
             "color": "",
-            "stock": 0
+            "stock": 8
           },
           {
             "id": "prod-e1c396d4--unica--s",
@@ -709,25 +710,25 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-4be0843b--unica--s",
             "size": "S",
             "color": "",
-            "stock": 3
+            "stock": 1
           },
           {
             "id": "prod-4be0843b--unica--m",
             "size": "M",
             "color": "",
-            "stock": 2
+            "stock": 0
           },
           {
             "id": "prod-4be0843b--unica--l",
             "size": "L",
             "color": "",
-            "stock": 2
+            "stock": 0
           },
           {
             "id": "prod-4be0843b--unica--xl",
             "size": "XL",
             "color": "",
-            "stock": 1
+            "stock": 0
           }
         ]
       },

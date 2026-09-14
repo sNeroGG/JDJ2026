@@ -24,6 +24,7 @@ import {
 import { bundledOrders, productsFromBundle, storeWhatsapp as bundledWhatsapp } from "./catalog.js";
 import { commitFile, isGithubConfigured } from "./github.js";
 import {
+  deleteStoreOrder,
   ensureStoreStock,
   isSupabaseConfigured,
   listStoreOrders,
@@ -256,6 +257,125 @@ export async function placeLiveOrder(order: StoreOrder, catalog: StoreProduct) {
     variantId,
   };
 }
+
+export async function placeLiveMultiOrder(order: StoreOrder, catalog: StoreProduct[]) {
+  const items = order.items && order.items.length ? order.items : [{
+    productId: order.productId,
+    productTitle: order.productTitle,
+    variantId: order.variantId,
+    size: order.size,
+    color: order.color,
+    quantity: order.quantity,
+    unitPrice: order.unitPrice,
+    total: order.total,
+  }];
+
+  if (isSupabaseConfigured()) {
+    for (const item of items) {
+      const subOrder: StoreOrder = {
+        ...order,
+        productId: item.productId,
+        productTitle: item.productTitle,
+        variantId: item.variantId,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      };
+      const product = catalog.find((p) => p.id === item.productId);
+      const seed = seedFor(product || catalog[0], item.variantId);
+      await placeStoreOrder(subOrder, seed);
+    }
+    return { order };
+  }
+
+  if (process.env.VERCEL) {
+    const live = overlayProducts(catalogProducts(), readTmpStock());
+    for (const item of items) {
+      const product = live.find((p) => p.id === item.productId);
+      if (!product) return { error: `Producto ${item.productTitle} no encontrado.` };
+      const adjusted = withAdjustedVariantStock(product, item.variantId, -item.quantity);
+      if ("error" in adjusted) return adjusted;
+      writeTmpStock(product.id, item.variantId, adjusted.stock);
+    }
+    writeTmpOrders([...readTmpOrders(), order]);
+    return { order };
+  }
+
+  for (const item of items) {
+    const stock = adjustVariantStock(
+      process.cwd(),
+      item.productId,
+      item.variantId,
+      -item.quantity,
+    );
+    if ("error" in stock) return stock;
+  }
+  writeSavedOrders(process.cwd(), [...readSavedOrders(process.cwd()), order]);
+  return { order };
+}
+
+export async function deleteLiveOrder(id: string) {
+  const orders = await readOrders();
+  const target = orders.find((o) => o.id === id);
+
+  if (target && target.status !== "cancelado") {
+    const items =
+      target.items && target.items.length > 0
+        ? target.items
+        : [
+            {
+              productId: target.productId,
+              variantId: target.variantId,
+              size: target.size,
+              color: target.color,
+              quantity: target.quantity,
+            },
+          ];
+
+    const products = await liveProducts();
+    const stockUpdates: { productId: string; variantId: string; stock: number }[] = [];
+
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId);
+      const vId =
+        item.variantId ||
+        (product ? orderVariantId(target, product) : "");
+      if (vId) {
+        if (!process.env.VERCEL && !isSupabaseConfigured()) {
+          adjustVariantStock(process.cwd(), item.productId, vId, item.quantity);
+        } else if (product) {
+          const variant = product.variants.find((v) => v.id === vId);
+          const nextStock = (variant?.stock ?? 0) + item.quantity;
+          stockUpdates.push({ productId: item.productId, variantId: vId, stock: nextStock });
+        }
+      }
+    }
+
+    if (stockUpdates.length > 0) {
+      await setLiveStock(stockUpdates).catch(() => undefined);
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    const ok = await deleteStoreOrder(id);
+    return { ok };
+  }
+  if (process.env.VERCEL) {
+    const current = readTmpOrders();
+    const filtered = current.filter((o) => o.id !== id);
+    if (filtered.length === current.length) return { error: "Pedido no encontrado." };
+    writeTmpOrders(filtered);
+    return { ok: true };
+  }
+  const current = readSavedOrders(process.cwd());
+  const filtered = current.filter((o) => o.id !== id);
+  if (filtered.length === current.length) return { error: "Pedido no encontrado." };
+  writeSavedOrders(process.cwd(), filtered);
+  return { ok: true };
+}
+
 
 export async function updateLiveOrderStatus(
   id: string,

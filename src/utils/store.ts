@@ -669,24 +669,127 @@ export function buildOrderReport(
   };
 }
 
+export function buildMultiItemStoreOrder(
+  input: {
+    name: string;
+    email: string;
+    phone: string;
+    parish: string;
+    note: string;
+    items: Array<{
+      productId: string;
+      productTitle?: string;
+      variantId?: string;
+      size: string;
+      color: string;
+      quantity: number;
+      productPrice?: number;
+    }>;
+  },
+  products: StoreProduct[],
+  id = createOrderId(),
+): StoreOrder | { error: string } {
+  const orderItems: Array<{
+    productId: string;
+    productTitle: string;
+    variantId: string;
+    size: string;
+    color: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }> = [];
+
+  let grandTotal = 0;
+  let grandQty = 0;
+
+  for (const raw of input.items) {
+    const product = products.find((p) => p.id === raw.productId);
+    if (!product) return { error: `Producto no encontrado (${raw.productId}).` };
+    const variant = findVariant(product, raw);
+    if (!variant) return { error: `Talla/color no disponible en ${product.title}.` };
+    if (!product.withoutStock && variant.stock < raw.quantity) {
+      return { error: `Solo quedan ${variant.stock} ud. de ${product.title} (${variantLabel(variant)}).` };
+    }
+    const unitPrice = Number(product.price) || Number(raw.productPrice) || 0;
+    const subtotal = unitPrice * raw.quantity;
+    orderItems.push({
+      productId: product.id,
+      productTitle: product.title,
+      variantId: variant.id,
+      size: variant.size,
+      color: variant.color,
+      quantity: raw.quantity,
+      unitPrice,
+      total: subtotal,
+    });
+    grandTotal += subtotal;
+    grandQty += raw.quantity;
+  }
+
+  if (!orderItems.length) return { error: "El pedido debe contener al menos un producto." };
+
+  const primaryItem = orderItems[0];
+  const summaryTitle =
+    orderItems.length === 1
+      ? primaryItem.productTitle
+      : `${orderItems.length} prendas (${orderItems.map((i) => i.productTitle).join(", ")})`;
+
+  return {
+    id,
+    createdAt: new Date().toISOString(),
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+    parish: input.parish,
+    productId: primaryItem.productId,
+    productTitle: summaryTitle,
+    variantId: primaryItem.variantId,
+    size: orderItems.map((i) => i.size).filter(Boolean).join(", ") || "Única",
+    color: orderItems.map((i) => i.color).filter(Boolean).join(", "),
+    quantity: grandQty,
+    unitPrice: primaryItem.unitPrice,
+    total: grandTotal,
+    payment: "Transferencia",
+    note: input.note,
+    status: "nuevo",
+    items: orderItems,
+  };
+}
+
 export function buildOrderMessage(order: StoreOrder) {
   const lines = [
-    `Hola, quiero hacer un pedido de la Tienda JDJ 2026.`,
+    `Hola, quiero confirmar mi pedido para la JDJ Jayaque 2026:`,
     "",
-    `Pedido: ${order.id}`,
-    `Nombre: ${order.name}`,
-    `Correo: ${order.email}`,
-    `Teléfono: ${order.phone}`,
-    `Producto: ${order.productTitle}`,
+    `📌 *Código:* ${order.id}`,
+    `👤 *Nombre:* ${order.name}`,
+    `📞 *Teléfono:* ${order.phone}`,
+    `📧 *Correo:* ${order.email}`,
+    `⛪ *Parroquia / Grupo:* ${order.parish}`,
+    "",
   ];
-  if (order.color) lines.push(`Color: ${order.color}`);
-  if (order.size) lines.push(`Talla: ${order.size}`);
+
+  if (order.items && order.items.length > 0) {
+    lines.push(`👕 *PRENDAS SOLICITADAS:*`);
+    for (const item of order.items) {
+      lines.push(
+        `• ${item.productTitle}${item.color ? ` (${item.color})` : ""} - Talla ${item.size || "Única"} x${item.quantity}: ${formatUsd(item.total)}`,
+      );
+    }
+  } else {
+    lines.push(`👕 *PRENDA:* ${order.productTitle}`);
+    if (order.color) lines.push(`Color: ${order.color}`);
+    if (order.size) lines.push(`Talla: ${order.size}`);
+    lines.push(`Cantidad: ${order.quantity}`);
+  }
+
   lines.push(
-    `Cantidad: ${order.quantity}`,
-    `Total: ${formatUsd(order.total)}`,
-    `Pago: Transferencia`,
+    "",
+    `💰 *TOTAL A PAGAR:* ${formatUsd(order.total)}`,
+    `💳 *Método de Pago:* Transferencia Bancaria`,
   );
-  if (order.note) lines.push("", `Nota: ${order.note}`);
+  if (order.note) lines.push(`📝 *Indicaciones:* ${order.note}`);
+  lines.push("", `Por favor confírmenme el seguimiento y los datos bancarios para realizar el pago. ¡Muchas gracias!`);
   return lines.join("\n");
 }
 

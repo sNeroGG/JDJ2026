@@ -47,7 +47,7 @@ export async function optimizeImage(filePath) {
 
 export async function toWebp(filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".webp" || ext === ".svg") return filePath;
+  if (ext === ".webp" || ext === ".svg" || ext === ".gif") return filePath;
   const webpPath = filePath.replace(/\.[^.]+$/, ".webp");
   await sharp(filePath, { failOn: "none" })
     .rotate()

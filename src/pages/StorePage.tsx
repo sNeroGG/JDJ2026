@@ -1,28 +1,23 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Navbar } from "../components/Navbar";
+import { PageHero } from "../components/PageHero";
 import { useContent } from "../context/ContentContext";
 import { useReveal } from "../hooks/useReveal";
 import { useSeo } from "../hooks/useSeo";
 import type { StoreProduct } from "../data/defaultContent";
 import {
   applyStockMap,
-  findVariant,
-  firstAvailableVariant,
   formatUsd,
   isProductComingSoon,
   normalizeWhatsapp,
-  productColors,
   productImages,
   productRevealLabel,
-  productSizes,
   productStock,
   sortProductsBySection,
   STORE_MYSTERY_SHIRT,
   variantLabel,
-  whatsappOrderUrl,
-  whatsappMultiOrderUrl,
   type StoreStockMap,
 } from "../utils/store";
 import {
@@ -41,20 +36,10 @@ type Checkout = {
   note: string;
 };
 
-const EMPTY_CHECKOUT: Omit<Checkout, "product"> = {
-  name: "",
-  email: "",
-  phone: "",
-  size: "",
-  color: "",
-  quantity: 1,
-  note: "",
-};
-
 export function StorePage() {
   const navigate = useNavigate();
   const ref = useReveal<HTMLElement>();
-  const { content, updateContent } = useContent();
+  const { content } = useContent();
   const { store, site } = content;
   const [liveStock, setLiveStock] = useState<StoreStockMap | null>(null);
   const [checkout, setCheckout] = useState<Checkout | null>(null);
@@ -64,7 +49,6 @@ export function StorePage() {
   const [gallery, setGallery] = useState<{ product: StoreProduct; index: number } | null>(
     null,
   );
-  const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
   const [selectedSection, setSelectedSection] = useState<"ALL" | "JDJ" | "PJA">("ALL");
 
@@ -151,14 +135,7 @@ export function StorePage() {
     });
   }
 
-  function openGallery(product: StoreProduct, index = 0) {
-    const images = productImages(product);
-    if (!images.length) return;
-    setGallery({
-      product,
-      index: Math.min(Math.max(0, index), images.length - 1),
-    });
-  }
+
 
   const cartTotalQty = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -254,7 +231,7 @@ export function StorePage() {
           size: item.variant.size,
           color: item.variant.color,
           quantity: item.qty,
-          withoutStock: checkout.product.withoutStock,
+          withoutStock: Boolean(checkout.product.withoutStock),
           maxStock: item.variant.stock || 50,
         });
       }
@@ -270,123 +247,15 @@ export function StorePage() {
     navigate("/tienda/pedido");
   }
 
-  function patchVariantStock(
-    productId: string,
-    variantId: string,
-    stock: number,
-  ) {
-    setLiveStock((prev) => ({
-      ...(prev ?? {}),
-      [productId]: {
-        ...(prev?.[productId] ?? {}),
-        [variantId]: stock,
-      },
-    }));
-    updateContent((prev) => ({
-      ...prev,
-      store: {
-        ...prev.store,
-        products: prev.store.products.map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                variants: item.variants.map((variant) =>
-                  variant.id === variantId ? { ...variant, stock } : variant,
-                ),
-              }
-            : item,
-        ),
-      },
-    }));
-  }
-
-  function setCheckoutVariant(
-    patch: Partial<Pick<Checkout, "size" | "color" | "quantity">>,
-  ) {
-    if (!checkout) return;
-    const next = { ...checkout, ...patch };
-    const variant = findVariant(next.product, next);
-    const max = checkout.product.withoutStock
-      ? 20
-      : Math.max(1, variant?.stock ?? 1);
-    setCheckout({
-      ...next,
-      quantity: Math.min(Math.max(1, next.quantity), max),
-    });
-  }
-
-  async function submitOrder(event: FormEvent) {
-    event.preventDefault();
-    if (!checkout || grandTotalQty <= 0) {
-      setNotice("Selecciona al menos una camisa o talla.");
-      return;
-    }
-    setSending(true);
-    setNotice("");
-    try {
-      const createdOrders: StoreOrder[] = [];
-      for (const item of selectedItems) {
-        const remote = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: checkout.name,
-            email: checkout.email,
-            phone: checkout.phone,
-            productId: checkout.product.id,
-            variantId: item.variant.id,
-            size: item.variant.size,
-            color: item.variant.color,
-            quantity: item.qty,
-            note: checkout.note,
-          }),
-        });
-        const payload = (await remote.json().catch(() => null)) as {
-          error?: string;
-          order?: StoreOrder;
-          stock?: number;
-          variantId?: string;
-        } | null;
-        if (!remote.ok || !payload?.order) {
-          setNotice(payload?.error || "No se pudo registrar el pedido.");
-          setSending(false);
-          return;
-        }
-        createdOrders.push(payload.order);
-        if (typeof payload.stock === "number" && payload.variantId) {
-          patchVariantStock(
-            checkout.product.id,
-            payload.variantId,
-            payload.stock,
-          );
-        }
-      }
-
-      const url = whatsappMultiOrderUrl(store.whatsapp, createdOrders, {
-        name: checkout.name,
-        email: checkout.email,
-        phone: checkout.phone,
-        note: checkout.note,
-      });
-      setCheckout(null);
-      if (!url) {
-        setNotice("Pedidos registrados. Configura WhatsApp en el panel.");
-        return;
-      }
-      const opened = window.open(url, "_blank", "noopener,noreferrer");
-      if (!opened) window.location.href = url;
-    } catch {
-      setNotice("No se pudo conectar. Inténtalo de nuevo.");
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
-    <div className="app">
+    <div className={`app${store.heroImageUrl ? " has-hero" : ""}`}>
       <Navbar />
+      <PageHero
+        src={store.heroImageUrl || ""}
+        alt={`Tienda ${store.title}`}
+      />
       <main>
-        <section className="section store-page" ref={ref}>
+        <section className={`section store-page${store.heroImageUrl ? " has-hero" : ""}`} ref={ref}>
           <div className="section__inner">
             <div className="store-page__intro reveal">
               {store.logoUrl ? (
@@ -669,7 +538,7 @@ export function StorePage() {
               type="button"
               className="store-modal__backdrop"
               aria-label="Cerrar"
-              onClick={() => !sending && setCheckout(null)}
+              onClick={() => setCheckout(null)}
             />
             <form
               className="store-modal__card"
@@ -832,7 +701,7 @@ export function StorePage() {
                     <button
                       type="button"
                       className="store-modal__btn-add"
-                      disabled={sending || grandTotalQty <= 0}
+                      disabled={grandTotalQty <= 0}
                       onClick={handleAddToCartOnly}
                     >
                       + Guardar en pedido
@@ -840,7 +709,7 @@ export function StorePage() {
                     <button
                       type="button"
                       className="store-modal__btn-proceed"
-                      disabled={sending || grandTotalQty <= 0}
+                      disabled={grandTotalQty <= 0}
                       onClick={handleAddToCartAndProceed}
                     >
                       Ir al resumen de pedido →

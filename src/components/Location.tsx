@@ -16,9 +16,51 @@ export function Location() {
 
   return (
     <section className="section location" id="donde" ref={ref}>
-      <div className="section__inner location__grid">
-        <div className="location__copy reveal">
-          <div className="location__eyebrow-row">
+      <div className="section__inner">
+        <div className="location__store-banner-wrapper reveal">
+          <SiteLink href="/tienda" className="location__store-banner">
+            <span className="location__store-banner-badge">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              <span>Tienda Oficial</span>
+            </span>
+            <span className="location__store-banner-text">
+              Ya puedes ver las camisas oficiales de la JDJ 2026
+            </span>
+            <svg
+              className="location__store-banner-arrow"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </SiteLink>
+        </div>
+
+        <div className="location__grid">
+          <div className="location__copy reveal">
+            <div className="location__eyebrow-row">
             <p className="section__eyebrow">{location.eyebrow}</p>
             <span className="location__hashtag-wrap">
               <SiteLink
@@ -126,6 +168,7 @@ export function Location() {
           </div>
         ) : null}
       </div>
-    </section>
-  );
+    </div>
+  </section>
+);
 }
