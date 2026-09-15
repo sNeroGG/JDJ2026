@@ -11,7 +11,7 @@ const PLACEHOLDER = /<!--\s*analytics-tag[\s\S]*?-->/;
 
 export function buildBeaconTag(token) {
   const clean = String(token || "").trim();
-  if (!clean) return "";
+  if (!clean || !/^[a-zA-Z0-9_-]+$/.test(clean)) return "";
   // El seguimiento de rutas de SPA viene activado por defecto en el beacon.
   const config = JSON.stringify({ token: clean });
   return `<script defer src="${BEACON_SRC}" data-cf-beacon='${config}'></script>`;
