@@ -548,26 +548,44 @@ export const SAVED_CONTENT: SavedContent = {
         "section": "JDJ",
         "variants": [
           {
-            "id": "var-3ed2271b",
+            "id": "var-5cf50fa6",
+            "size": "XS",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-44aa2759",
             "size": "S",
             "color": "",
-            "stock": 999997
+            "stock": 10
           },
           {
-            "id": "var-40dbcdcf",
+            "id": "var-df975115",
             "size": "M",
             "color": "",
-            "stock": 8
+            "stock": 10
           },
           {
-            "id": "var-8a5eaac0",
+            "id": "var-44d0bf62",
             "size": "L",
             "color": "",
             "stock": 10
           },
           {
-            "id": "var-3af6e666",
+            "id": "var-fa4150d7",
             "size": "XL",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-66599e69",
+            "size": "XXL",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-39961895",
+            "size": "XXXL",
             "color": "",
             "stock": 10
           }
@@ -707,28 +725,46 @@ export const SAVED_CONTENT: SavedContent = {
         "section": "PJA",
         "variants": [
           {
-            "id": "prod-4be0843b--unica--s",
+            "id": "var-956ef459",
+            "size": "XS",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-28fa8ef8",
             "size": "S",
             "color": "",
-            "stock": 3
+            "stock": 10
           },
           {
-            "id": "prod-4be0843b--unica--m",
+            "id": "var-c4cbe09e",
             "size": "M",
             "color": "",
-            "stock": 0
+            "stock": 10
           },
           {
-            "id": "prod-4be0843b--unica--l",
+            "id": "var-fb76c23d",
             "size": "L",
             "color": "",
-            "stock": 0
+            "stock": 10
           },
           {
-            "id": "prod-4be0843b--unica--xl",
+            "id": "var-7e28c39a",
             "size": "XL",
             "color": "",
-            "stock": 1
+            "stock": 10
+          },
+          {
+            "id": "var-bde6bf81",
+            "size": "XXL",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-f957c1a3",
+            "size": "XXXL",
+            "color": "",
+            "stock": 10
           }
         ]
       },
@@ -748,28 +784,46 @@ export const SAVED_CONTENT: SavedContent = {
         "section": "PJA",
         "variants": [
           {
-            "id": "prod-077167ec--unica--s",
+            "id": "var-7371c780",
+            "size": "XS",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-9ab40c72",
             "size": "S",
             "color": "",
-            "stock": 1
+            "stock": 10
           },
           {
-            "id": "prod-077167ec--unica--m",
+            "id": "var-27dce686",
             "size": "M",
             "color": "",
-            "stock": 1
+            "stock": 10
           },
           {
-            "id": "prod-077167ec--unica--l",
+            "id": "var-59408f75",
             "size": "L",
             "color": "",
-            "stock": 1
+            "stock": 10
           },
           {
-            "id": "prod-077167ec--unica--xl",
+            "id": "var-043f95c5",
             "size": "XL",
             "color": "",
-            "stock": 1
+            "stock": 10
+          },
+          {
+            "id": "var-bd6e0ced",
+            "size": "XXL",
+            "color": "",
+            "stock": 10
+          },
+          {
+            "id": "var-d97ecc6a",
+            "size": "XXXL",
+            "color": "",
+            "stock": 10
           }
         ]
       }
