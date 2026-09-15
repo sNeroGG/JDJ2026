@@ -1,7 +1,7 @@
 import type { StoreOrder, StoreOrderStatus, StoreProduct } from "../../src/data/defaultContent.js";
 import { normalizeDonationRecord } from "../../src/utils/donations.js";
 import type { StoreStockMap } from "../../src/utils/store.js";
-import { eqFilter } from "./safe.js";
+import { eqFilter, isOrderId, isSafeId, isUuid } from "./safe.js";
 import { isSupabaseConfigured, supabaseEnv } from "./supabaseEnv.js";
 
 export { isSupabaseConfigured, supabaseEnv };
@@ -232,10 +232,9 @@ export async function listStoreStock(): Promise<StoreStockMap> {
 }
 
 export async function deleteStoreOrder(id: string) {
-  const filter = eqFilter("id", id);
-  if (!filter) return false;
-  const filterItem = `id.like.${encodeURIComponent(id + "_item_*")}`;
-  await rest(`store_orders?or=(${filter},${filterItem})`, {
+  if (!isOrderId(id) && !isUuid(id) && !isSafeId(id)) return false;
+  const safeId = encodeURIComponent(id);
+  await rest(`store_orders?or=(id.eq.${safeId},id.like.${safeId}_item_*)`, {
     method: "DELETE",
     prefer: "return=minimal",
   });
