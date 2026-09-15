@@ -130,6 +130,16 @@ export async function listDonations() {
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
 }
 
+export async function deleteDonation(id: string) {
+  const filter = eqFilter("id", id);
+  if (!filter) return false;
+  await rest(`donations?${filter}`, {
+    method: "DELETE",
+    prefer: "return=minimal",
+  });
+  return true;
+}
+
 function orderFromRow(row: Record<string, unknown>): StoreOrder {
   const status = String(row.status || "nuevo");
   return {

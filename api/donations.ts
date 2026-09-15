@@ -4,6 +4,7 @@ import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
 import { storeWhatsapp } from "./_lib/catalog.js";
 import {
+  deleteDonation,
   insertDonation,
   isSupabaseConfigured,
   listDonations,
@@ -15,7 +16,7 @@ import {
   parseDonationInput,
   whatsappDonationUrl,
 } from "../src/utils/donations.js";
-import { clientKey, isUuid, rateLimit } from "./_lib/safe.js";
+import { clientKey, isSafeId, isUuid, rateLimit } from "./_lib/safe.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -23,7 +24,7 @@ export default async function handler(
 ) {
   try {
     if (
-      (req.method === "GET" || req.method === "PATCH") &&
+      (req.method === "GET" || req.method === "PATCH" || req.method === "DELETE") &&
       !isAuthorized(req)
     ) {
       send(res, 401, { error: "No autorizado" });
@@ -69,6 +70,22 @@ export default async function handler(
         return;
       }
       send(res, 200, { ok: true, donation });
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      const body = await readBody(req);
+      const id = String(body.id || "");
+      if (!isUuid(id) && !isSafeId(id)) {
+        send(res, 400, { error: "ID de donación no válido." });
+        return;
+      }
+      const ok = await deleteDonation(id);
+      if (!ok) {
+        send(res, 404, { error: "Donación no encontrada." });
+        return;
+      }
+      send(res, 200, { ok: true });
       return;
     }
 

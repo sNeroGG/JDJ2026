@@ -30,7 +30,20 @@ import {
   type StoreVariant,
 } from "../data/defaultContent";
 import { downloadOrderPdf, downloadReportPdf } from "../utils/orderPdf";
+import { downloadDonationReceiptPdf, downloadDonationReportPdf } from "../utils/donationPdf";
 import { createId, downloadJson } from "../utils/files";
+
+function formatDateSpanLabel(isoDateStr: string) {
+  if (!isoDateStr) return "";
+  const parts = isoDateStr.split("-").map(Number);
+  if (parts.length < 3 || parts.some(isNaN)) return isoDateStr;
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return new Intl.DateTimeFormat("es-SV", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
 import { thumbSrc } from "../utils/images";
 import { uploadMedia } from "../utils/media";
 import { AdminImageUploader } from "../components/AdminImageUploader";
@@ -751,11 +764,29 @@ export function AdminPage() {
   const [configOpen, setConfigOpen] = useState(() =>
     isConfigSection(isAdminSection(sectionParam) ? sectionParam : "orders"),
   );
+  const [orderDateFilter, setOrderDateFilter] = useState<string>("");
+  const [donationDateFilter, setDonationDateFilter] = useState<string>("");
+
   const [exportPdfModalOpen, setExportPdfModalOpen] = useState(false);
-  const [exportReportType, setExportReportType] = useState<"all" | "month">("all");
+  const [exportReportType, setExportReportType] = useState<"all" | "month" | "day">("all");
   const [exportSelectedMonth, setExportSelectedMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [exportSelectedDay, setExportSelectedDay] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+
+  const [exportDonationsPdfModalOpen, setExportDonationsPdfModalOpen] = useState(false);
+  const [exportDonationsReportType, setExportDonationsReportType] = useState<"all" | "month" | "day">("all");
+  const [exportDonationsSelectedMonth, setExportDonationsSelectedMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [exportDonationsSelectedDay, setExportDonationsSelectedDay] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
 
   const availableMonths = useMemo(() => {
@@ -789,6 +820,37 @@ export function AdminPage() {
     });
   }, [orders]);
 
+  const availableDonationMonths = useMemo(() => {
+    const set = new Set<string>();
+    const d = new Date();
+    const currentKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    set.add(currentKey);
+
+    for (const don of donations) {
+      if (don.created_at) {
+        const date = new Date(don.created_at);
+        if (!isNaN(date.getTime())) {
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          set.add(key);
+        }
+      }
+    }
+
+    ["2026-08", "2026-09", "2026-10", "2026-11", "2026-12"].forEach((m) => set.add(m));
+
+    const sorted = Array.from(set).sort();
+    return sorted.map((yearMonth) => {
+      const [year, month] = yearMonth.split("-").map(Number);
+      const date = new Date(year, month - 1, 1);
+      const label = new Intl.DateTimeFormat("es-SV", {
+        month: "long",
+        year: "numeric",
+      }).format(date);
+      const capitalized = label.charAt(0).toUpperCase() + label.slice(1);
+      return { key: yearMonth, label: capitalized };
+    });
+  }, [donations]);
+
   function handleGeneratePdfReport() {
     let targetOrders = orders;
     let periodLabel = "Resumen General Acumulado";
@@ -804,11 +866,44 @@ export function AdminPage() {
       });
       const foundMonth = availableMonths.find((m) => m.key === exportSelectedMonth);
       periodLabel = foundMonth ? foundMonth.label : exportSelectedMonth;
+    } else if (exportReportType === "day") {
+      targetOrders = orders.filter((o) => {
+        if (!o.createdAt) return false;
+        return o.createdAt.slice(0, 10) === exportSelectedDay;
+      });
+      periodLabel = `Día ${formatDateSpanLabel(exportSelectedDay)}`;
     }
 
     const reportToPrint = buildOrderReport(targetOrders, storeProducts);
     downloadReportPdf(reportToPrint, periodLabel);
     setExportPdfModalOpen(false);
+  }
+
+  function handleGenerateDonationsPdfReport() {
+    let targetDonations = donations;
+    let periodLabel = "Resumen General Acumulado";
+
+    if (exportDonationsReportType === "month") {
+      const [yearStr, monthStr] = exportDonationsSelectedMonth.split("-");
+      const yr = Number(yearStr);
+      const mo = Number(monthStr);
+      targetDonations = donations.filter((d) => {
+        if (!d.created_at) return false;
+        const dt = new Date(d.created_at);
+        return dt.getFullYear() === yr && dt.getMonth() + 1 === mo;
+      });
+      const foundMonth = availableDonationMonths.find((m) => m.key === exportDonationsSelectedMonth);
+      periodLabel = foundMonth ? foundMonth.label : exportDonationsSelectedMonth;
+    } else if (exportDonationsReportType === "day") {
+      targetDonations = donations.filter((d) => {
+        if (!d.created_at) return false;
+        return d.created_at.slice(0, 10) === exportDonationsSelectedDay;
+      });
+      periodLabel = `Día ${formatDateSpanLabel(exportDonationsSelectedDay)}`;
+    }
+
+    downloadDonationReportPdf(targetDonations, periodLabel);
+    setExportDonationsPdfModalOpen(false);
   }
   const allowUploads = IS_DEV || testerMode;
 
@@ -1231,11 +1326,29 @@ export function AdminPage() {
     () => buildOrderReport(orders, storeProducts),
     [storeProducts, orders],
   );
-  const listedOrders = useMemo(
-    () =>
-      [...orders].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
-    [orders],
-  );
+  const listedOrders = useMemo(() => {
+    let result = [...orders];
+    if (orderDateFilter) {
+      result = result.filter(
+        (o) => o.createdAt && o.createdAt.slice(0, 10) === orderDateFilter,
+      );
+    }
+    return result.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }, [orders, orderDateFilter]);
+
+  const filteredDonations = useMemo(() => {
+    let result = [...donations];
+    if (donationFilter !== "all") {
+      result = result.filter((item) => item.status === donationFilter);
+    }
+    if (donationDateFilter) {
+      result = result.filter(
+        (item) => item.created_at && item.created_at.slice(0, 10) === donationDateFilter,
+      );
+    }
+    return result;
+  }, [donations, donationFilter, donationDateFilter]);
+
 
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(content),
@@ -1808,6 +1921,49 @@ export function AdminPage() {
       void loadDonations().catch(() => undefined);
     } catch {
       setDonationsNotice("No se pudo actualizar la donación.");
+    }
+  }
+
+  async function deleteDonation(id: string) {
+    const target = donations.find((item) => item.id === id);
+    if (!target) return;
+    if (
+      !window.confirm(
+        `¿Seguro que deseas eliminar la donación de ${target.full_name} (${formatUsd(Number(target.amount))})?`,
+      )
+    ) {
+      return;
+    }
+
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    setDonationsNotice("Eliminando donación…");
+    try {
+      const remote = await fetch("/api/donations", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ id }),
+      });
+      const payload = (await remote.json().catch(() => null)) as {
+        error?: string;
+        ok?: boolean;
+      } | null;
+      if (!remote.ok || !payload?.ok) {
+        setDonationsNotice(payload?.error || "No se pudo eliminar la donación.");
+        return;
+      }
+      const next = donations.filter((item) => item.id !== id);
+      setDonations(next);
+      setDonationsTotal(
+        next
+          .filter((item) => item.status === "paid")
+          .reduce((sum, item) => sum + Number(item.amount || 0), 0),
+      );
+      setDonationsNotice("Donación eliminada.");
+    } catch {
+      setDonationsNotice("No se pudo eliminar la donación.");
     }
   }
 
@@ -4247,6 +4403,24 @@ export function AdminPage() {
                       : ""}
             </p>
             <div className="admin-inline-actions">
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+                Filtrar por día
+                <input
+                  type="date"
+                  value={orderDateFilter}
+                  onChange={(e) => setOrderDateFilter(e.target.value)}
+                  style={{ padding: "0.3rem 0.6rem", borderRadius: "6px", border: "1px solid var(--border)" }}
+                />
+              </label>
+              {orderDateFilter ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => setOrderDateFilter("")}
+                >
+                  Limpiar fecha
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -4275,7 +4449,7 @@ export function AdminPage() {
                   ))}
                 </div>
               ) : (
-                <p className="admin-empty">Aún no hay pedidos.</p>
+                <p className="admin-empty">Aún no hay pedidos en este filtro.</p>
               )
             ) : (
               <>
@@ -4338,7 +4512,13 @@ export function AdminPage() {
               <button
                 type="button"
                 className="btn btn--primary"
-                onClick={() => setExportPdfModalOpen(true)}
+                onClick={() => {
+                  if (orderDateFilter) {
+                    setExportReportType("day");
+                    setExportSelectedDay(orderDateFilter);
+                  }
+                  setExportPdfModalOpen(true);
+                }}
               >
                 📄 Exportar PDF
               </button>
@@ -4391,6 +4571,24 @@ export function AdminPage() {
                   <option value="expired">Vencida</option>
                 </select>
               </label>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+                Filtrar por día
+                <input
+                  type="date"
+                  value={donationDateFilter}
+                  onChange={(e) => setDonationDateFilter(e.target.value)}
+                  style={{ padding: "0.3rem 0.6rem", borderRadius: "6px", border: "1px solid var(--border)" }}
+                />
+              </label>
+              {donationDateFilter ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => setDonationDateFilter("")}
+                >
+                  Limpiar fecha
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -4408,75 +4606,95 @@ export function AdminPage() {
               >
                 Exportar JSON
               </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => {
+                  if (donationDateFilter) {
+                    setExportDonationsReportType("day");
+                    setExportDonationsSelectedDay(donationDateFilter);
+                  }
+                  setExportDonationsPdfModalOpen(true);
+                }}
+              >
+                📄 Exportar PDF
+              </button>
             </div>
             {donationsNotice ? (
               <p className="admin-panel__hint is-status">{donationsNotice}</p>
             ) : null}
-            {donations.filter(
-              (item) =>
-                donationFilter === "all" || item.status === donationFilter,
-            ).length === 0 ? (
+            {filteredDonations.length === 0 ? (
               <p className="admin-empty">Aún no hay donaciones en este filtro.</p>
             ) : (
-              donations
-                .filter(
-                  (item) =>
-                    donationFilter === "all" || item.status === donationFilter,
-                )
-                .map((donation) => (
-                  <article className="admin-order" key={donation.id}>
-                    <div className="admin-order__top">
-                      <strong>{formatUsd(Number(donation.amount))}</strong>
-                      <span
-                        className={`admin-order__status is-${donation.status}`}
+              filteredDonations.map((donation) => (
+                <article className="admin-order" key={donation.id}>
+                  <div className="admin-order__top">
+                    <strong>{formatUsd(Number(donation.amount))}</strong>
+                    <span
+                      className={`admin-order__status is-${donation.status}`}
+                    >
+                      {donationStatusLabel(donation.status)}
+                    </span>
+                  </div>
+                  <p>
+                    {donation.full_name}
+                    {donation.dui ? ` · DUI ${donation.dui}` : ""}
+                  </p>
+                  <p>
+                    {donation.email}
+                    {donation.phone ? ` · ${donation.phone}` : ""}
+                  </p>
+                  <p>{donation.parish}</p>
+                  <p>
+                    {donation.payment_method || "Transferencia"}
+                  </p>
+                  <p className="admin-order__date">
+                    {formatOrderDate(donation.created_at)}
+                    {donation.paid_at
+                      ? ` · pagada ${formatOrderDate(donation.paid_at)}`
+                      : ""}
+                  </p>
+                  <div className="admin-inline-actions">
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => downloadDonationReceiptPdf(donation)}
+                    >
+                      📄 Comprobante PDF
+                    </button>
+                    {donation.status !== "paid" ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() =>
+                          void patchDonationStatus(donation.id, "paid")
+                        }
                       >
-                        {donationStatusLabel(donation.status)}
-                      </span>
-                    </div>
-                    <p>
-                      {donation.full_name}
-                      {donation.dui ? ` · DUI ${donation.dui}` : ""}
-                    </p>
-                    <p>
-                      {donation.email}
-                      {donation.phone ? ` · ${donation.phone}` : ""}
-                    </p>
-                    <p>{donation.parish}</p>
-                    <p>
-                      {donation.payment_method || "Transferencia"}
-                    </p>
-                    <p className="admin-order__date">
-                      {formatOrderDate(donation.created_at)}
-                      {donation.paid_at
-                        ? ` · pagada ${formatOrderDate(donation.paid_at)}`
-                        : ""}
-                    </p>
-                    <div className="admin-inline-actions">
-                      {donation.status !== "paid" ? (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          onClick={() =>
-                            void patchDonationStatus(donation.id, "paid")
-                          }
-                        >
-                          Marcar pagada
-                        </button>
-                      ) : null}
-                      {donation.status !== "pending" ? (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          onClick={() =>
-                            void patchDonationStatus(donation.id, "pending")
-                          }
-                        >
-                          Marcar pendiente
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))
+                        Marcar pagada
+                      </button>
+                    ) : null}
+                    {donation.status !== "pending" ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() =>
+                          void patchDonationStatus(donation.id, "pending")
+                        }
+                      >
+                        Marcar pendiente
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      style={{ color: "#ef4444" }}
+                      onClick={() => void deleteDonation(donation.id)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              ))
             )}
           </section>
           </div>
@@ -4827,10 +5045,9 @@ export function AdminPage() {
               className="admin-modal"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3>Exportar Informe en PDF</h3>
+              <h3>Exportar Informe de Pedidos en PDF</h3>
               <p>
-                Elige si deseas exportar el resumen histórico completo o filtrar por
-                un mes específico.
+                Elige si deseas exportar el resumen histórico completo, por mes o por un día en específico.
               </p>
 
               <div className="admin-modal__options">
@@ -4880,6 +5097,34 @@ export function AdminPage() {
                     </select>
                   </div>
                 )}
+
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="reportType"
+                    checked={exportReportType === "day"}
+                    onChange={() => setExportReportType("day")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Por Día Específico</strong>
+                    <small>
+                      Filtra y evalúa únicamente las compras de un día determinado.
+                    </small>
+                  </span>
+                </label>
+
+                {exportReportType === "day" && (
+                  <div className="admin-modal__select-wrap">
+                    <label htmlFor="select-export-day">Selecciona el día a evaluar:</label>
+                    <input
+                      type="date"
+                      id="select-export-day"
+                      value={exportSelectedDay}
+                      onChange={(e) => setExportSelectedDay(e.target.value)}
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: "6px", border: "1px solid var(--border)" }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="admin-modal__badge">
@@ -4887,14 +5132,21 @@ export function AdminPage() {
                 <strong>
                   {exportReportType === "all"
                     ? `${orders.length} pedido(s)`
-                    : `${
-                        orders.filter((o) => {
-                          if (!o.createdAt) return false;
-                          const d = new Date(o.createdAt);
-                          const [y, m] = exportSelectedMonth.split("-").map(Number);
-                          return d.getFullYear() === y && d.getMonth() + 1 === m;
-                        }).length
-                      } pedido(s)`}
+                    : exportReportType === "month"
+                      ? `${
+                          orders.filter((o) => {
+                            if (!o.createdAt) return false;
+                            const d = new Date(o.createdAt);
+                            const [y, m] = exportSelectedMonth.split("-").map(Number);
+                            return d.getFullYear() === y && d.getMonth() + 1 === m;
+                          }).length
+                        } pedido(s)`
+                      : `${
+                          orders.filter((o) => {
+                            if (!o.createdAt) return false;
+                            return o.createdAt.slice(0, 10) === exportSelectedDay;
+                          }).length
+                        } pedido(s)`}
                 </strong>
               </div>
 
@@ -4910,6 +5162,140 @@ export function AdminPage() {
                   type="button"
                   className="btn btn--primary"
                   onClick={handleGeneratePdfReport}
+                >
+                  📄 Generar y Descargar PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {exportDonationsPdfModalOpen && (
+          <div
+            className="admin-modal-backdrop"
+            onClick={() => setExportDonationsPdfModalOpen(false)}
+          >
+            <div
+              className="admin-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Exportar Reporte de Donaciones en PDF</h3>
+              <p>
+                Elige si deseas exportar el resumen histórico acumulado, por mes o por un día en específico.
+              </p>
+
+              <div className="admin-modal__options">
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="donationsReportType"
+                    checked={exportDonationsReportType === "all"}
+                    onChange={() => setExportDonationsReportType("all")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Resumen General Acumulado</strong>
+                    <small>
+                      Incluye el histórico completo de donaciones registradas.
+                    </small>
+                  </span>
+                </label>
+
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="donationsReportType"
+                    checked={exportDonationsReportType === "month"}
+                    onChange={() => setExportDonationsReportType("month")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Por Mes Específico</strong>
+                    <small>
+                      Filtra y evalúa únicamente las donaciones registradas en un mes.
+                    </small>
+                  </span>
+                </label>
+
+                {exportDonationsReportType === "month" && (
+                  <div className="admin-modal__select-wrap">
+                    <label htmlFor="select-donations-month">Selecciona el mes a evaluar:</label>
+                    <select
+                      id="select-donations-month"
+                      value={exportDonationsSelectedMonth}
+                      onChange={(e) => setExportDonationsSelectedMonth(e.target.value)}
+                    >
+                      {availableDonationMonths.map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <label className="admin-modal__option">
+                  <input
+                    type="radio"
+                    name="donationsReportType"
+                    checked={exportDonationsReportType === "day"}
+                    onChange={() => setExportDonationsReportType("day")}
+                  />
+                  <span className="admin-modal__option-copy">
+                    <strong>Por Día Específico</strong>
+                    <small>
+                      Filtra y evalúa únicamente las donaciones de un día determinado.
+                    </small>
+                  </span>
+                </label>
+
+                {exportDonationsReportType === "day" && (
+                  <div className="admin-modal__select-wrap">
+                    <label htmlFor="select-donations-day">Selecciona el día a evaluar:</label>
+                    <input
+                      type="date"
+                      id="select-donations-day"
+                      value={exportDonationsSelectedDay}
+                      onChange={(e) => setExportDonationsSelectedDay(e.target.value)}
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: "6px", border: "1px solid var(--border)" }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="admin-modal__badge">
+                <span>Donaciones incluidas:</span>
+                <strong>
+                  {exportDonationsReportType === "all"
+                    ? `${donations.length} donación(es)`
+                    : exportDonationsReportType === "month"
+                      ? `${
+                          donations.filter((d) => {
+                            if (!d.created_at) return false;
+                            const dt = new Date(d.created_at);
+                            const [y, m] = exportDonationsSelectedMonth.split("-").map(Number);
+                            return dt.getFullYear() === y && dt.getMonth() + 1 === m;
+                          }).length
+                        } donación(es)`
+                      : `${
+                          donations.filter((d) => {
+                            if (!d.created_at) return false;
+                            return d.created_at.slice(0, 10) === exportDonationsSelectedDay;
+                          }).length
+                        } donación(es)`}
+                </strong>
+              </div>
+
+              <div className="admin-inline-actions" style={{ justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => setExportDonationsPdfModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={handleGenerateDonationsPdfReport}
                 >
                   📄 Generar y Descargar PDF
                 </button>
