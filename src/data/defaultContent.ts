@@ -187,6 +187,9 @@ export type StoreOrder = {
   email: string;
   phone: string;
   parish?: string;
+  vicariate?: string;
+  municipality?: string;
+  department?: string;
   productId: string;
   productTitle: string;
   variantId: string;

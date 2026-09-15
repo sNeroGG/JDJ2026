@@ -77,17 +77,21 @@ export function parseDonationAmount(value: unknown) {
 export function parseDonationInput(body: Record<string, unknown>): DonationInput | { error: string } {
   const fullName = String(body.fullName ?? body.full_name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();
+  const phone = String(body.phone ?? "").trim();
   const parish = String(body.parish ?? "").trim();
   const amount = parseDonationAmount(body.amount);
 
   if (fullName.length < 3) {
     return { error: "Escribe tu nombre completo." };
   }
-  if (fullName.length > 120 || parish.length > 120) {
+  if (fullName.length > 120 || parish.length > 120 || phone.length > 40) {
     return { error: "Hay un dato demasiado largo." };
   }
   if (!EMAIL_RE.test(email)) {
     return { error: "El correo no es válido." };
+  }
+  if (phone.length < 8) {
+    return { error: "Escribe tu número de teléfono." };
   }
   if (parish.length < 3) {
     return { error: "Indica tu parroquia o vicaría." };
@@ -98,7 +102,7 @@ export function parseDonationInput(body: Record<string, unknown>): DonationInput
     };
   }
 
-  return { fullName, dui: "", email, phone: "", parish, amount };
+  return { fullName, dui: "", email, phone, parish, amount };
 }
 
 export function donationStatusLabel(status: DonationStatus) {
@@ -122,6 +126,7 @@ export function buildDonationMessage(input: {
     "",
     `Referencia: ${input.id}`,
     `Nombre: ${input.fullName}`,
+    `Teléfono: ${input.phone}`,
     `Correo: ${input.email}`,
     `Parroquia / Vicaría / Movimiento: ${input.parish}`,
     `Monto: ${formatUsd(input.amount)}`,

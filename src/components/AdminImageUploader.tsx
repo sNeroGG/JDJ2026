@@ -9,6 +9,8 @@ type AdminImageUploaderProps = {
   multiple?: boolean;
   buttonText?: string;
   hint?: string;
+  sequential?: boolean;
+  maxFiles?: number;
 };
 
 type UploadProgress = {
@@ -53,6 +55,8 @@ export function AdminImageUploader({
   multiple = true,
   buttonText = "Agregar fotos",
   hint = "Acepta JPG, JPEG, PNG, WEBP, GIF, HEIC, AVIF, TIFF, etc. Compresión automática a WebP.",
+  sequential = false,
+  maxFiles,
 }: AdminImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState<UploadProgress>({
@@ -66,13 +70,22 @@ export function AdminImageUploader({
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function processFiles(files: File[]) {
-    if (!files.length) return;
+  async function processFiles(rawFiles: File[]) {
+    if (!rawFiles.length) return;
 
     if (!allowUploads) {
       setNotice({
         type: "error",
         text: "En producción no se suben fotos. Abre el sitio local con npm run dev para subir y comprimir fotos.",
+      });
+      return;
+    }
+
+    const files = typeof maxFiles === "number" && maxFiles > 0 ? rawFiles.slice(0, maxFiles) : rawFiles;
+    if (!files.length) {
+      setNotice({
+        type: "error",
+        text: "Se ha alcanzado el límite máximo de fotos para esta sección.",
       });
       return;
     }
@@ -105,7 +118,7 @@ export function AdminImageUploader({
         });
 
         try {
-          const res = await uploadMedia(file, folder);
+          const res = await uploadMedia(file, folder, { sequential });
           if (res?.url) {
             uploadedUrls.push(res.url);
           }

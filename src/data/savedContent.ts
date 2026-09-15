@@ -163,7 +163,7 @@ export const SAVED_CONTENT: SavedContent = {
     "shareTitle": "¡Participa agregando tus fotos!",
     "shareLead": "Súbelas al álbum de Google Photos para que tu recuerdo también forme parte de la JDJ.",
     "shareCta": "Abrir álbum compartido",
-    "shareUrl": "https://photos.app.goo.gl/3Q7aokzJS4FTerCU8",
+    "shareUrl": "https://photos.app.goo.gl/9m7DYsnEEPik4qbRA",
     "images": [
       {
         "id": "album-e967ac82",

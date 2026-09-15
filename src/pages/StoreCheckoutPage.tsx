@@ -22,6 +22,9 @@ export function StoreCheckoutPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [parish, setParish] = useState("");
+  const [vicariate, setVicariate] = useState("");
+  const [municipality, setMunicipality] = useState("");
+  const [department, setDepartment] = useState("");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
@@ -100,7 +103,7 @@ export function StoreCheckoutPage() {
       return;
     }
     if (!parish.trim()) {
-      setNotice("Escribe tu Parroquia o Movimiento al que perteneces.");
+      setNotice("Escribe tu Parroquia, Movimiento o Asociación.");
       return;
     }
 
@@ -113,6 +116,9 @@ export function StoreCheckoutPage() {
         email,
         phone,
         parish,
+        vicariate,
+        municipality,
+        department,
         note,
         items: cart.map((item) => ({
           productId: item.productId,
@@ -252,10 +258,40 @@ export function StoreCheckoutPage() {
                     <div className="store-completed__info-tile">
                       <span className="info-icon">⛪</span>
                       <div>
-                        <span className="info-label">Parroquia / Grupo</span>
+                        <span className="info-label">Parroquia, Movimiento o Asociación</span>
                         <strong className="info-value">{completedOrder.parish || "General"}</strong>
                       </div>
                     </div>
+
+                    {completedOrder.vicariate ? (
+                      <div className="store-completed__info-tile">
+                        <span className="info-icon">📍</span>
+                        <div>
+                          <span className="info-label">Vicaría</span>
+                          <strong className="info-value">{completedOrder.vicariate}</strong>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {completedOrder.municipality ? (
+                      <div className="store-completed__info-tile">
+                        <span className="info-icon">🏙️</span>
+                        <div>
+                          <span className="info-label">Municipio</span>
+                          <strong className="info-value">{completedOrder.municipality}</strong>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {completedOrder.department ? (
+                      <div className="store-completed__info-tile">
+                        <span className="info-icon">🗺️</span>
+                        <div>
+                          <span className="info-label">Departamento</span>
+                          <strong className="info-value">{completedOrder.department}</strong>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Items Table */}
@@ -497,16 +533,40 @@ export function StoreCheckoutPage() {
                       />
                     </label>
                     <label>
-                      Parroquia o Movimiento al que pertenecen * (Obligatorio)
+                      Parroquia, Movimiento o Asociación * (Obligatorio)
                       <input
                         value={parish}
                         onChange={(e) => setParish(e.target.value)}
-                        placeholder="Ej. Parroquia San José, Vicaría Romero, Movimiento..."
+                        placeholder="Ej. Parroquia San José, Movimiento..."
                         required
                       />
                       <small className="field-hint">
                         Requerido para agrupar tu pedido correctamente para el encuentro.
                       </small>
+                    </label>
+                    <label>
+                      1. Vicaría
+                      <input
+                        value={vicariate}
+                        onChange={(e) => setVicariate(e.target.value)}
+                        placeholder="Ej. Vicaría San José"
+                      />
+                    </label>
+                    <label>
+                      2. Municipio
+                      <input
+                        value={municipality}
+                        onChange={(e) => setMunicipality(e.target.value)}
+                        placeholder="Ej. Jayaque"
+                      />
+                    </label>
+                    <label>
+                      3. Departamento
+                      <input
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        placeholder="Ej. La Libertad"
+                      />
                     </label>
                     <label>
                       Alguna indicación extra de tu pedido (opcional)

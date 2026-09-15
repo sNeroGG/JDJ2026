@@ -10,7 +10,7 @@ const DONATION_COLUMNS =
   "id,full_name,dui,email,phone,parish,amount,status,payment_method,paid_at,created_at";
 
 const ORDER_COLUMNS =
-  "id,created_at,name,email,phone,parish,product_id,product_title,variant_id,size,color,quantity,unit_price,total,payment,note,status";
+  "id,created_at,name,email,phone,parish,vicariate,municipality,department,product_id,product_title,variant_id,size,color,quantity,unit_price,total,payment,note,status";
 
 export class StoreConflictError extends Error {
   remaining?: number;
@@ -139,6 +139,9 @@ function orderFromRow(row: Record<string, unknown>): StoreOrder {
     email: String(row.email || ""),
     phone: String(row.phone || ""),
     parish: String(row.parish || ""),
+    vicariate: String(row.vicariate || ""),
+    municipality: String(row.municipality || ""),
+    department: String(row.department || ""),
     productId: String(row.product_id || ""),
     productTitle: String(row.product_title || ""),
     variantId: String(row.variant_id || ""),
@@ -162,6 +165,9 @@ function orderToPayload(order: StoreOrder) {
     email: order.email,
     phone: order.phone,
     parish: order.parish || "",
+    vicariate: order.vicariate || "",
+    municipality: order.municipality || "",
+    department: order.department || "",
     product_id: order.productId,
     product_title: order.productTitle,
     variant_id: order.variantId,
@@ -283,12 +289,17 @@ export async function placeStoreOrder(order: StoreOrder, seed: number, withoutSt
       p_seed: Math.max(0, seed),
     }),
   });
-  if (order.parish) {
+  if (order.parish || order.vicariate || order.municipality || order.department) {
     const filter = eqFilter("id", order.id);
     if (filter) {
       await rest(`store_orders?${filter}`, {
         method: "PATCH",
-        body: JSON.stringify({ parish: order.parish }),
+        body: JSON.stringify({
+          parish: order.parish || "",
+          vicariate: order.vicariate || "",
+          municipality: order.municipality || "",
+          department: order.department || "",
+        }),
       }).catch(() => undefined);
     }
   }

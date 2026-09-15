@@ -32,7 +32,10 @@ create table if not exists public.store_orders (
 );
 
 alter table public.store_orders
-  add column if not exists parish text not null default '';
+  add column if not exists parish text not null default '',
+  add column if not exists vicariate text not null default '',
+  add column if not exists municipality text not null default '',
+  add column if not exists department text not null default '';
 
 create index if not exists store_orders_created_at_idx
   on public.store_orders (created_at desc);
@@ -142,7 +145,7 @@ begin
   end if;
 
   insert into public.store_orders (
-    id, created_at, name, email, phone, parish, product_id, product_title,
+    id, created_at, name, email, phone, parish, vicariate, municipality, department, product_id, product_title,
     variant_id, size, color, quantity, unit_price, total, payment, note, status
   ) values (
     v_id,
@@ -151,6 +154,9 @@ begin
     coalesce(p_order->>'email', ''),
     coalesce(p_order->>'phone', ''),
     coalesce(p_order->>'parish', ''),
+    coalesce(p_order->>'vicariate', ''),
+    coalesce(p_order->>'municipality', ''),
+    coalesce(p_order->>'department', ''),
     v_product_id,
     coalesce(p_order->>'product_title', ''),
     v_variant_id,

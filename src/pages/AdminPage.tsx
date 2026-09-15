@@ -467,8 +467,26 @@ function AdminOrderRow({
           </div>
           {order.parish ? (
             <div>
-              <dt>Parroquia / Grupo</dt>
+              <dt>Parroquia, Movimiento o Asociación</dt>
               <dd>{order.parish}</dd>
+            </div>
+          ) : null}
+          {order.vicariate ? (
+            <div>
+              <dt>Vicaría</dt>
+              <dd>{order.vicariate}</dd>
+            </div>
+          ) : null}
+          {order.municipality ? (
+            <div>
+              <dt>Municipio</dt>
+              <dd>{order.municipality}</dd>
+            </div>
+          ) : null}
+          {order.department ? (
+            <div>
+              <dt>Departamento</dt>
+              <dd>{order.department}</dd>
             </div>
           ) : null}
           <div>
@@ -792,7 +810,7 @@ export function AdminPage() {
     downloadReportPdf(reportToPrint, periodLabel);
     setExportPdfModalOpen(false);
   }
-  const allowUploads = IS_DEV && testerMode;
+  const allowUploads = IS_DEV || testerMode;
 
   function setAdminMode(nextTester: boolean) {
     setTesterMode(nextTester);
@@ -1582,39 +1600,7 @@ export function AdminPage() {
     }
   }
 
-  async function onAlbumUpload(event: ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files;
-    event.target.value = "";
-    if (!files?.length) return;
-    const remaining = Math.max(0, ALBUM_MAX - draft.album.images.length);
-    if (!remaining) return;
-    setUploading(true);
-    const uploads: AlbumPhoto[] = [];
-    try {
-      for (const file of Array.from(files).slice(0, remaining)) {
-        const uploaded = await uploadOrWarn(file, "images", { sequential: true });
-        if (!uploaded) continue;
-        const number = uploaded.url.match(/(\d{3})\.webp$/i)?.[1];
-        uploads.push({
-          id: createId("album"),
-          src: uploaded.url,
-          alt: number ? `Foto ${number}` : "Foto del álbum",
-          caption: "",
-        });
-      }
-      if (!uploads.length) return;
-      const next = {
-        ...draft,
-        album: {
-          ...draft.album,
-          images: [...draft.album.images, ...uploads],
-        },
-      };
-      setDraft(next);
-    } finally {
-      setUploading(false);
-    }
-  }
+
 
   function patchVariant(
     productIndex: number,
@@ -3370,18 +3356,34 @@ export function AdminPage() {
                 placeholder="https://photos.app.goo.gl/…"
               />
             </label>
-            <label className={`file-field${uploading ? " is-busy" : ""}`}>
-              {uploading
-                ? "Copiando…"
-                : `Subir fotos (${draft.album.images.length}/${ALBUM_MAX})`}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                multiple
-                disabled={uploading || draft.album.images.length >= ALBUM_MAX}
-                onChange={(e) => void onAlbumUpload(e)}
-              />
-            </label>
+            <AdminImageUploader
+              buttonText={`Subir fotos (${draft.album.images.length}/${ALBUM_MAX})`}
+              hint={`Arrastra fotos o haz clic para seleccionar (JPG, PNG, WEBP, HEIC). Límite de ${ALBUM_MAX} fotos.`}
+              allowUploads={allowUploads}
+              folder="images"
+              multiple
+              sequential
+              maxFiles={Math.max(0, ALBUM_MAX - draft.album.images.length)}
+              onUpload={(urls) => {
+                const uploads: AlbumPhoto[] = urls.map((url) => {
+                  const number = url.match(/(\d{3})\.(?:webp|jpg|jpeg|png)$/i)?.[1];
+                  return {
+                    id: createId("album"),
+                    src: url,
+                    alt: number ? `Foto ${number}` : "Foto del álbum",
+                    caption: "",
+                  };
+                });
+                const next = {
+                  ...draft,
+                  album: {
+                    ...draft.album,
+                    images: [...draft.album.images, ...uploads],
+                  },
+                };
+                setDraft(next);
+              }}
+            />
             {draft.album.images.length === 0 ? (
               <p className="admin-empty">
                 Aún no hay fotos. Sube varias a la vez.

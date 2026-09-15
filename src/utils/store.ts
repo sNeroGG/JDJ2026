@@ -11,6 +11,9 @@ export type CreateOrderInput = {
   email: string;
   phone: string;
   parish: string;
+  vicariate?: string;
+  municipality?: string;
+  department?: string;
   productId: string;
   variantId: string;
   size: string;
@@ -395,6 +398,9 @@ export function parseCreateOrder(
   const email = String(body.email ?? "").trim().toLowerCase();
   const phone = digitsOnly(String(body.phone ?? ""));
   const parish = String(body.parish ?? body.parroquia ?? "").trim();
+  const vicariate = String(body.vicariate ?? "").trim();
+  const municipality = String(body.municipality ?? "").trim();
+  const department = String(body.department ?? "").trim();
   const productId = String(body.productId ?? "").trim();
   const variantId = String(body.variantId ?? "").trim();
   const size = String(body.size ?? "").trim();
@@ -408,7 +414,7 @@ export function parseCreateOrder(
   }
   if (phone.length < 8) return { error: "Escribe un número de teléfono." };
   if (parish.length < 2) {
-    return { error: "Escribe tu Parroquia o Movimiento." };
+    return { error: "Escribe tu Parroquia, Movimiento o Asociación." };
   }
   if (!productId || !/^[a-z0-9][a-z0-9_-]{1,79}$/i.test(productId)) {
     return { error: "Falta el producto." };
@@ -429,6 +435,9 @@ export function parseCreateOrder(
     email,
     phone,
     parish,
+    vicariate,
+    municipality,
+    department,
     productId,
     variantId,
     size,
@@ -470,6 +479,9 @@ export function buildStoreOrder(
     email: input.email,
     phone: input.phone,
     parish: String(input.parish ?? (input as any).parroquia ?? "").trim(),
+    vicariate: String(input.vicariate ?? "").trim(),
+    municipality: String(input.municipality ?? "").trim(),
+    department: String(input.department ?? "").trim(),
     productId: product.id,
     productTitle: product.title,
     variantId: variant.id,
@@ -675,6 +687,9 @@ export function buildMultiItemStoreOrder(
     email: string;
     phone: string;
     parish: string;
+    vicariate?: string;
+    municipality?: string;
+    department?: string;
     note: string;
     items: Array<{
       productId: string;
@@ -742,6 +757,9 @@ export function buildMultiItemStoreOrder(
     email: input.email,
     phone: input.phone,
     parish: String(input.parish ?? (input as any).parroquia ?? "").trim(),
+    vicariate: String(input.vicariate ?? "").trim(),
+    municipality: String(input.municipality ?? "").trim(),
+    department: String(input.department ?? "").trim(),
     productId: primaryItem.productId,
     productTitle: summaryTitle,
     variantId: primaryItem.variantId,
@@ -765,9 +783,12 @@ export function buildOrderMessage(order: StoreOrder) {
     `👤 *Nombre:* ${order.name}`,
     `📞 *Teléfono:* ${order.phone}`,
     `📧 *Correo:* ${order.email}`,
-    `⛪ *Parroquia / Grupo:* ${order.parish}`,
-    "",
+    `⛪ *Parroquia, Movimiento o Asociación:* ${order.parish || ""}`,
   ];
+  if (order.vicariate) lines.push(`📍 *Vicaría:* ${order.vicariate}`);
+  if (order.municipality) lines.push(`🏙️ *Municipio:* ${order.municipality}`);
+  if (order.department) lines.push(`🗺️ *Departamento:* ${order.department}`);
+  lines.push("");
 
   if (order.items && order.items.length > 0) {
     lines.push(`👕 *PRENDAS SOLICITADAS:*`);
@@ -801,7 +822,16 @@ export function whatsappOrderUrl(whatsapp: string, order: StoreOrder) {
 
 export function buildMultiOrderMessage(
   orders: StoreOrder[],
-  contact: { name: string; email: string; phone: string; parish: string; note?: string },
+  contact: {
+    name: string;
+    email: string;
+    phone: string;
+    parish: string;
+    vicariate?: string;
+    municipality?: string;
+    department?: string;
+    note?: string;
+  },
 ) {
   const grandTotal = orders.reduce((sum, item) => sum + item.total, 0);
   const totalQty = orders.reduce((sum, item) => sum + item.quantity, 0);
@@ -811,7 +841,12 @@ export function buildMultiOrderMessage(
     `Nombre: ${contact.name}`,
     `Correo: ${contact.email}`,
     `Teléfono: ${contact.phone}`,
-    `Parroquia / Movimiento: ${contact.parish}`,
+    `Parroquia, Movimiento o Asociación: ${contact.parish}`,
+  ];
+  if (contact.vicariate) lines.push(`Vicaría: ${contact.vicariate}`);
+  if (contact.municipality) lines.push(`Municipio: ${contact.municipality}`);
+  if (contact.department) lines.push(`Departamento: ${contact.department}`);
+  lines.push(
     "",
     `Resumen del pedido (${totalQty} ${totalQty === 1 ? "unidad" : "unidades"}):`,
     ...orders.map(
@@ -823,7 +858,7 @@ export function buildMultiOrderMessage(
     `Pago: Transferencia`,
     "",
     `* Costo de envío: A coordinar en WhatsApp.`,
-  ];
+  );
   if (contact.note) lines.push(`* Indicaciones: ${contact.note}`);
   return lines.join("\n");
 }
@@ -831,7 +866,16 @@ export function buildMultiOrderMessage(
 export function whatsappMultiOrderUrl(
   whatsapp: string,
   orders: StoreOrder[],
-  contact: { name: string; email: string; phone: string; parish: string; note?: string },
+  contact: {
+    name: string;
+    email: string;
+    phone: string;
+    parish: string;
+    vicariate?: string;
+    municipality?: string;
+    department?: string;
+    note?: string;
+  },
 ) {
   const phone = normalizeWhatsapp(whatsapp);
   if (!phone) return "";

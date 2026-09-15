@@ -18,6 +18,7 @@ import "./DonatePage.css";
 const EMPTY = {
   fullName: "",
   email: "",
+  phone: "",
   parish: "",
   amount: "10",
 };
@@ -65,6 +66,7 @@ export function DonatePage() {
         body: JSON.stringify({
           fullName: form.fullName,
           email: form.email,
+          phone: form.phone,
           parish: form.parish,
           amount,
         }),
@@ -129,6 +131,17 @@ export function DonatePage() {
                   value={form.fullName}
                   onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                   autoComplete="name"
+                  required
+                />
+              </label>
+              <label>
+                Número de teléfono
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  autoComplete="tel"
+                  placeholder="ej. 7000-0000"
                   required
                 />
               </label>
