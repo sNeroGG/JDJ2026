@@ -822,7 +822,7 @@ export function buildMultiOrderMessage(
     `Total a pagar: ${formatUsd(grandTotal)}`,
     `Pago: Transferencia`,
     "",
-    `* Nota: El envío no está incluido en el precio y se coordinará por WhatsApp si es necesario.`,
+    `* Costo de envío: A coordinar en WhatsApp.`,
   ];
   if (contact.note) lines.push(`* Indicaciones: ${contact.note}`);
   return lines.join("\n");

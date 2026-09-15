@@ -329,7 +329,7 @@ export function StoreCheckoutPage() {
                       </div>
                       <div className="summary-line">
                         <span>Costo de envío:</span>
-                        <span className="shipping-badge">Sin costo en sede (a coordinar por WhatsApp)</span>
+                        <span className="shipping-badge">A coordinar en WhatsApp</span>
                       </div>
                       <div className="summary-line grand-total-line">
                         <span>Total a pagar:</span>
@@ -463,7 +463,7 @@ export function StoreCheckoutPage() {
                   <h2>2. Datos y Confirmación</h2>
 
                   <p className="checkout-shipping-note">
-                    * El precio no incluye costo de envío.
+                    * Costo de envío: A coordinar en WhatsApp.
                   </p>
 
                   <form onSubmit={(e) => void submitOrder(e)} className="store-checkout-form">
@@ -524,8 +524,8 @@ export function StoreCheckoutPage() {
                         <strong>{grandTotalQty} camisas</strong>
                       </div>
                       <div className="row">
-                        <span>Envío:</span>
-                        <span style={{ color: "var(--muted)", fontSize: "0.9rem" }}>A coordinar por WhatsApp</span>
+                        <span>Costo de envío:</span>
+                        <span style={{ color: "var(--muted)", fontSize: "0.9rem" }}>A coordinar en WhatsApp</span>
                       </div>
                       <div className="row grand-total">
                         <span>Total a pagar:</span>
