@@ -416,6 +416,15 @@ export function parseCreateOrder(
   if (parish.length < 2) {
     return { error: "Escribe tu Parroquia, Movimiento o Asociación." };
   }
+  if (vicariate.length < 2) {
+    return { error: "Escribe tu Vicaría." };
+  }
+  if (municipality.length < 2) {
+    return { error: "Escribe tu Municipio." };
+  }
+  if (department.length < 2) {
+    return { error: "Escribe tu Departamento." };
+  }
   if (!productId || !/^[a-z0-9][a-z0-9_-]{1,79}$/i.test(productId)) {
     return { error: "Falta el producto." };
   }

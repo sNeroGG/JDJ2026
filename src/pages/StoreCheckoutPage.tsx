@@ -106,6 +106,18 @@ export function StoreCheckoutPage() {
       setNotice("Escribe tu Parroquia, Movimiento o Asociación.");
       return;
     }
+    if (!vicariate.trim()) {
+      setNotice("Escribe tu Vicaría.");
+      return;
+    }
+    if (!municipality.trim()) {
+      setNotice("Escribe tu Municipio.");
+      return;
+    }
+    if (!department.trim()) {
+      setNotice("Escribe tu Departamento.");
+      return;
+    }
 
     setSending(true);
     setNotice("");
@@ -545,27 +557,30 @@ export function StoreCheckoutPage() {
                       </small>
                     </label>
                     <label>
-                      1. Vicaría
+                      1. Vicaría *
                       <input
                         value={vicariate}
                         onChange={(e) => setVicariate(e.target.value)}
                         placeholder="Ej. Vicaría San José"
+                        required
                       />
                     </label>
                     <label>
-                      2. Municipio
+                      2. Municipio *
                       <input
                         value={municipality}
                         onChange={(e) => setMunicipality(e.target.value)}
                         placeholder="Ej. Jayaque"
+                        required
                       />
                     </label>
                     <label>
-                      3. Departamento
+                      3. Departamento *
                       <input
                         value={department}
                         onChange={(e) => setDepartment(e.target.value)}
                         placeholder="Ej. La Libertad"
+                        required
                       />
                     </label>
                     <label>

@@ -126,7 +126,7 @@ export function DonatePage() {
               <p className="donate-form__eyebrow">Tus datos</p>
               <h2>Formulario de donación</h2>
               <label>
-                Nombre completo
+                Nombre completo *
                 <input
                   value={form.fullName}
                   onChange={(e) => setForm({ ...form, fullName: e.target.value })}
@@ -135,7 +135,7 @@ export function DonatePage() {
                 />
               </label>
               <label>
-                Número de teléfono
+                Número de teléfono *
                 <input
                   type="tel"
                   value={form.phone}
@@ -146,7 +146,7 @@ export function DonatePage() {
                 />
               </label>
               <label>
-                Correo
+                Correo *
                 <input
                   type="email"
                   value={form.email}
@@ -156,7 +156,7 @@ export function DonatePage() {
                 />
               </label>
               <label>
-                Parroquia / Vicaría / Movimiento
+                Parroquia / Vicaría / Movimiento *
                 <input
                   value={form.parish}
                   onChange={(e) => setForm({ ...form, parish: e.target.value })}
@@ -164,7 +164,7 @@ export function DonatePage() {
                 />
               </label>
               <fieldset className="donate-form__amount">
-                <legend>Monto</legend>
+                <legend>Monto *</legend>
                 <div className="donate-form__presets">
                   {DONATION_PRESETS.map((preset) => (
                     <button
