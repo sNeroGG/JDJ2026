@@ -534,8 +534,8 @@ export const SAVED_CONTENT: SavedContent = {
     "products": [
       {
         "id": "prod-soon-2",
-        "title": "Camisa JDJ 2026 Basic",
-        "description": "Verde militar Basic",
+        "title": "Camisa JDJ 2026 \"Síguelo\"",
+        "description": "Verde Musgo Basic",
         "price": 7,
         "imageUrl": "/images/0002.webp",
         "imageUrls": [
@@ -575,7 +575,7 @@ export const SAVED_CONTENT: SavedContent = {
       },
       {
         "id": "prod-680b4c47",
-        "title": "Camisa JDJ 2026 Terracota",
+        "title": "Camisa JDJ 2026 \"Ten valor\"",
         "description": "Color Terracota",
         "price": 7.5,
         "imageUrl": "/images/1111.webp",
@@ -634,8 +634,8 @@ export const SAVED_CONTENT: SavedContent = {
       },
       {
         "id": "prod-e1c396d4",
-        "title": "Camisa JDJ 2026 Verde musgo",
-        "description": "Color Verde militar",
+        "title": "Camisa JDJ 2026 \"Peregrino\"",
+        "description": "Color Verde musgo",
         "price": 7.5,
         "imageUrl": "/images/3112.webp",
         "imageUrls": [
@@ -651,13 +651,13 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-e1c396d4--unica--xs",
             "size": "XS",
             "color": "",
-            "stock": 8
+            "stock": 7
           },
           {
             "id": "prod-e1c396d4--unica--s",
             "size": "S",
             "color": "",
-            "stock": 999997
+            "stock": 999995
           },
           {
             "id": "prod-e1c396d4--unica--m",
@@ -716,13 +716,13 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-4be0843b--unica--m",
             "size": "M",
             "color": "",
-            "stock": 2
+            "stock": 0
           },
           {
             "id": "prod-4be0843b--unica--l",
             "size": "L",
             "color": "",
-            "stock": 1
+            "stock": 0
           },
           {
             "id": "prod-4be0843b--unica--xl",
@@ -773,7 +773,8 @@ export const SAVED_CONTENT: SavedContent = {
           }
         ]
       }
-    ]
+    ],
+    "heroImageUrl": "/images/Fotico.webp"
   },
   "header": {
     "ctaLabel": "Catequesis",

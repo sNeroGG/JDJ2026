@@ -50,7 +50,7 @@ export function StorePage() {
     null,
   );
   const [notice, setNotice] = useState("");
-  const [selectedSection, setSelectedSection] = useState<"ALL" | "JDJ" | "PJA">("ALL");
+  const [selectedSection, setSelectedSection] = useState<string>("ALL");
 
   useSeo({
     title: `${store.title} · ${site.name} ${site.year}`,
@@ -87,6 +87,14 @@ export function StorePage() {
     () => sortProductsBySection(applyStockMap(store.products, liveStock)),
     [liveStock, store.products],
   );
+
+  const availableSections = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      set.add((p.section || "JDJ").trim());
+    }
+    return Array.from(set);
+  }, [products]);
 
   const visibleProducts = useMemo(() => {
     if (selectedSection === "ALL") return products;
@@ -267,7 +275,6 @@ export function StorePage() {
                   height={141}
                 />
               ) : null}
-              <p className="section__eyebrow">{store.eyebrow}</p>
               <h1 className="section__title store-title--single-line">{store.title}</h1>
               {store.lead &&
               store.lead !==
@@ -277,30 +284,6 @@ export function StorePage() {
               {store.paymentNote ? (
                 <p className="store-page__pay">{store.paymentNote}</p>
               ) : null}
-              <div className="store-intro__actions">
-                <Link to="/tienda/pedido" className="store-cart-btn">
-                  <svg
-                    className="store-cart-btn__icon"
-                    width="19"
-                    height="19"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                  <span className="store-cart-btn__text">Ver mi pedido</span>
-                  {cartTotalQty > 0 ? (
-                    <span className="store-cart-btn__badge">{cartTotalQty}</span>
-                  ) : null}
-                </Link>
-              </div>
 
               {products.length > 0 ? (
                 <div className="store-section-filters reveal">
@@ -312,26 +295,68 @@ export function StorePage() {
                     <span>Todas las camisas</span>
                     <span className="store-section-filter__count">{products.length}</span>
                   </button>
-                  <button
-                    type="button"
-                    className={`store-section-filter__btn ${selectedSection === "JDJ" ? "is-active" : ""}`}
-                    onClick={() => setSelectedSection("JDJ")}
-                  >
-                    <span>Sección JDJ</span>
-                    <span className="store-section-filter__count">
-                      {products.filter((p) => (p.section || "JDJ") === "JDJ").length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`store-section-filter__btn ${selectedSection === "PJA" ? "is-active" : ""}`}
-                    onClick={() => setSelectedSection("PJA")}
-                  >
-                    <span>Sección PJA</span>
-                    <span className="store-section-filter__count">
-                      {products.filter((p) => p.section === "PJA").length}
-                    </span>
-                  </button>
+
+                  <div className={`store-section-dropdown-wrap ${selectedSection !== "ALL" ? "is-active" : ""}`}>
+                    <select
+                      className="store-section-select"
+                      value={selectedSection === "ALL" ? "" : selectedSection}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) setSelectedSection(val);
+                      }}
+                      aria-label="Ver por sección"
+                    >
+                      <option value="" disabled>
+                        Ver por sección...
+                      </option>
+                      {availableSections.map((sec) => {
+                        const count = products.filter((p) => (p.section || "JDJ") === sec).length;
+                        const label = sec.toUpperCase().startsWith("SECCI") ? sec : `Sección ${sec}`;
+                        return (
+                          <option key={sec} value={sec}>
+                            {label} ({count})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <svg
+                      className="store-section-dropdown-arrow"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+
+                  <Link to="/tienda/pedido" className="store-cart-btn store-cart-btn--inline">
+                    <svg
+                      className="store-cart-btn__icon"
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                    <span className="store-cart-btn__text">Ver mi pedido</span>
+                    {cartTotalQty > 0 ? (
+                      <span className="store-cart-btn__badge">{cartTotalQty}</span>
+                    ) : null}
+                  </Link>
                 </div>
               ) : null}
             </div>
