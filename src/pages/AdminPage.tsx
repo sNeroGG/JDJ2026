@@ -433,10 +433,14 @@ function AdminOrderRow({
   order,
   onStatus,
   onDelete,
+  onSendTelegram,
+  isSendingTelegram,
 }: {
   order: StoreOrder;
   onStatus: (id: string, status: StoreOrderStatus) => void;
   onDelete: (id: string) => void;
+  onSendTelegram?: (id: string) => void;
+  isSendingTelegram?: boolean;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const hasItems = Boolean(order.items && order.items.length > 0);
@@ -592,6 +596,17 @@ function AdminOrderRow({
           >
             📄 Descargar PDF
           </button>
+          {onSendTelegram ? (
+            <button
+              type="button"
+              className="btn btn--secondary"
+              style={{ background: "#229ED9", borderColor: "#229ED9", color: "#ffffff" }}
+              onClick={() => onSendTelegram(order.id)}
+              disabled={isSendingTelegram}
+            >
+              ✈️ {isSendingTelegram ? "Enviando..." : "Enviar a Telegram"}
+            </button>
+          ) : null}
           {order.status !== "atendido" ? (
             <button
               type="button"
@@ -766,6 +781,7 @@ export function AdminPage() {
   );
   const [orderDateFilter, setOrderDateFilter] = useState<string>("");
   const [donationDateFilter, setDonationDateFilter] = useState<string>("");
+  const [sendingTelegramId, setSendingTelegramId] = useState<string | null>(null);
 
   const [exportPdfModalOpen, setExportPdfModalOpen] = useState(false);
   const [exportReportType, setExportReportType] = useState<"all" | "month" | "day">("all");
@@ -1964,6 +1980,35 @@ export function AdminPage() {
       setDonationsNotice("Donación eliminada.");
     } catch {
       setDonationsNotice("No se pudo eliminar la donación.");
+    }
+  }
+
+  async function sendTelegramNotify(type: "order" | "donation", id: string) {
+    const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
+    setSendingTelegramId(id);
+    try {
+      const remote = await fetch("/api/telegram-notify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ type, id }),
+      });
+      const payload = (await remote.json().catch(() => null)) as {
+        error?: string;
+        ok?: boolean;
+        message?: string;
+      } | null;
+      if (!remote.ok || !payload?.ok) {
+        alert(payload?.error || "No se pudo enviar la notificación a Telegram.");
+        return;
+      }
+      alert("✈️ Notificación enviada a Telegram con éxito.");
+    } catch {
+      alert("Fallo de conexión al enviar a Telegram.");
+    } finally {
+      setSendingTelegramId(null);
     }
   }
 
@@ -4445,6 +4490,10 @@ export function AdminPage() {
                       onDelete={(id) =>
                         void deleteOrder(id)
                       }
+                      onSendTelegram={(id) =>
+                        void sendTelegramNotify("order", id)
+                      }
+                      isSendingTelegram={sendingTelegramId === order.id}
                     />
                   ))}
                 </div>
@@ -4661,6 +4710,15 @@ export function AdminPage() {
                       onClick={() => downloadDonationReceiptPdf(donation)}
                     >
                       📄 Comprobante PDF
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      style={{ color: "#229ED9" }}
+                      onClick={() => void sendTelegramNotify("donation", donation.id)}
+                      disabled={sendingTelegramId === donation.id}
+                    >
+                      ✈️ {sendingTelegramId === donation.id ? "Enviando..." : "Enviar a Telegram"}
                     </button>
                     {donation.status !== "paid" ? (
                       <button
