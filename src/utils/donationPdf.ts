@@ -119,8 +119,8 @@ export async function generateDonationPdfBlob(
       .set({
         margin: [10, 10, 10, 10],
         filename: `Donacion_${donation.id}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        image: { type: "jpeg", quality: 0.9 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false },
         jsPDF: { unit: "mm", format: "letter", orientation: "portrait" },
       })
       .from(targetElement);

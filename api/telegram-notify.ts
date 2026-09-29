@@ -22,7 +22,7 @@ export default async function handler(
       return;
     }
 
-    const body = await readBody(req);
+    const body = await readBody(req, 5 * 1024 * 1024);
     const type = String(body.type || "");
     const id = String(body.id || "");
     const pdfBase64 = typeof body.pdfBase64 === "string" ? body.pdfBase64 : "";
