@@ -14,10 +14,10 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
 
       const navyColor = "#142838";
       const tealColor = "#2D808E";
-      const tealLightColor = "#5EEAD4";
       const darkColor = "#1E293B";
       const grayColor = "#64748B";
       const borderGray = "#E2E8F0";
+      const cardBorder = "#CBD5E1";
 
       const items =
         order.items && order.items.length > 0
@@ -52,80 +52,84 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
             ? "CANCELADO"
             : "NUEVO / PENDIENTE";
 
-      // Encabezado principal
-      doc.fillColor(navyColor).fontSize(18).font("Helvetica-Bold").text("JDJ Jayaque 2026", 40, 40);
-      doc.fillColor(tealColor).fontSize(10).font("Helvetica-Bold").text("Comprobante de Pedido · Tienda Oficial", 40, 62);
+      // Encabezado
+      doc.fillColor(navyColor).fontSize(20).font("Helvetica-Bold").text("JDJ Jayaque 2026", 40, 40);
+      doc.fillColor(tealColor).fontSize(10).font("Helvetica-Bold").text("Comprobante de Pedido · Tienda Oficial", 40, 64);
 
-      // Status Badge & Code Box (Arriba a la derecha)
-      doc.rect(430, 36, 142, 22).fill(navyColor);
-      doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold").text(statusLabel, 430, 43, { align: "center", width: 142 });
+      // Status & Code Box (Arriba a la derecha)
+      doc.fillColor(grayColor).fontSize(10).font("Helvetica-Bold").text(statusLabel, 350, 40, { align: "right" });
+      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Código: ", 350, 58, { continued: true, align: "right" });
+      doc.fillColor(navyColor).fontSize(11).font("Helvetica-Bold").text(order.id);
 
-      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Código: ", 360, 64, { align: "right" });
-      doc.fillColor(navyColor).fontSize(10).font("Helvetica-Bold").text(order.id, 460, 63, { align: "right" });
-
-      // Línea divisoria superior en color Teal (#2D808E)
-      doc.y = 86;
+      // Línea divisoria superior Teal (#2D808E)
+      doc.y = 82;
       doc.strokeColor(tealColor).lineWidth(2).moveTo(40, doc.y).lineTo(572, doc.y).stroke();
       doc.moveDown(0.8);
 
-      // Cuadrícula de Información del Solicitante (#F8FAFC)
+      // Tarjeta de Datos del Solicitante (#F8FAFC con borde #E2E8F0)
       const infoBoxY = doc.y;
-      doc.rect(40, infoBoxY, 532, 92).fillAndStroke("#F8FAFC", borderGray);
+      doc.roundedRect(40, infoBoxY, 532, 110, 8).fillAndStroke("#F8FAFC", borderGray);
 
       // Columna Izquierda
       doc.fillColor(darkColor).fontSize(9);
-      let leftY = infoBoxY + 10;
-      doc.font("Helvetica-Bold").text("Cliente: ", 52, leftY, { continued: true });
-      doc.font("Helvetica").text(order.name);
+      let leftY = infoBoxY + 12;
+      doc.font("Helvetica-Bold").text("Cliente: ", 55, leftY, { continued: true });
+      doc.font("Helvetica").fillColor("#475569").text(order.name);
 
       leftY += 16;
-      doc.font("Helvetica-Bold").text("Teléfono / WhatsApp: ", 52, leftY, { continued: true });
-      doc.font("Helvetica").text(order.phone);
+      doc.fillColor(darkColor).font("Helvetica-Bold").text("Teléfono / WhatsApp: ", 55, leftY, { continued: true });
+      doc.font("Helvetica").fillColor("#475569").text(order.phone);
 
       leftY += 16;
-      doc.font("Helvetica-Bold").text("Correo electrónico: ", 52, leftY, { continued: true });
-      doc.font("Helvetica").text(order.email);
+      doc.fillColor(darkColor).font("Helvetica-Bold").text("Correo electrónico: ", 55, leftY, { continued: true });
+      doc.font("Helvetica").fillColor("#475569").text(order.email);
 
       // Columna Derecha
-      let rightY = infoBoxY + 10;
-      doc.font("Helvetica-Bold").text("Parroquia / Movimiento: ", 300, rightY, { continued: true });
-      doc.font("Helvetica").text(order.parish || "No especificada");
+      let rightY = infoBoxY + 12;
+      doc.fillColor(darkColor).font("Helvetica-Bold").text("Parroquia, Movimiento o Asociación:", 290, rightY);
+      rightY += 14;
+      doc.font("Helvetica").fillColor("#475569").text(order.parish || "No especificada", 290, rightY);
 
       if (order.vicariate) {
-        rightY += 14;
-        doc.font("Helvetica-Bold").text("Vicaría: ", 300, rightY, { continued: true });
-        doc.font("Helvetica").text(order.vicariate);
+        rightY += 16;
+        doc.fillColor(darkColor).font("Helvetica-Bold").text("Vicaría: ", 290, rightY, { continued: true });
+        doc.font("Helvetica").fillColor("#475569").text(order.vicariate);
       }
 
-      if (order.municipality || order.department) {
-        rightY += 14;
-        const loc = [order.municipality, order.department].filter(Boolean).join(", ");
-        doc.font("Helvetica-Bold").text("Ubicación: ", 300, rightY, { continued: true });
-        doc.font("Helvetica").text(loc);
+      if (order.municipality) {
+        rightY += 16;
+        doc.fillColor(darkColor).font("Helvetica-Bold").text("Municipio: ", 290, rightY, { continued: true });
+        doc.font("Helvetica").fillColor("#475569").text(order.municipality);
       }
 
-      rightY += 14;
-      doc.font("Helvetica-Bold").text("Fecha de registro: ", 300, rightY, { continued: true });
-      doc.font("Helvetica").text(dateStr);
+      if (order.department) {
+        rightY += 16;
+        doc.fillColor(darkColor).font("Helvetica-Bold").text("Departamento: ", 290, rightY, { continued: true });
+        doc.font("Helvetica").fillColor("#475569").text(order.department);
+      }
 
-      rightY += 14;
-      doc.font("Helvetica-Bold").text("Método de pago: ", 300, rightY, { continued: true });
-      doc.font("Helvetica").text(order.payment || "Transferencia");
+      rightY += 16;
+      doc.fillColor(darkColor).font("Helvetica-Bold").text("Fecha de registro: ", 290, rightY, { continued: true });
+      doc.font("Helvetica").fillColor("#475569").text(dateStr);
 
-      doc.y = infoBoxY + 100;
+      rightY += 16;
+      doc.fillColor(darkColor).font("Helvetica-Bold").text("Método de pago: ", 290, rightY, { continued: true });
+      doc.font("Helvetica").fillColor("#475569").text(order.payment || "Transferencia");
 
-      // Caja de Notas / Indicaciones si existe
+      doc.y = Math.max(leftY, rightY) + 24;
+
+      // Nota / Indicaciones si existe
       if (order.note) {
         const noteY = doc.y;
-        doc.rect(40, noteY, 532, 28).fillAndStroke("#FFFBE0", "#FEF08A");
+        doc.roundedRect(40, noteY, 532, 28, 6).fillAndStroke("#FFFBE0", "#FEF08A");
         doc.fillColor("#713F12").fontSize(9).font("Helvetica-Bold").text("Indicaciones / Nota: ", 50, noteY + 8, { continued: true });
         doc.font("Helvetica").text(order.note);
         doc.y = noteY + 36;
       }
 
-      doc.moveDown(0.5);
+      doc.moveDown(0.8);
 
-      // Agrupar ítems por estilo / título de producto
+      // Agrupar ítems por estilo
       type GroupedStyle = {
         title: string;
         items: typeof items;
@@ -150,68 +154,71 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
       const groupedStyles = Array.from(groupedMap.values());
       const grandTotalUnits = groupedStyles.reduce((sum, g) => sum + g.totalQty, 0);
 
-      // Renderizar tarjetas de estilos (Style Cards)
+      // Renderizar tarjetas por estilo (Style Cards)
       groupedStyles.forEach((group) => {
         const styleY = doc.y;
+        const rowsHeight = group.items.length * 22;
+        const totalCardHeight = 26 + 18 + rowsHeight + 22;
 
-        // Cabecera de la tarjeta del estilo
-        doc.rect(40, styleY, 532, 24).fill(navyColor);
-        doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica-Bold").text(`Camisa: ${group.title}`, 50, styleY + 6);
-        doc.rect(480, styleY + 4, 82, 16).fill(tealColor);
-        doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold").text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`, 480, styleY + 7, { align: "center", width: 82 });
+        // Card Container
+        doc.roundedRect(40, styleY, 532, totalCardHeight, 8).stroke(cardBorder);
 
-        // Encabezado de la tabla de ítems
-        const thY = styleY + 24;
-        doc.rect(40, thY, 532, 18).fill("#F1F5F9");
+        // Header Bar
+        doc.fillColor(navyColor).fontSize(10).font("Helvetica-Bold").text(`Camisa ${group.title}`, 52, styleY + 8);
+        doc.fillColor(grayColor).fontSize(9).font("Helvetica").text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`, 450, styleY + 8, { align: "right", width: 110 });
+
+        // Table Header Line
+        const thY = styleY + 26;
+        doc.rect(41, thY, 530, 18).fill("#F1F5F9");
         doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold");
-        doc.text("TALLA", 50, thY + 5);
-        doc.text("COLOR / DETALLES", 160, thY + 5);
+        doc.text("TALLA", 55, thY + 5);
+        doc.text("COLOR / DETALLES", 170, thY + 5);
         doc.text("CANTIDAD", 320, thY + 5, { align: "center", width: 60 });
         doc.text("PRECIO UNIT.", 400, thY + 5, { align: "right", width: 70 });
-        doc.text("SUBTOTAL", 485, thY + 5, { align: "right", width: 77 });
+        doc.text("SUBTOTAL", 485, thY + 5, { align: "right", width: 75 });
 
         let rowY = thY + 18;
         doc.font("Helvetica").fontSize(9).fillColor(darkColor);
 
         group.items.forEach((item) => {
-          doc.rect(50, rowY + 3, 70, 14).fillAndStroke("#E2E8F0", "#CBD5E1");
-          doc.fillColor("#0F172A").fontSize(8).font("Helvetica-Bold").text(`Talla ${item.size || "Única"}`, 50, rowY + 5, { align: "center", width: 70 });
+          // Pill badge for Talla
+          doc.roundedRect(55, rowY + 3, 60, 14, 4).fillAndStroke("#E2E8F0", "#CBD5E1");
+          doc.fillColor("#0F172A").fontSize(8).font("Helvetica-Bold").text(`Talla ${item.size || "Única"}`, 55, rowY + 5, { align: "center", width: 60 });
 
-          doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(item.color || "-", 160, rowY + 5);
+          doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(item.color || "-", 170, rowY + 5);
           doc.font("Helvetica-Bold").text(`x${item.quantity}`, 320, rowY + 5, { align: "center", width: 60 });
           doc.font("Helvetica").text(formatUsd(item.unitPrice), 400, rowY + 5, { align: "right", width: 70 });
-          doc.font("Helvetica-Bold").text(formatUsd(item.total), 485, rowY + 5, { align: "right", width: 77 });
+          doc.font("Helvetica-Bold").text(formatUsd(item.total), 485, rowY + 5, { align: "right", width: 75 });
 
-          rowY += 20;
-          doc.strokeColor("#F1F5F9").lineWidth(0.5).moveTo(40, rowY).lineTo(572, rowY).stroke();
+          rowY += 22;
         });
 
-        // Pie de la tarjeta de estilo (Style Footer)
-        const sfY = rowY + 2;
-        doc.rect(40, sfY, 532, 20).fill("#F8FAFC");
-        doc.fillColor(grayColor).fontSize(8).font("Helvetica").text(`Total prendas de este estilo: `, 50, sfY + 5, { continued: true });
+        // Style Card Footer line (Dashed border)
+        const sfY = rowY;
+        doc.strokeColor(cardBorder).lineWidth(0.5).dash(3, { space: 3 }).moveTo(41, sfY).lineTo(571, sfY).stroke().undash();
+
+        doc.fillColor(grayColor).fontSize(8.5).font("Helvetica").text("Total prendas de este estilo: ", 55, sfY + 6, { continued: true });
         doc.font("Helvetica-Bold").fillColor(darkColor).text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`);
 
-        doc.fillColor(grayColor).fontSize(8).font("Helvetica").text(`Subtotal estilo: `, 380, sfY + 5, { continued: true, align: "right" });
+        doc.fillColor(grayColor).fontSize(8.5).font("Helvetica").text("Subtotal estilo: ", 380, sfY + 6, { continued: true, align: "right" });
         doc.font("Helvetica-Bold").fillColor(darkColor).fontSize(9).text(formatUsd(group.totalAmount));
 
-        doc.y = sfY + 28;
+        doc.y = styleY + totalCardHeight + 14;
       });
 
-      // Barra de Resumen del Pedido (Invoice Summary Bar)
+      // Invoice Summary Line (Línea de Resumen Total)
       const summaryY = doc.y;
-      doc.rect(40, summaryY, 532, 34).fill(navyColor);
-      doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica").text(`Total prendas del pedido: `, 52, summaryY + 11, { continued: true });
+      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Total prendas del pedido: ", 40, summaryY + 4, { continued: true });
       doc.font("Helvetica-Bold").text(`${grandTotalUnits} ${grandTotalUnits === 1 ? "unidad" : "unidades"}`);
 
-      doc.fillColor(tealLightColor).fontSize(12).font("Helvetica-Bold").text(`TOTAL A PAGAR: ${formatUsd(order.total)}`, 320, summaryY + 10, { align: "right", width: 240 });
+      doc.fillColor(tealColor).fontSize(14).font("Helvetica-Bold").text(`TOTAL A PAGAR: ${formatUsd(order.total)}`, 300, summaryY, { align: "right", width: 272 });
 
-      // Pie de Página Institucional (Footer Note)
+      // Footer institucional al pie
       doc.y = 700;
       doc.strokeColor(borderGray).lineWidth(1).moveTo(40, 690).lineTo(572, 690).stroke();
       doc
         .fillColor(grayColor)
-        .fontSize(8)
+        .fontSize(8.5)
         .font("Helvetica")
         .text(
           "El seguimiento del pedido y los datos de transferencia son coordinados directamente vía WhatsApp.\n¡Muchas gracias por apoyar la Jornada Diocesana de la Juventud Jayaque 2026!",
