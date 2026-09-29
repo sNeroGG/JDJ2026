@@ -119,9 +119,11 @@ export default async function handler(
       payment_method: DONATION_PAYMENT,
     });
 
-    sendTelegramDonationNotification({ id, ...parsed }).catch((err) => {
+    try {
+      await sendTelegramDonationNotification({ id, ...parsed });
+    } catch (err) {
       console.error("Fallo al enviar notificación de donación a Telegram:", err);
-    });
+    }
 
     send(res, 201, {
       ok: true,

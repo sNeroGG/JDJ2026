@@ -112,9 +112,11 @@ export default async function handler(
         send(res, 409, placed);
         return;
       }
-      sendTelegramOrderNotification(placed.order).catch((err) => {
+      try {
+        await sendTelegramOrderNotification(placed.order);
+      } catch (err) {
         console.error("Fallo al enviar notificación de pedido a Telegram:", err);
-      });
+      }
       send(res, 201, {
         ok: true,
         order: placed.order,
