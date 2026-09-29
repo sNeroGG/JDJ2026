@@ -17,6 +17,7 @@ import {
   whatsappDonationUrl,
 } from "../src/utils/donations.js";
 import { clientKey, isSafeId, isUuid, rateLimit } from "./_lib/safe.js";
+import { sendTelegramDonationNotification } from "./_lib/telegram.js";
 
 export default async function handler(
   req: IncomingMessage,
@@ -116,6 +117,10 @@ export default async function handler(
       amount: parsed.amount,
       status: "pending",
       payment_method: DONATION_PAYMENT,
+    });
+
+    sendTelegramDonationNotification({ id, ...parsed }).catch((err) => {
+      console.error("Fallo al enviar notificación de donación a Telegram:", err);
     });
 
     send(res, 201, {

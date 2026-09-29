@@ -11,6 +11,7 @@ import { isAuthorized } from "./_lib/auth.js";
 import { readBody, send, sendReadError } from "./_lib/http.js";
 import { clientKey, isOrderId, rateLimit } from "./_lib/safe.js";
 import { probeSupabase } from "./_lib/supabase.js";
+import { sendTelegramOrderNotification } from "./_lib/telegram.js";
 import {
   deleteLiveOrder,
   liveProducts,
@@ -111,6 +112,9 @@ export default async function handler(
         send(res, 409, placed);
         return;
       }
+      sendTelegramOrderNotification(placed.order).catch((err) => {
+        console.error("Fallo al enviar notificación de pedido a Telegram:", err);
+      });
       send(res, 201, {
         ok: true,
         order: placed.order,
