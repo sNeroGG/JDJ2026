@@ -29,8 +29,8 @@ import {
   type StoreProduct,
   type StoreVariant,
 } from "../data/defaultContent";
-import { downloadOrderPdf, downloadReportPdf } from "../utils/orderPdf";
-import { downloadDonationReceiptPdf, downloadDonationReportPdf } from "../utils/donationPdf";
+import { downloadOrderPdf, downloadReportPdf, generateOrderPdfBlob } from "../utils/orderPdf";
+import { downloadDonationReceiptPdf, downloadDonationReportPdf, generateDonationPdfBlob } from "../utils/donationPdf";
 import { createId, downloadJson } from "../utils/files";
 
 function formatDateSpanLabel(isoDateStr: string) {
@@ -1983,17 +1983,45 @@ export function AdminPage() {
     }
   }
 
+  async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = String(reader.result || "");
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async function sendTelegramNotify(type: "order" | "donation", id: string) {
     const secret = sessionStorage.getItem(AUTH_SECRET_KEY) || "";
     setSendingTelegramId(id);
     try {
+      let pdfBase64 = "";
+      if (type === "order") {
+        const targetOrder = orders.find((o) => o.id === id);
+        if (targetOrder) {
+          const blob = await generateOrderPdfBlob(targetOrder);
+          pdfBase64 = await blobToBase64(blob);
+        }
+      } else if (type === "donation") {
+        const targetDonation = donations.find((d) => d.id === id);
+        if (targetDonation) {
+          const blob = await generateDonationPdfBlob(targetDonation);
+          pdfBase64 = await blobToBase64(blob);
+        }
+      }
+
       const remote = await fetch("/api/telegram-notify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ type, id }),
+        body: JSON.stringify({ type, id, pdfBase64 }),
       });
       const payload = (await remote.json().catch(() => null)) as {
         error?: string;
@@ -2004,8 +2032,9 @@ export function AdminPage() {
         alert(payload?.error || "No se pudo enviar la notificación a Telegram.");
         return;
       }
-      alert("✈️ Notificación enviada a Telegram con éxito.");
-    } catch {
+      alert("✈️ Notificación enviada a Telegram con el comprobante idéntico.");
+    } catch (err) {
+      console.error(err);
       alert("Fallo de conexión al enviar a Telegram.");
     } finally {
       setSendingTelegramId(null);

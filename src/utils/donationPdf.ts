@@ -1,18 +1,19 @@
+import html2pdf from "html2pdf.js";
 import type { DonationRecord } from "./donations.js";
 import { donationStatusLabel } from "./donations.js";
 import { formatOrderDate, formatUsd } from "./store.js";
 
-export function downloadDonationReceiptPdf(
+export function buildDonationPdfHtml(
   donation: DonationRecord,
-  siteName = "JDJ Jayaque 2026",
-) {
+  siteName = "JDJ Jayaque 2026"
+): string {
   const dateStr = donation.created_at
     ? formatOrderDate(donation.created_at)
     : "Reciente";
 
   const statusLabel = donationStatusLabel(donation.status).toUpperCase();
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -20,7 +21,7 @@ export function downloadDonationReceiptPdf(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #1c232c; line-height: 1.5; padding: 2rem; background: #ffffff; }
-    .invoice { max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 2.5rem; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
+    .invoice { max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 2.5rem; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); background: #ffffff; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2d808e; padding-bottom: 1.5rem; margin-bottom: 1.75rem; }
     .logo { font-size: 1.6rem; font-weight: 800; color: #142838; letter-spacing: -0.02em; }
     .sublogo { color: #2d808e; font-size: 0.9rem; font-weight: 700; margin-top: 0.2rem; }
@@ -37,12 +38,6 @@ export function downloadDonationReceiptPdf(
     .amount-box strong { font-size: 2.2rem; color: #15803d; font-weight: 900; display: block; margin-top: 0.2rem; }
     
     .footer-note { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; font-size: 0.85rem; color: #64748b; text-align: center; line-height: 1.6; }
-    
-    @media print {
-      body { padding: 0; }
-      .invoice { border: none; padding: 0; box-shadow: none; }
-      @page { margin: 1.5cm; }
-    }
   </style>
 </head>
 <body>
@@ -82,18 +77,60 @@ export function downloadDonationReceiptPdf(
       <p style="margin-top: 0.3rem; font-weight: 600;">"Tengan valor y síganme"</p>
     </div>
   </div>
+</body>
+</html>`;
+}
+
+export function downloadDonationReceiptPdf(
+  donation: DonationRecord,
+  siteName = "JDJ Jayaque 2026",
+) {
+  const html = buildDonationPdfHtml(donation, siteName) + `
   <script>
     window.onload = function() {
       window.print();
     };
-  </script>
-</body>
-</html>`;
+  </script>`;
 
   const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
+  }
+}
+
+export async function generateDonationPdfBlob(
+  donation: DonationRecord,
+  siteName = "JDJ Jayaque 2026"
+): Promise<Blob> {
+  const html = buildDonationPdfHtml(donation, siteName);
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "-9999px";
+  container.style.width = "720px";
+  container.style.background = "#ffffff";
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    const targetElement = container.querySelector(".invoice") || container;
+    const worker = (html2pdf as any)()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename: `Donacion_${donation.id}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "letter", orientation: "portrait" },
+      })
+      .from(targetElement);
+
+    const pdfBlob: Blob = await worker.outputPdf("blob");
+    return pdfBlob;
+  } finally {
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   }
 }
 
@@ -110,9 +147,10 @@ export function downloadDonationReportPdf(
     minute: "2-digit",
   });
 
-  const paidDonations = donations.filter((d) => d.status === "paid");
-  const pendingDonations = donations.filter((d) => d.status === "pending");
-  const totalPaidAmount = paidDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+  const total = donations.reduce(
+    (sum, item) => sum + (item.status === "paid" ? Number(item.amount || 0) : 0),
+    0,
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -122,35 +160,10 @@ export function downloadDonationReportPdf(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; color: #1c232c; line-height: 1.5; padding: 2rem; background: #ffffff; }
-    .report { max-width: 840px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 2.5rem; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
+    .report { max-width: 820px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 2.5rem; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
     .header { border-bottom: 2px solid #2d808e; padding-bottom: 1.25rem; margin-bottom: 1.75rem; display: flex; justify-content: space-between; align-items: flex-start; }
     .logo { font-size: 1.6rem; font-weight: 800; color: #142838; letter-spacing: -0.02em; }
     .sublogo { color: #2d808e; font-size: 0.95rem; font-weight: 700; margin-top: 0.2rem; }
-    .period-badge { background: #2d808e; color: #ffffff; padding: 0.4rem 1rem; border-radius: 999px; font-weight: 700; font-size: 0.9rem; text-align: right; }
-    .meta-bar { font-size: 0.85rem; color: #64748b; margin-top: 0.4rem; text-align: right; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; text-align: center; }
-    .kpi-card p { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #64748b; margin-bottom: 0.2rem; }
-    .kpi-card strong { font-size: 1.4rem; font-weight: 800; color: #142838; display: block; }
-    .kpi-card span { font-size: 0.75rem; color: #64748b; }
-    
-    table.data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    table.data-table th { background: #f1f5f9; color: #475569; text-align: left; padding: 0.6rem 0.85rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #cbd5e1; }
-    table.data-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; color: #1e293b; }
-    table.data-table tr:nth-child(even) td { background: #f8fafc; }
-    
-    .status-pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; }
-    .status-pill.paid { background: #dcfce7; color: #15803d; }
-    .status-pill.pending { background: #fef3c7; color: #b45309; }
-    .status-pill.failed { background: #fee2e2; color: #b91c1c; }
-    
-    .footer-note { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: #64748b; text-align: center; }
-    
-    @media print {
-      body { padding: 0; }
-      .report { border: none; padding: 0; box-shadow: none; }
-      @page { margin: 1.5cm; }
-    }
   </style>
 </head>
 <body>
@@ -158,78 +171,14 @@ export function downloadDonationReportPdf(
     <div class="header">
       <div>
         <h1 class="logo">${siteName}</h1>
-        <div class="sublogo">Informe · Reporte General de Donaciones</div>
+        <div class="sublogo">Reporte de Donaciones · ${periodLabel}</div>
       </div>
-      <div>
-        <div class="period-badge">Período: ${periodLabel}</div>
-        <div class="meta-bar">Generado: ${dateStr}</div>
+      <div style="text-align: right; font-size: 0.85rem; color: #64748b;">
+        Generado: <strong>${dateStr}</strong><br>
+        Recaudación total: <strong>${formatUsd(total)}</strong>
       </div>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <p>Total Registros</p>
-        <strong>${donations.length}</strong>
-        <span>${paidDonations.length} pagadas · ${pendingDonations.length} pendientes</span>
-      </div>
-      <div class="kpi-card">
-        <p>Total Recaudado</p>
-        <strong style="color: #15803d;">${formatUsd(totalPaidAmount)}</strong>
-        <span>Solo pagos confirmados</span>
-      </div>
-      <div class="kpi-card">
-        <p>Promedio por Donante</p>
-        <strong>${formatUsd(paidDonations.length ? totalPaidAmount / paidDonations.length : 0)}</strong>
-        <span>Donaciones efectivas</span>
-      </div>
-    </div>
-
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Ref.</th>
-          <th>Donante</th>
-          <th>Teléfono</th>
-          <th>Parroquia / Movimiento</th>
-          <th style="text-align: right;">Monto</th>
-          <th style="text-align: center;">Estado</th>
-          <th style="text-align: right;">Fecha</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          donations.length
-            ? donations
-                .map(
-                  (d) => `
-          <tr>
-            <td><code style="font-size: 0.78rem;">${d.id.slice(0, 8)}…</code></td>
-            <td><strong>${d.full_name}</strong></td>
-            <td>${d.phone || "-"}</td>
-            <td>${d.parish || "General"}</td>
-            <td style="text-align: right;"><strong>${formatUsd(Number(d.amount))}</strong></td>
-            <td style="text-align: center;">
-              <span class="status-pill ${d.status}">${donationStatusLabel(d.status)}</span>
-            </td>
-            <td style="text-align: right; font-size: 0.8rem;">${d.created_at ? formatOrderDate(d.created_at) : "-"}</td>
-          </tr>
-        `,
-                )
-                .join("")
-            : `<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 2rem;">No hay donaciones en este período.</td></tr>`
-        }
-      </tbody>
-    </table>
-
-    <div class="footer-note">
-      <p>JDJ Jayaque 2026 · Panel de Administración de Donaciones</p>
     </div>
   </div>
-  <script>
-    window.onload = function() {
-      window.print();
-    };
-  </script>
 </body>
 </html>`;
 

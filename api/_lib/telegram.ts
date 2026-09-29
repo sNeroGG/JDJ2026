@@ -85,7 +85,10 @@ export function buildTelegramDonationSummary(
   return lines.join("\n");
 }
 
-export async function sendTelegramOrderNotification(order: StoreOrder): Promise<boolean> {
+export async function sendTelegramOrderNotification(
+  order: StoreOrder,
+  customPdfBuffer?: Buffer
+): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -95,7 +98,7 @@ export async function sendTelegramOrderNotification(order: StoreOrder): Promise<
   }
 
   try {
-    const pdfBuffer = await generateOrderPdfBuffer(order);
+    const pdfBuffer = customPdfBuffer || (await generateOrderPdfBuffer(order));
     const caption = buildTelegramOrderSummary(order);
 
     const formData = new FormData();
@@ -126,7 +129,8 @@ export async function sendTelegramOrderNotification(order: StoreOrder): Promise<
 }
 
 export async function sendTelegramDonationNotification(
-  donation: DonationInput & { id: string }
+  donation: DonationInput & { id: string },
+  customPdfBuffer?: Buffer
 ): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -137,7 +141,7 @@ export async function sendTelegramDonationNotification(
   }
 
   try {
-    const pdfBuffer = await generateDonationPdfBuffer(donation);
+    const pdfBuffer = customPdfBuffer || (await generateDonationPdfBuffer(donation));
     const caption = buildTelegramDonationSummary(donation);
 
     const formData = new FormData();
