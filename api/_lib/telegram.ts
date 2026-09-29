@@ -1,7 +1,7 @@
 import type { StoreOrder } from "../../src/data/defaultContent.js";
 import type { DonationInput } from "../../src/utils/donations.js";
 import { formatUsd } from "../../src/utils/store.js";
-import { generateDonationPdfBuffer, generateOrderPdfBuffer } from "./pdf.ts";
+import { generateDonationPdfBuffer, generateOrderPdfBuffer } from "./pdf.js";
 
 function escapeHtml(text: string) {
   return String(text || "")
