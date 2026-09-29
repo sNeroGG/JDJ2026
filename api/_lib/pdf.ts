@@ -1,6 +1,6 @@
 import PDFDocument from "pdfkit";
 import type { StoreOrder } from "../../src/data/defaultContent.js";
-import { formatOrderDate, formatUsd } from "../../src/utils/store.js";
+import { formatUsd } from "../../src/utils/store.js";
 
 export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -14,6 +14,7 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
 
       const navyColor = "#142838";
       const tealColor = "#2D808E";
+      const tealLightColor = "#5EEAD4";
       const darkColor = "#1E293B";
       const grayColor = "#64748B";
       const borderGray = "#E2E8F0";
@@ -34,6 +35,16 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
               },
             ];
 
+      const dateStr = order.createdAt
+        ? new Date(order.createdAt).toLocaleDateString("es-SV", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Reciente";
+
       const statusLabel =
         order.status === "atendido"
           ? "ATENDIDO"
@@ -41,131 +52,161 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
             ? "CANCELADO"
             : "NUEVO / PENDIENTE";
 
-      // Encabezado
-      doc.fillColor(navyColor).fontSize(18).text("JDJ Jayaque 2026", 40, 40);
-      doc.fillColor(tealColor).fontSize(10).text("Comprobante de Pedido · Tienda Oficial", 40, 62);
+      // Encabezado principal
+      doc.fillColor(navyColor).fontSize(18).font("Helvetica-Bold").text("JDJ Jayaque 2026", 40, 40);
+      doc.fillColor(tealColor).fontSize(10).font("Helvetica-Bold").text("Comprobante de Pedido · Tienda Oficial", 40, 62);
 
-      // Status Badge & Code (derecha)
-      doc.rect(430, 38, 142, 20).fill(navyColor);
-      doc.fillColor("#FFFFFF").fontSize(8).text(statusLabel, 430, 44, { align: "center", width: 142 });
+      // Status Badge & Code Box (Arriba a la derecha)
+      doc.rect(430, 36, 142, 22).fill(navyColor);
+      doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold").text(statusLabel, 430, 43, { align: "center", width: 142 });
 
-      doc.fillColor(grayColor).fontSize(9).text("Código: ", 380, 64, { align: "right" });
-      doc.fillColor(navyColor).fontSize(10).text(order.id, 460, 63, { align: "right" });
+      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Código: ", 360, 64, { align: "right" });
+      doc.fillColor(navyColor).fontSize(10).font("Helvetica-Bold").text(order.id, 460, 63, { align: "right" });
 
-      doc.y = 85;
+      // Línea divisoria superior en color Teal (#2D808E)
+      doc.y = 86;
       doc.strokeColor(tealColor).lineWidth(2).moveTo(40, doc.y).lineTo(572, doc.y).stroke();
-      doc.moveDown(1);
+      doc.moveDown(0.8);
 
-      // Info Grid Box (Gris claro)
+      // Cuadrícula de Información del Solicitante (#F8FAFC)
       const infoBoxY = doc.y;
-      doc.rect(40, infoBoxY, 532, 85).fillAndStroke("#F8FAFC", borderGray);
+      doc.rect(40, infoBoxY, 532, 92).fillAndStroke("#F8FAFC", borderGray);
 
-      // Left Column
+      // Columna Izquierda
       doc.fillColor(darkColor).fontSize(9);
       let leftY = infoBoxY + 10;
-      doc.font("Helvetica-Bold").text("Cliente: ", 50, leftY, { continued: true });
+      doc.font("Helvetica-Bold").text("Cliente: ", 52, leftY, { continued: true });
       doc.font("Helvetica").text(order.name);
 
       leftY += 16;
-      doc.font("Helvetica-Bold").text("Teléfono / WA: ", 50, leftY, { continued: true });
+      doc.font("Helvetica-Bold").text("Teléfono / WhatsApp: ", 52, leftY, { continued: true });
       doc.font("Helvetica").text(order.phone);
 
       leftY += 16;
-      doc.font("Helvetica-Bold").text("Correo: ", 50, leftY, { continued: true });
+      doc.font("Helvetica-Bold").text("Correo electrónico: ", 52, leftY, { continued: true });
       doc.font("Helvetica").text(order.email);
 
-      leftY += 16;
-      doc.font("Helvetica-Bold").text("Fecha de registro: ", 50, leftY, { continued: true });
-      doc.font("Helvetica").text(formatOrderDate(order.createdAt));
-
-      // Right Column
+      // Columna Derecha
       let rightY = infoBoxY + 10;
-      doc.font("Helvetica-Bold").text("Parroquia / Gp: ", 310, rightY, { continued: true });
+      doc.font("Helvetica-Bold").text("Parroquia / Movimiento: ", 300, rightY, { continued: true });
       doc.font("Helvetica").text(order.parish || "No especificada");
 
       if (order.vicariate) {
-        rightY += 16;
-        doc.font("Helvetica-Bold").text("Vicaría: ", 310, rightY, { continued: true });
+        rightY += 14;
+        doc.font("Helvetica-Bold").text("Vicaría: ", 300, rightY, { continued: true });
         doc.font("Helvetica").text(order.vicariate);
       }
 
       if (order.municipality || order.department) {
-        rightY += 16;
+        rightY += 14;
         const loc = [order.municipality, order.department].filter(Boolean).join(", ");
-        doc.font("Helvetica-Bold").text("Ubicación: ", 310, rightY, { continued: true });
+        doc.font("Helvetica-Bold").text("Ubicación: ", 300, rightY, { continued: true });
         doc.font("Helvetica").text(loc);
       }
 
-      rightY += 16;
-      doc.font("Helvetica-Bold").text("Método de pago: ", 310, rightY, { continued: true });
-      doc.font("Helvetica").text(order.payment || "Transferencia bancaria");
+      rightY += 14;
+      doc.font("Helvetica-Bold").text("Fecha de registro: ", 300, rightY, { continued: true });
+      doc.font("Helvetica").text(dateStr);
 
-      doc.y = infoBoxY + 95;
+      rightY += 14;
+      doc.font("Helvetica-Bold").text("Método de pago: ", 300, rightY, { continued: true });
+      doc.font("Helvetica").text(order.payment || "Transferencia");
 
-      // Note Box if exists
+      doc.y = infoBoxY + 100;
+
+      // Caja de Notas / Indicaciones si existe
       if (order.note) {
         const noteY = doc.y;
         doc.rect(40, noteY, 532, 28).fillAndStroke("#FFFBE0", "#FEF08A");
-        doc.fillColor("#713F12").fontSize(9).font("Helvetica-Bold").text("Nota: ", 50, noteY + 8, { continued: true });
+        doc.fillColor("#713F12").fontSize(9).font("Helvetica-Bold").text("Indicaciones / Nota: ", 50, noteY + 8, { continued: true });
         doc.font("Helvetica").text(order.note);
         doc.y = noteY + 36;
       }
 
       doc.moveDown(0.5);
 
-      // Group items by product title
-      const grouped = new Map<string, typeof items>();
-      items.forEach((item) => {
-        const title = (item.productTitle || "Producto").trim();
-        const list = grouped.get(title) || [];
-        list.push(item);
-        grouped.set(title, list);
-      });
+      // Agrupar ítems por estilo / título de producto
+      type GroupedStyle = {
+        title: string;
+        items: typeof items;
+        totalQty: number;
+        totalAmount: number;
+      };
 
-      // Render style cards
-      grouped.forEach((styleItems, styleTitle) => {
+      const groupedMap = new Map<string, GroupedStyle>();
+
+      for (const item of items) {
+        const titleKey = (item.productTitle || "Camisa / Producto").trim();
+        let group = groupedMap.get(titleKey);
+        if (!group) {
+          group = { title: titleKey, items: [], totalQty: 0, totalAmount: 0 };
+          groupedMap.set(titleKey, group);
+        }
+        group.items.push(item);
+        group.totalQty += item.quantity;
+        group.totalAmount += item.total;
+      }
+
+      const groupedStyles = Array.from(groupedMap.values());
+      const grandTotalUnits = groupedStyles.reduce((sum, g) => sum + g.totalQty, 0);
+
+      // Renderizar tarjetas de estilos (Style Cards)
+      groupedStyles.forEach((group) => {
         const styleY = doc.y;
-        const totalStyleQty = styleItems.reduce((sum, i) => sum + i.quantity, 0);
 
-        // Header Bar
-        doc.rect(40, styleY, 532, 22).fill(navyColor);
-        doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica-Bold").text(styleTitle, 50, styleY + 6);
-        doc.fontSize(8).text(`${totalStyleQty} ud.`, 500, styleY + 7, { align: "right" });
+        // Cabecera de la tarjeta del estilo
+        doc.rect(40, styleY, 532, 24).fill(navyColor);
+        doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica-Bold").text(`Camisa: ${group.title}`, 50, styleY + 6);
+        doc.rect(480, styleY + 4, 82, 16).fill(tealColor);
+        doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold").text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`, 480, styleY + 7, { align: "center", width: 82 });
 
-        // Table Header
-        const thY = styleY + 22;
+        // Encabezado de la tabla de ítems
+        const thY = styleY + 24;
         doc.rect(40, thY, 532, 18).fill("#F1F5F9");
         doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold");
-        doc.text("VARIANTE / COLOR", 50, thY + 5);
-        doc.text("TALLA", 280, thY + 5);
-        doc.text("CANT.", 360, thY + 5);
-        doc.text("P. UNIT", 430, thY + 5);
-        doc.text("SUBTOTAL", 495, thY + 5);
+        doc.text("TALLA", 50, thY + 5);
+        doc.text("COLOR / DETALLES", 160, thY + 5);
+        doc.text("CANTIDAD", 320, thY + 5, { align: "center", width: 60 });
+        doc.text("PRECIO UNIT.", 400, thY + 5, { align: "right", width: 70 });
+        doc.text("SUBTOTAL", 485, thY + 5, { align: "right", width: 77 });
 
         let rowY = thY + 18;
         doc.font("Helvetica").fontSize(9).fillColor(darkColor);
 
-        styleItems.forEach((item) => {
-          doc.text(item.color || "Estándar", 50, rowY + 5, { width: 220 });
-          doc.text(item.size || "Única", 280, rowY + 5);
-          doc.text(String(item.quantity), 360, rowY + 5);
-          doc.text(formatUsd(item.unitPrice), 430, rowY + 5);
-          doc.text(formatUsd(item.total), 495, rowY + 5);
-          rowY += 18;
+        group.items.forEach((item) => {
+          doc.rect(50, rowY + 3, 70, 14).fillAndStroke("#E2E8F0", "#CBD5E1");
+          doc.fillColor("#0F172A").fontSize(8).font("Helvetica-Bold").text(`Talla ${item.size || "Única"}`, 50, rowY + 5, { align: "center", width: 70 });
+
+          doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(item.color || "-", 160, rowY + 5);
+          doc.font("Helvetica-Bold").text(`x${item.quantity}`, 320, rowY + 5, { align: "center", width: 60 });
+          doc.font("Helvetica").text(formatUsd(item.unitPrice), 400, rowY + 5, { align: "right", width: 70 });
+          doc.font("Helvetica-Bold").text(formatUsd(item.total), 485, rowY + 5, { align: "right", width: 77 });
+
+          rowY += 20;
           doc.strokeColor("#F1F5F9").lineWidth(0.5).moveTo(40, rowY).lineTo(572, rowY).stroke();
         });
 
-        doc.y = rowY + 10;
+        // Pie de la tarjeta de estilo (Style Footer)
+        const sfY = rowY + 2;
+        doc.rect(40, sfY, 532, 20).fill("#F8FAFC");
+        doc.fillColor(grayColor).fontSize(8).font("Helvetica").text(`Total prendas de este estilo: `, 50, sfY + 5, { continued: true });
+        doc.font("Helvetica-Bold").fillColor(darkColor).text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`);
+
+        doc.fillColor(grayColor).fontSize(8).font("Helvetica").text(`Subtotal estilo: `, 380, sfY + 5, { continued: true, align: "right" });
+        doc.font("Helvetica-Bold").fillColor(darkColor).fontSize(9).text(formatUsd(group.totalAmount));
+
+        doc.y = sfY + 28;
       });
 
-      // Summary Bar at bottom
+      // Barra de Resumen del Pedido (Invoice Summary Bar)
       const summaryY = doc.y;
-      const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0);
-      doc.rect(40, summaryY, 532, 32).fill(navyColor);
-      doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica").text(`Total de prendas: ${totalUnits} ud.`, 50, summaryY + 10);
-      doc.fillColor("#5EEAD4").fontSize(13).font("Helvetica-Bold").text(`Monto Total: ${formatUsd(order.total)}`, 350, summaryY + 8, { align: "right", width: 210 });
+      doc.rect(40, summaryY, 532, 34).fill(navyColor);
+      doc.fillColor("#FFFFFF").fontSize(10).font("Helvetica").text(`Total prendas del pedido: `, 52, summaryY + 11, { continued: true });
+      doc.font("Helvetica-Bold").text(`${grandTotalUnits} ${grandTotalUnits === 1 ? "unidad" : "unidades"}`);
 
-      // Footer
+      doc.fillColor(tealLightColor).fontSize(12).font("Helvetica-Bold").text(`TOTAL A PAGAR: ${formatUsd(order.total)}`, 320, summaryY + 10, { align: "right", width: 240 });
+
+      // Pie de Página Institucional (Footer Note)
       doc.y = 700;
       doc.strokeColor(borderGray).lineWidth(1).moveTo(40, 690).lineTo(572, 690).stroke();
       doc
@@ -173,7 +214,7 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
         .fontSize(8)
         .font("Helvetica")
         .text(
-          "Gracias por apoyar a la Jornada Diocesana de la Juventud Jayaque 2026.\nEste comprobante es generado automáticamente por el sistema oficial.",
+          "El seguimiento del pedido y los datos de transferencia son coordinados directamente vía WhatsApp.\n¡Muchas gracias por apoyar la Jornada Diocesana de la Juventud Jayaque 2026!",
           40,
           700,
           { align: "center", width: 532 }
@@ -215,7 +256,19 @@ export function generateDonationPdfBuffer(donation: {
 
       doc.fillColor(primaryColor).fontSize(14).text(`Comprobante de Donación`, 350, 40, { align: "right" });
       doc.fillColor(grayColor).fontSize(9).text(`Referencia: ${donation.id}`, 350, 58, { align: "right" });
-      const dateStr = donation.createdAt ? formatOrderDate(donation.createdAt) : formatOrderDate(new Date().toISOString());
+      const dateStr = donation.createdAt
+        ? new Date(donation.createdAt).toLocaleDateString("es-SV", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : new Date().toLocaleDateString("es-SV", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
       doc.text(`Fecha: ${dateStr}`, 350, 70, { align: "right" });
 
       doc.y = 95;
