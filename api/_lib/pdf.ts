@@ -2,340 +2,174 @@ import PDFDocument from "pdfkit";
 import type { StoreOrder } from "../../src/data/defaultContent.js";
 import { formatUsd } from "../../src/utils/store.js";
 
-export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 40, size: "LETTER" });
-      const chunks: Buffer[] = [];
+const PAGE_WIDTH = 612;
+const LEFT = 44;
+const RIGHT = 568;
+const CONTENT_WIDTH = RIGHT - LEFT;
+const CONTENT_BOTTOM = 730;
+const NAVY = "#142838";
+const TEAL = "#2D808E";
+const DARK = "#1E293B";
+const MUTED = "#64748B";
+const BORDER = "#DCE4EA";
 
-      doc.on("data", (chunk) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", (err) => reject(err));
-
-      const navyColor = "#142838";
-      const tealColor = "#2D808E";
-      const darkColor = "#1E293B";
-      const grayColor = "#64748B";
-      const borderGray = "#E2E8F0";
-      const cardBorder = "#CBD5E1";
-
-      const items =
-        order.items && order.items.length > 0
-          ? order.items
-          : [
-              {
-                productId: order.productId,
-                productTitle: order.productTitle,
-                variantId: order.variantId,
-                size: order.size,
-                color: order.color,
-                quantity: order.quantity,
-                unitPrice: order.unitPrice,
-                total: order.total,
-              },
-            ];
-
-      const dateStr = order.createdAt
-        ? new Date(order.createdAt).toLocaleDateString("es-SV", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "Reciente";
-
-      const statusLabel =
-        order.status === "atendido"
-          ? "ATENDIDO"
-          : order.status === "cancelado"
-            ? "CANCELADO"
-            : "NUEVO / PENDIENTE";
-
-      // Encabezado
-      doc.fillColor(navyColor).fontSize(20).font("Helvetica-Bold").text("JDJ Jayaque 2026", 40, 40);
-      doc.fillColor(tealColor).fontSize(10).font("Helvetica-Bold").text("Comprobante de Pedido · Tienda Oficial", 40, 64);
-
-      // Status & Code Box (Arriba a la derecha)
-      doc.fillColor(grayColor).fontSize(10).font("Helvetica-Bold").text(statusLabel, 350, 40, { align: "right" });
-      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Código: ", 350, 58, { continued: true, align: "right" });
-      doc.fillColor(navyColor).fontSize(11).font("Helvetica-Bold").text(order.id);
-
-      // Línea divisoria superior Teal (#2D808E)
-      doc.y = 82;
-      doc.strokeColor(tealColor).lineWidth(2).moveTo(40, doc.y).lineTo(572, doc.y).stroke();
-      doc.moveDown(0.8);
-
-      // Tarjeta de Datos del Solicitante (#F8FAFC con borde #E2E8F0)
-      const infoBoxY = doc.y;
-      doc.roundedRect(40, infoBoxY, 532, 110, 8).fillAndStroke("#F8FAFC", borderGray);
-
-      // Columna Izquierda
-      doc.fillColor(darkColor).fontSize(9);
-      let leftY = infoBoxY + 12;
-      doc.font("Helvetica-Bold").text("Cliente: ", 55, leftY, { continued: true });
-      doc.font("Helvetica").fillColor("#475569").text(order.name);
-
-      leftY += 16;
-      doc.fillColor(darkColor).font("Helvetica-Bold").text("Teléfono / WhatsApp: ", 55, leftY, { continued: true });
-      doc.font("Helvetica").fillColor("#475569").text(order.phone);
-
-      leftY += 16;
-      doc.fillColor(darkColor).font("Helvetica-Bold").text("Correo electrónico: ", 55, leftY, { continued: true });
-      doc.font("Helvetica").fillColor("#475569").text(order.email);
-
-      // Columna Derecha
-      let rightY = infoBoxY + 12;
-      doc.fillColor(darkColor).font("Helvetica-Bold").text("Parroquia, Movimiento o Asociación:", 290, rightY);
-      rightY += 14;
-      doc.font("Helvetica").fillColor("#475569").text(order.parish || "No especificada", 290, rightY);
-
-      if (order.vicariate) {
-        rightY += 16;
-        doc.fillColor(darkColor).font("Helvetica-Bold").text("Vicaría: ", 290, rightY, { continued: true });
-        doc.font("Helvetica").fillColor("#475569").text(order.vicariate);
-      }
-
-      if (order.municipality) {
-        rightY += 16;
-        doc.fillColor(darkColor).font("Helvetica-Bold").text("Municipio: ", 290, rightY, { continued: true });
-        doc.font("Helvetica").fillColor("#475569").text(order.municipality);
-      }
-
-      if (order.department) {
-        rightY += 16;
-        doc.fillColor(darkColor).font("Helvetica-Bold").text("Departamento: ", 290, rightY, { continued: true });
-        doc.font("Helvetica").fillColor("#475569").text(order.department);
-      }
-
-      rightY += 16;
-      doc.fillColor(darkColor).font("Helvetica-Bold").text("Fecha de registro: ", 290, rightY, { continued: true });
-      doc.font("Helvetica").fillColor("#475569").text(dateStr);
-
-      rightY += 16;
-      doc.fillColor(darkColor).font("Helvetica-Bold").text("Método de pago: ", 290, rightY, { continued: true });
-      doc.font("Helvetica").fillColor("#475569").text(order.payment || "Transferencia");
-
-      doc.y = Math.max(leftY, rightY) + 24;
-
-      // Nota / Indicaciones si existe
-      if (order.note) {
-        const noteY = doc.y;
-        doc.roundedRect(40, noteY, 532, 28, 6).fillAndStroke("#FFFBE0", "#FEF08A");
-        doc.fillColor("#713F12").fontSize(9).font("Helvetica-Bold").text("Indicaciones / Nota: ", 50, noteY + 8, { continued: true });
-        doc.font("Helvetica").text(order.note);
-        doc.y = noteY + 36;
-      }
-
-      doc.moveDown(0.8);
-
-      // Agrupar ítems por estilo
-      type GroupedStyle = {
-        title: string;
-        items: typeof items;
-        totalQty: number;
-        totalAmount: number;
-      };
-
-      const groupedMap = new Map<string, GroupedStyle>();
-
-      for (const item of items) {
-        const titleKey = (item.productTitle || "Camisa / Producto").trim();
-        let group = groupedMap.get(titleKey);
-        if (!group) {
-          group = { title: titleKey, items: [], totalQty: 0, totalAmount: 0 };
-          groupedMap.set(titleKey, group);
-        }
-        group.items.push(item);
-        group.totalQty += item.quantity;
-        group.totalAmount += item.total;
-      }
-
-      const groupedStyles = Array.from(groupedMap.values());
-      const grandTotalUnits = groupedStyles.reduce((sum, g) => sum + g.totalQty, 0);
-
-      // Renderizar tarjetas por estilo (Style Cards)
-      groupedStyles.forEach((group) => {
-        const styleY = doc.y;
-        const rowsHeight = group.items.length * 22;
-        const totalCardHeight = 26 + 18 + rowsHeight + 22;
-
-        // Card Container
-        doc.roundedRect(40, styleY, 532, totalCardHeight, 8).stroke(cardBorder);
-
-        // Header Bar
-        doc.fillColor(navyColor).fontSize(10).font("Helvetica-Bold").text(`Camisa ${group.title}`, 52, styleY + 8);
-        doc.fillColor(grayColor).fontSize(9).font("Helvetica").text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`, 450, styleY + 8, { align: "right", width: 110 });
-
-        // Table Header Line
-        const thY = styleY + 26;
-        doc.rect(41, thY, 530, 18).fill("#F1F5F9");
-        doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold");
-        doc.text("TALLA", 55, thY + 5);
-        doc.text("COLOR / DETALLES", 170, thY + 5);
-        doc.text("CANTIDAD", 320, thY + 5, { align: "center", width: 60 });
-        doc.text("PRECIO UNIT.", 400, thY + 5, { align: "right", width: 70 });
-        doc.text("SUBTOTAL", 485, thY + 5, { align: "right", width: 75 });
-
-        let rowY = thY + 18;
-        doc.font("Helvetica").fontSize(9).fillColor(darkColor);
-
-        group.items.forEach((item) => {
-          // Pill badge for Talla
-          doc.roundedRect(55, rowY + 3, 60, 14, 4).fillAndStroke("#E2E8F0", "#CBD5E1");
-          doc.fillColor("#0F172A").fontSize(8).font("Helvetica-Bold").text(`Talla ${item.size || "Única"}`, 55, rowY + 5, { align: "center", width: 60 });
-
-          doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(item.color || "-", 170, rowY + 5);
-          doc.font("Helvetica-Bold").text(`x${item.quantity}`, 320, rowY + 5, { align: "center", width: 60 });
-          doc.font("Helvetica").text(formatUsd(item.unitPrice), 400, rowY + 5, { align: "right", width: 70 });
-          doc.font("Helvetica-Bold").text(formatUsd(item.total), 485, rowY + 5, { align: "right", width: 75 });
-
-          rowY += 22;
-        });
-
-        // Style Card Footer line (Dashed border)
-        const sfY = rowY;
-        doc.strokeColor(cardBorder).lineWidth(0.5).dash(3, { space: 3 }).moveTo(41, sfY).lineTo(571, sfY).stroke().undash();
-
-        doc.fillColor(grayColor).fontSize(8.5).font("Helvetica").text("Total prendas de este estilo: ", 55, sfY + 6, { continued: true });
-        doc.font("Helvetica-Bold").fillColor(darkColor).text(`${group.totalQty} ${group.totalQty === 1 ? "unidad" : "unidades"}`);
-
-        doc.fillColor(grayColor).fontSize(8.5).font("Helvetica").text("Subtotal estilo: ", 380, sfY + 6, { continued: true, align: "right" });
-        doc.font("Helvetica-Bold").fillColor(darkColor).fontSize(9).text(formatUsd(group.totalAmount));
-
-        doc.y = styleY + totalCardHeight + 14;
-      });
-
-      // Invoice Summary Line (Línea de Resumen Total)
-      const summaryY = doc.y;
-      doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Total prendas del pedido: ", 40, summaryY + 4, { continued: true });
-      doc.font("Helvetica-Bold").text(`${grandTotalUnits} ${grandTotalUnits === 1 ? "unidad" : "unidades"}`);
-
-      doc.fillColor(tealColor).fontSize(14).font("Helvetica-Bold").text(`TOTAL A PAGAR: ${formatUsd(order.total)}`, 300, summaryY, { align: "right", width: 272 });
-
-      // Footer institucional al pie
-      doc.y = 700;
-      doc.strokeColor(borderGray).lineWidth(1).moveTo(40, 690).lineTo(572, 690).stroke();
-      doc
-        .fillColor(grayColor)
-        .fontSize(8.5)
-        .font("Helvetica")
-        .text(
-          "El seguimiento del pedido y los datos de transferencia son coordinados directamente vía WhatsApp.\n¡Muchas gracias por apoyar la Jornada Diocesana de la Juventud Jayaque 2026!",
-          40,
-          700,
-          { align: "center", width: 532 }
-        );
-
-      doc.end();
-    } catch (err) {
-      reject(err);
-    }
+function createPdf() {
+  const doc = new PDFDocument({ size: "LETTER", margins: { top: 42, bottom: 62, left: LEFT, right: PAGE_WIDTH - RIGHT }, bufferPages: true });
+  const chunks: Buffer[] = [];
+  const result = new Promise<Buffer>((resolve, reject) => {
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
   });
+  return { doc, result };
+}
+
+function addHeader(doc: PDFKit.PDFDocument, title: string, referenceLabel: string, reference: string, accent = TEAL) {
+  doc.fillColor(NAVY).font("Helvetica-Bold").fontSize(20).text("JDJ Jayaque 2026", LEFT, 42, { width: 300 });
+  doc.fillColor(accent).font("Helvetica-Bold").fontSize(10).text(title, LEFT, 68, { width: 320 });
+  doc.fillColor(MUTED).font("Helvetica-Bold").fontSize(9).text(referenceLabel.toUpperCase(), 365, 44, { width: 203, align: "right" });
+  doc.fillColor(NAVY).font("Helvetica-Bold").fontSize(11).text(reference, 365, 59, { width: 203, align: "right" });
+  doc.moveTo(LEFT, 91).lineTo(RIGHT, 91).lineWidth(2).strokeColor(accent).stroke();
+  doc.y = 106;
+}
+
+function sectionHeading(doc: PDFKit.PDFDocument, title: string, accent = TEAL) {
+  ensureSpace(doc, 34);
+  doc.fillColor(accent).font("Helvetica-Bold").fontSize(12).text(title, LEFT, doc.y, { width: CONTENT_WIDTH });
+  doc.y += 21;
+}
+
+function ensureSpace(doc: PDFKit.PDFDocument, height: number) {
+  if (doc.y + height > CONTENT_BOTTOM) {
+    doc.addPage();
+    doc.fillColor(NAVY).font("Helvetica-Bold").fontSize(11).text("JDJ Jayaque 2026", LEFT, 38);
+    doc.fillColor(MUTED).font("Helvetica").fontSize(9).text("Comprobante · Continuación", LEFT, 54);
+    doc.moveTo(LEFT, 72).lineTo(RIGHT, 72).lineWidth(1).strokeColor(BORDER).stroke();
+    doc.y = 86;
+  }
+}
+
+function addInfoRow(doc: PDFKit.PDFDocument, label: string, value: unknown, width = CONTENT_WIDTH) {
+  const x = LEFT;
+  const labelWidth = 152;
+  const text = String(value ?? "—").trim() || "—";
+  doc.font("Helvetica-Bold").fontSize(9);
+  const labelHeight = doc.heightOfString(label, { width: labelWidth });
+  doc.font("Helvetica").fontSize(10);
+  const valueHeight = doc.heightOfString(text, { width: width - labelWidth - 10, lineGap: 2 });
+  const height = Math.max(labelHeight, valueHeight, 14) + 7;
+  ensureSpace(doc, height + 4);
+  const rowY = doc.y;
+  doc.fillColor(MUTED).font("Helvetica-Bold").fontSize(9).text(label, x, rowY, { width: labelWidth });
+  doc.fillColor(DARK).font("Helvetica").fontSize(10).text(text, x + labelWidth + 10, rowY, { width: width - labelWidth - 10, lineGap: 2 });
+  doc.y = rowY + height;
+}
+
+function addFooter(doc: PDFKit.PDFDocument) {
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i += 1) {
+    doc.switchToPage(i);
+    doc.moveTo(LEFT, 748).lineTo(RIGHT, 748).lineWidth(0.7).strokeColor(BORDER).stroke();
+    doc.fillColor(MUTED).font("Helvetica").fontSize(8).text(
+      `JDJ Jayaque 2026 · Página ${i + 1} de ${range.count}`,
+      LEFT,
+      758,
+      { width: CONTENT_WIDTH, align: "center" },
+    );
+  }
+}
+
+function finish(doc: PDFKit.PDFDocument, result: Promise<Buffer>) {
+  addFooter(doc);
+  doc.end();
+  return result;
+}
+
+function formatDate(value?: string) {
+  if (!value) return "Reciente";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Reciente";
+  return new Intl.DateTimeFormat("es-SV", {
+    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+  }).format(date);
+}
+
+export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
+  const { doc, result } = createPdf();
+  addHeader(doc, "Comprobante de pedido · Tienda oficial", "Código de pedido", order.id);
+
+  doc.roundedRect(LEFT, doc.y, CONTENT_WIDTH, 7, 3).fill("#F1F5F9");
+  doc.y += 16;
+  sectionHeading(doc, "Datos del cliente");
+  addInfoRow(doc, "Cliente", order.name);
+  addInfoRow(doc, "Teléfono / WhatsApp", order.phone);
+  addInfoRow(doc, "Correo electrónico", order.email);
+  addInfoRow(doc, "Parroquia / movimiento", order.parish || "No especificada");
+  if (order.vicariate) addInfoRow(doc, "Vicaría", order.vicariate);
+  if (order.municipality) addInfoRow(doc, "Municipio", order.municipality);
+  if (order.department) addInfoRow(doc, "Departamento", order.department);
+  addInfoRow(doc, "Fecha de registro", formatDate(order.createdAt));
+  addInfoRow(doc, "Estado", order.status === "atendido" ? "Atendido" : order.status === "cancelado" ? "Cancelado" : "Nuevo / pendiente");
+  addInfoRow(doc, "Método de pago", order.payment || "Transferencia bancaria");
+  if (order.note) addInfoRow(doc, "Indicaciones / nota", order.note);
+
+  const items = order.items?.length ? order.items : [{
+    productTitle: order.productTitle, size: order.size, color: order.color,
+    quantity: order.quantity, unitPrice: order.unitPrice, total: order.total,
+  }];
+  sectionHeading(doc, "Detalle del pedido");
+  let totalUnits = 0;
+  for (const item of items) {
+    const title = String(item.productTitle || "Producto");
+    const detail = [`Talla ${item.size || "Única"}`, item.color || "Sin detalle", `Cantidad: ${item.quantity}`].join("  ·  ");
+    doc.font("Helvetica-Bold").fontSize(10);
+    const titleHeight = doc.heightOfString(title, { width: CONTENT_WIDTH - 16 });
+    doc.font("Helvetica").fontSize(9);
+    const detailHeight = doc.heightOfString(detail, { width: CONTENT_WIDTH - 16 });
+    const rowHeight = titleHeight + detailHeight + 30;
+    ensureSpace(doc, rowHeight + 8);
+    const y = doc.y;
+    doc.roundedRect(LEFT, y, CONTENT_WIDTH, rowHeight, 6).fillAndStroke("#FFFFFF", BORDER);
+    doc.fillColor(DARK).font("Helvetica-Bold").fontSize(10).text(title, LEFT + 10, y + 8, { width: CONTENT_WIDTH - 20 });
+    doc.fillColor(MUTED).font("Helvetica").fontSize(9).text(detail, LEFT + 10, y + 10 + titleHeight, { width: CONTENT_WIDTH - 20 });
+    const totalsY = y + 14 + titleHeight + detailHeight;
+    doc.fillColor(MUTED).font("Helvetica").fontSize(9).text(`Unitario: ${formatUsd(item.unitPrice)}`, LEFT + 10, totalsY);
+    doc.fillColor(NAVY).font("Helvetica-Bold").fontSize(9).text(`Subtotal: ${formatUsd(item.total)}`, LEFT + 270, totalsY, { width: CONTENT_WIDTH - 280, align: "right" });
+    doc.y = y + rowHeight + 8;
+    totalUnits += Number(item.quantity || 0);
+  }
+  ensureSpace(doc, 52);
+  doc.roundedRect(LEFT, doc.y, CONTENT_WIDTH, 42, 6).fill(NAVY);
+  doc.fillColor("#FFFFFF").font("Helvetica").fontSize(10).text(`Total de prendas: ${totalUnits}`, LEFT + 12, doc.y + 14);
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(13).text(`TOTAL: ${formatUsd(order.total)}`, LEFT + 230, doc.y + 12, { width: CONTENT_WIDTH - 242, align: "right" });
+  doc.y += 54;
+  return finish(doc, result);
 }
 
 export function generateDonationPdfBuffer(donation: {
-  id: string;
-  fullName: string;
-  dui?: string;
-  email: string;
-  phone: string;
-  parish: string;
-  amount: number;
-  createdAt?: string;
+  id: string; fullName: string; dui?: string; email: string; phone: string;
+  parish: string; amount: number; createdAt?: string;
 }): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 40, size: "LETTER" });
-      const chunks: Buffer[] = [];
-
-      doc.on("data", (chunk) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", (err) => reject(err));
-
-      const primaryColor = "#C0392B"; // Rojo JDJ
-      const darkColor = "#1F2937";
-      const grayColor = "#4B5563";
-
-      // Encabezado
-      doc.fillColor(primaryColor).fontSize(18).text("JDJ JAYAQUE 2026", 40, 40);
-      doc.fillColor(darkColor).fontSize(10).text("Arquidiócesis de San Salvador", 40, 62);
-
-      doc.fillColor(primaryColor).fontSize(14).text(`Comprobante de Donación`, 350, 40, { align: "right" });
-      doc.fillColor(grayColor).fontSize(9).text(`Referencia: ${donation.id}`, 350, 58, { align: "right" });
-      const dateStr = donation.createdAt
-        ? new Date(donation.createdAt).toLocaleDateString("es-SV", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : new Date().toLocaleDateString("es-SV", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-      doc.text(`Fecha: ${dateStr}`, 350, 70, { align: "right" });
-
-      doc.y = 95;
-      doc.strokeColor("#E5E7EB").lineWidth(1).moveTo(40, doc.y).lineTo(572, doc.y).stroke();
-      doc.moveDown(1.5);
-
-      // Datos del Donante
-      doc.fillColor(primaryColor).fontSize(12).text("Datos del Donante");
-      doc.moveDown(0.3);
-      doc.fillColor(darkColor).fontSize(10);
-      doc.text(`Nombre completo: ${donation.fullName}`);
-      if (donation.dui) doc.text(`DUI: ${donation.dui}`);
-      doc.text(`Teléfono: ${donation.phone}`);
-      doc.text(`Correo: ${donation.email}`);
-      doc.text(`Parroquia / Vicaría / Movimiento: ${donation.parish || "N/A"}`);
-
-      doc.moveDown(1.5);
-
-      // Detalle de la Donación
-      doc.fillColor(primaryColor).fontSize(12).text("Detalle del Aporte");
-      doc.moveDown(0.5);
-
-      const startY = doc.y;
-      doc.rect(40, startY, 532, 20).fill("#F3F4F6");
-      doc.fillColor(darkColor).fontSize(9);
-      doc.text("Concepto", 50, startY + 6);
-      doc.text("Monto", 490, startY + 6);
-
-      const currentY = startY + 26;
-      doc.fillColor(darkColor).fontSize(10).text("Donación para la organización de la JDJ Jayaque 2026", 50, currentY);
-      doc.text(formatUsd(donation.amount), 490, currentY);
-
-      doc.y = currentY + 20;
-      doc.strokeColor("#E5E7EB").lineWidth(1).moveTo(40, doc.y).lineTo(572, doc.y).stroke();
-      doc.moveDown(1);
-
-      doc
-        .fillColor(primaryColor)
-        .fontSize(14)
-        .text(`Monto Total: ${formatUsd(donation.amount)}`, { align: "right" });
-      doc
-        .fillColor(grayColor)
-        .fontSize(9)
-        .text("Método de Pago: Transferencia bancaria", { align: "right" });
-
-      // Pie de página
-      doc.y = 700;
-      doc
-        .fillColor(grayColor)
-        .fontSize(8)
-        .text(
-          "¡Muchas gracias por tu generosidad y apoyo a la juventud de nuestra Arquidiócesis!\nEste comprobante es generado automáticamente por el sistema oficial de la JDJ 2026.",
-          40,
-          700,
-          { align: "center", width: 532 }
-        );
-
-      doc.end();
-    } catch (err) {
-      reject(err);
-    }
-  });
+  const { doc, result } = createPdf();
+  addHeader(doc, "Comprobante oficial de donación", "Referencia", donation.id, "#C0392B");
+  sectionHeading(doc, "Datos del donante", "#C0392B");
+  addInfoRow(doc, "Nombre completo", donation.fullName);
+  if (donation.dui) addInfoRow(doc, "DUI", donation.dui);
+  addInfoRow(doc, "Teléfono / WhatsApp", donation.phone);
+  addInfoRow(doc, "Correo electrónico", donation.email);
+  addInfoRow(doc, "Parroquia / vicaría / movimiento", donation.parish || "General");
+  addInfoRow(doc, "Fecha de registro", formatDate(donation.createdAt));
+  sectionHeading(doc, "Aporte", "#C0392B");
+  ensureSpace(doc, 76);
+  doc.roundedRect(LEFT, doc.y, CONTENT_WIDTH, 62, 8).fillAndStroke("#FFF7F5", "#F3C7C1");
+  doc.fillColor(MUTED).font("Helvetica-Bold").fontSize(9).text("MONTO DONADO", LEFT + 14, doc.y + 12);
+  doc.fillColor("#A93226").font("Helvetica-Bold").fontSize(20).text(`${formatUsd(donation.amount)} USD`, LEFT + 14, doc.y + 28, { width: CONTENT_WIDTH - 28 });
+  doc.y += 78;
+  doc.fillColor(MUTED).font("Helvetica").fontSize(9).text("Método de pago: Transferencia bancaria", LEFT, doc.y, { width: CONTENT_WIDTH, align: "right" });
+  doc.y += 24;
+  doc.fillColor(MUTED).font("Helvetica").fontSize(9).text(
+    "¡Gracias por apoyar a la juventud de nuestra Arquidiócesis y hacer posible la Jornada Diocesana de la Juventud Jayaque 2026!",
+    LEFT, doc.y, { width: CONTENT_WIDTH, align: "center", lineGap: 3 },
+  );
+  return finish(doc, result);
 }

@@ -22,11 +22,9 @@ export default async function handler(
       return;
     }
 
-    const body = await readBody(req, 5 * 1024 * 1024);
+    const body = await readBody(req);
     const type = String(body.type || "");
     const id = String(body.id || "");
-    const pdfBase64 = typeof body.pdfBase64 === "string" ? body.pdfBase64 : "";
-    const customPdfBuffer = pdfBase64 ? Buffer.from(pdfBase64, "base64") : undefined;
 
     if (!id || (type !== "order" && type !== "donation")) {
       send(res, 400, { error: "Parámetros inválidos." });
@@ -40,7 +38,7 @@ export default async function handler(
         send(res, 404, { error: "Pedido no encontrado." });
         return;
       }
-      const ok = await sendTelegramOrderNotification(order, customPdfBuffer);
+      const ok = await sendTelegramOrderNotification(order);
       if (!ok) {
         send(res, 500, {
           error:
@@ -62,18 +60,16 @@ export default async function handler(
         send(res, 404, { error: "Donación no encontrada." });
         return;
       }
-      const ok = await sendTelegramDonationNotification(
-        {
-          id: donation.id,
-          fullName: donation.full_name,
-          dui: donation.dui || "",
-          email: donation.email,
-          phone: donation.phone,
-          parish: donation.parish,
-          amount: Number(donation.amount),
-        },
-        customPdfBuffer
-      );
+      const ok = await sendTelegramDonationNotification({
+        id: donation.id,
+        fullName: donation.full_name,
+        dui: donation.dui || "",
+        email: donation.email,
+        phone: donation.phone,
+        parish: donation.parish,
+        amount: Number(donation.amount),
+        createdAt: donation.created_at,
+      });
       if (!ok) {
         send(res, 500, {
           error:
