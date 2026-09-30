@@ -14,7 +14,7 @@ const MUTED = "#64748B";
 const BORDER = "#DCE4EA";
 
 function createPdf() {
-  const doc = new PDFDocument({ size: "LETTER", margins: { top: 42, bottom: 62, left: LEFT, right: PAGE_WIDTH - RIGHT }, bufferPages: true });
+  const doc = new PDFDocument({ size: "LETTER", margins: { top: 42, bottom: 24, left: LEFT, right: PAGE_WIDTH - RIGHT }, bufferPages: true });
   const chunks: Buffer[] = [];
   const result = new Promise<Buffer>((resolve, reject) => {
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -69,11 +69,11 @@ function addFooter(doc: PDFKit.PDFDocument) {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i += 1) {
     doc.switchToPage(i);
-    doc.moveTo(LEFT, 748).lineTo(RIGHT, 748).lineWidth(0.7).strokeColor(BORDER).stroke();
+    doc.moveTo(LEFT, 744).lineTo(RIGHT, 744).lineWidth(0.7).strokeColor(BORDER).stroke();
     doc.fillColor(MUTED).font("Helvetica").fontSize(8).text(
       `JDJ Jayaque 2026 · Página ${i + 1} de ${range.count}`,
       LEFT,
-      758,
+      752,
       { width: CONTENT_WIDTH, align: "center" },
     );
   }
@@ -139,10 +139,11 @@ export function generateOrderPdfBuffer(order: StoreOrder): Promise<Buffer> {
     totalUnits += Number(item.quantity || 0);
   }
   ensureSpace(doc, 52);
-  doc.roundedRect(LEFT, doc.y, CONTENT_WIDTH, 42, 6).fill(NAVY);
-  doc.fillColor("#FFFFFF").font("Helvetica").fontSize(10).text(`Total de prendas: ${totalUnits}`, LEFT + 12, doc.y + 14);
-  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(13).text(`TOTAL: ${formatUsd(order.total)}`, LEFT + 230, doc.y + 12, { width: CONTENT_WIDTH - 242, align: "right" });
-  doc.y += 54;
+  const totalBoxY = doc.y;
+  doc.roundedRect(LEFT, totalBoxY, CONTENT_WIDTH, 42, 6).fill(NAVY);
+  doc.fillColor("#FFFFFF").font("Helvetica").fontSize(10).text(`Total de prendas: ${totalUnits}`, LEFT + 12, totalBoxY + 14);
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(13).text(`TOTAL: ${formatUsd(order.total)}`, LEFT + 230, totalBoxY + 12, { width: CONTENT_WIDTH - 242, align: "right" });
+  doc.y = totalBoxY + 54;
   return finish(doc, result);
 }
 
@@ -161,10 +162,11 @@ export function generateDonationPdfBuffer(donation: {
   addInfoRow(doc, "Fecha de registro", formatDate(donation.createdAt));
   sectionHeading(doc, "Aporte", "#C0392B");
   ensureSpace(doc, 76);
-  doc.roundedRect(LEFT, doc.y, CONTENT_WIDTH, 62, 8).fillAndStroke("#FFF7F5", "#F3C7C1");
-  doc.fillColor(MUTED).font("Helvetica-Bold").fontSize(9).text("MONTO DONADO", LEFT + 14, doc.y + 12);
-  doc.fillColor("#A93226").font("Helvetica-Bold").fontSize(20).text(`${formatUsd(donation.amount)} USD`, LEFT + 14, doc.y + 28, { width: CONTENT_WIDTH - 28 });
-  doc.y += 78;
+  const amountBoxY = doc.y;
+  doc.roundedRect(LEFT, amountBoxY, CONTENT_WIDTH, 62, 8).fillAndStroke("#FFF7F5", "#F3C7C1");
+  doc.fillColor(MUTED).font("Helvetica-Bold").fontSize(9).text("MONTO DONADO", LEFT + 14, amountBoxY + 12);
+  doc.fillColor("#A93226").font("Helvetica-Bold").fontSize(20).text(`${formatUsd(donation.amount)} USD`, LEFT + 14, amountBoxY + 28, { width: CONTENT_WIDTH - 28 });
+  doc.y = amountBoxY + 78;
   doc.fillColor(MUTED).font("Helvetica").fontSize(9).text("Método de pago: Transferencia bancaria", LEFT, doc.y, { width: CONTENT_WIDTH, align: "right" });
   doc.y += 24;
   doc.fillColor(MUTED).font("Helvetica").fontSize(9).text(
