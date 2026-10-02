@@ -1903,6 +1903,34 @@
   align-items: center;
 }
 
+.admin-variant-prices {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(28, 35, 44, 0.1);
+  border-radius: 0.8rem;
+  background: #f8fafc;
+}
+
+.admin-variant-prices > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-variant-prices__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.55rem;
+}
+
+.admin-variant-prices__grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
 .admin-variant-move-btns {
   display: flex;
   flex-direction: column;

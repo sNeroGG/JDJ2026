@@ -202,6 +202,27 @@ export function productColors(product: Pick<StoreProduct, "variants">) {
   return unique(product.variants.map((item) => item.color.trim()).filter(Boolean));
 }
 
+export function variantPrice(
+  product: Pick<StoreProduct, "price">,
+  variant: Pick<StoreVariant, "priceOverride">,
+) {
+  const override = Number(variant.priceOverride);
+  return variant.priceOverride != null && Number.isFinite(override) && override >= 0
+    ? override
+    : Number(product.price) || 0;
+}
+
+export function productStartingPrice(product: StoreProduct) {
+  const prices = product.variants.map((variant) => variantPrice(product, variant));
+  return prices.length ? Math.min(...prices) : Number(product.price) || 0;
+}
+
+export function hasVariantPriceOverrides(product: StoreProduct) {
+  return product.variants.some(
+    (variant) => variant.priceOverride != null && variantPrice(product, variant) !== product.price,
+  );
+}
+
 export function productSizes(
   product: Pick<StoreProduct, "variants">,
   color = "",
@@ -480,7 +501,7 @@ export function buildStoreOrder(
     }
   }
 
-  const unitPrice = Number(product.price) || 0;
+  const unitPrice = variantPrice(product, variant);
   return {
     id,
     createdAt: new Date().toISOString(),
@@ -735,7 +756,7 @@ export function buildMultiItemStoreOrder(
     if (!product.withoutStock && variant.stock < raw.quantity) {
       return { error: `Solo quedan ${variant.stock} ud. de ${product.title} (${variantLabel(variant)}).` };
     }
-    const unitPrice = Number(product.price) || Number(raw.productPrice) || 0;
+    const unitPrice = variantPrice(product, variant);
     const subtotal = unitPrice * raw.quantity;
     orderItems.push({
       productId: product.id,
@@ -898,11 +919,16 @@ function normalizeVariant(
 ): StoreVariant {
   const size = String(variant.size || "").trim();
   const color = String(variant.color || "").trim();
+  const rawPriceOverride = variant.priceOverride;
+  const priceOverride = Number(rawPriceOverride);
   return {
     id: String(variant.id || makeVariantId(productId, size || `v${index}`, color)),
     size,
     color,
     stock: Math.max(0, Number(variant.stock) || 0),
+    ...(rawPriceOverride != null && Number.isFinite(priceOverride) && priceOverride >= 0
+      ? { priceOverride }
+      : {}),
   };
 }
 

@@ -146,6 +146,8 @@ export type StoreVariant = {
   color: string;
   /** Unidades de esta talla/color. 0 = agotada. */
   stock: number;
+  /** Si se define, reemplaza el precio base del producto para esta talla. */
+  priceOverride?: number;
 };
 
 export type StoreProduct = {

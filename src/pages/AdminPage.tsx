@@ -92,9 +92,11 @@ const NAV_OPEN_KEY = "jdj-admin-nav-open";
 function AdminPriceInput({
   value,
   onChange,
+  placeholder = "0.00",
 }: {
   value: number;
   onChange: (val: number) => void;
+  placeholder?: string;
 }) {
   const [strVal, setStrVal] = useState<string>(
     value === 0 ? "" : String(value)
@@ -114,7 +116,7 @@ function AdminPriceInput({
       <input
         type="text"
         inputMode="decimal"
-        placeholder="0.00"
+        placeholder={placeholder}
         value={strVal}
         onChange={(e) => {
           const raw = e.target.value.replace(/[^0-9.]/g, "");
@@ -1740,6 +1742,19 @@ export function AdminPage() {
     const variants = product.variants.map((item, index) =>
       index === variantIndex ? { ...item, ...patch } : item,
     );
+    patchProduct(productIndex, { variants });
+  }
+
+  function patchSizePrice(productIndex: number, sizeLabel: string, priceOverride?: number) {
+    const product = draft.store.products[productIndex];
+    if (!product) return;
+    const normalizedSize = sizeLabel.trim().toUpperCase();
+    const variants = product.variants.map((variant) => {
+      const variantSize = (variant.size.trim() || "Única").toUpperCase();
+      return variantSize === normalizedSize
+        ? { ...variant, priceOverride }
+        : variant;
+    });
     patchProduct(productIndex, { variants });
   }
 
@@ -4329,6 +4344,33 @@ export function AdminPage() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                    <div className="admin-variant-prices">
+                      <strong>Precio especial por talla (opcional)</strong>
+                      <p>
+                        Precio base: {formatUsd(product.price)}. Deja una talla vacía para usar el precio base.
+                      </p>
+                      <div className="admin-variant-prices__grid">
+                        {Array.from(
+                          new Set(product.variants.map((variant) => variant.size.trim() || "Única")),
+                        ).map((size) => {
+                          const sizeVariant = product.variants.find(
+                            (variant) => (variant.size.trim() || "Única").toUpperCase() === size.toUpperCase(),
+                          );
+                          return (
+                            <label key={size}>
+                              Talla {size}
+                              <AdminPriceInput
+                                value={sizeVariant?.priceOverride ?? 0}
+                                placeholder="Base"
+                                onChange={(price) =>
+                                  patchSizePrice(index, size, price > 0 ? price : undefined)
+                                }
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div className="admin-inline-actions" style={{ gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
                       <button

@@ -10,14 +10,18 @@ import type { StoreProduct } from "../data/defaultContent";
 import {
   applyStockMap,
   formatUsd,
+  findVariant,
+  hasVariantPriceOverrides,
   isProductComingSoon,
   normalizeWhatsapp,
   productImages,
+  productStartingPrice,
   productRevealLabel,
   productStock,
   sortProductsBySection,
   STORE_MYSTERY_SHIRT,
   variantLabel,
+  variantPrice,
   type StoreStockMap,
 } from "../utils/store";
 import {
@@ -88,6 +92,20 @@ export function StorePage() {
     [liveStock, store.products],
   );
 
+  useEffect(() => {
+    const refreshed = cart.map((item) => {
+      const product = products.find((candidate) => candidate.id === item.productId);
+      const variant = product ? findVariant(product, item) : undefined;
+      if (!product || !variant) return item;
+      const price = variantPrice(product, variant);
+      return item.productPrice === price ? item : { ...item, productPrice: price };
+    });
+    if (refreshed.some((item, index) => item !== cart[index])) {
+      setCart(refreshed);
+      saveStoreCart(refreshed);
+    }
+  }, [cart, products]);
+
   const availableSections = useMemo(() => {
     const set = new Set<string>();
     for (const p of products) {
@@ -125,8 +143,11 @@ export function StorePage() {
 
   const grandTotalPrice = useMemo(() => {
     if (!checkout) return 0;
-    return grandTotalQty * checkout.product.price;
-  }, [checkout, grandTotalQty]);
+    return selectedItems.reduce(
+      (sum, item) => sum + variantPrice(checkout.product, item.variant) * item.qty,
+      0,
+    );
+  }, [checkout, selectedItems]);
 
   function setVariantQty(variantId: string, qty: number) {
     if (!checkout) return;
@@ -233,7 +254,7 @@ export function StorePage() {
           id: cartItemId,
           productId: checkout.product.id,
           productTitle: checkout.product.title,
-          productPrice: checkout.product.price,
+          productPrice: variantPrice(checkout.product, item.variant),
           imageUrl: photos[0] || "",
           variantId: item.variant.id,
           size: item.variant.size,
@@ -461,7 +482,8 @@ export function StorePage() {
                           </p>
                         ) : null}
                         <p className="store-card__price">
-                          {formatUsd(product.price)}
+                          {hasVariantPriceOverrides(product) ? "Desde " : ""}
+                          {formatUsd(productStartingPrice(product))}
                         </p>
                         <button
                           type="button"
@@ -652,7 +674,7 @@ export function StorePage() {
                   <p className="store-modal__eyebrow">Selecciona Tallas y Cantidades</p>
                   <h2 id="store-checkout-title">{checkout.product.title}</h2>
                   <p className="store-modal__price">
-                    {formatUsd(checkout.product.price)} · pago por transferencia
+                    Precio base {formatUsd(checkout.product.price)} · pago por transferencia
                   </p>
                   <div className="store-modal__variants-section">
                     <label>Selecciona las tallas y cantidades:</label>
@@ -664,7 +686,9 @@ export function StorePage() {
                         return (
                           <div className="store-modal-variant-row" key={variant.id}>
                             <div className="store-modal-variant-info">
-                              <strong>Talla {variant.size || "Única"}</strong>
+                              <strong>
+                                Talla {variant.size || "Única"} · {formatUsd(variantPrice(checkout.product, variant))}
+                              </strong>
                               {variant.color ? (
                                 <span>Color: {variant.color}</span>
                               ) : null}

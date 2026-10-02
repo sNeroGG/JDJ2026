@@ -5,7 +5,13 @@ import { Navbar } from "../components/Navbar";
 import { useContent } from "../context/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import type { StoreOrder } from "../data/defaultContent";
-import { formatUsd, normalizeWhatsapp, whatsappOrderUrl } from "../utils/store";
+import {
+  findVariant,
+  formatUsd,
+  normalizeWhatsapp,
+  variantPrice,
+  whatsappOrderUrl,
+} from "../utils/store";
 import {
   clearStoreCart,
   loadStoreCart,
@@ -89,9 +95,20 @@ export function StoreCheckoutPage() {
     [cart],
   );
 
+  const pricedCart = useMemo(
+    () => cart.map((item) => {
+      const product = store.products.find((candidate) => candidate.id === item.productId);
+      const variant = product ? findVariant(product, item) : undefined;
+      return product && variant
+        ? { ...item, productPrice: variantPrice(product, variant) }
+        : item;
+    }),
+    [cart, store.products],
+  );
+
   const grandTotalPrice = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity * item.productPrice, 0),
-    [cart],
+    () => pricedCart.reduce((sum, item) => sum + item.quantity * item.productPrice, 0),
+    [pricedCart],
   );
 
   const whatsappReady = Boolean(normalizeWhatsapp(store.whatsapp));
@@ -132,7 +149,7 @@ export function StoreCheckoutPage() {
         municipality,
         department,
         note,
-        items: cart.map((item) => ({
+        items: pricedCart.map((item) => ({
           productId: item.productId,
           productTitle: item.productTitle,
           variantId: item.variantId,
@@ -433,7 +450,7 @@ export function StoreCheckoutPage() {
                 </div>
 
                 <div className="store-checkout__items-list">
-                  {cart.map((item) => (
+                  {pricedCart.map((item) => (
                     <div className="store-cart-card" key={item.id}>
                       {item.imageUrl ? (
                         <img
@@ -635,4 +652,3 @@ export function StoreCheckoutPage() {
     </div>
   );
 }
-
