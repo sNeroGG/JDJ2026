@@ -89,6 +89,12 @@ const IS_DEV = import.meta.env.DEV;
 const TESTER_MODE_KEY = "jdj-admin-tester-mode";
 const NAV_OPEN_KEY = "jdj-admin-nav-open";
 
+function confirmAdminRemoval(item: string) {
+  return window.confirm(
+    `¿Seguro que deseas quitar ${item}? Esta acción quedará en los cambios pendientes del admin y se aplicará al guardar.`,
+  );
+}
+
 function AdminPriceInput({
   value,
   onChange,
@@ -3625,6 +3631,7 @@ export function AdminPage() {
                       className="admin-album-tile__remove"
                       aria-label="Quitar del álbum"
                       onClick={() => {
+                        if (!confirmAdminRemoval("esta foto del álbum")) return;
                         const next = {
                           ...draft,
                           album: {
@@ -4124,15 +4131,16 @@ export function AdminPage() {
                                 type="button"
                                 className="is-remove"
                                 aria-label="Quitar foto"
-                                onClick={() =>
+                                onClick={() => {
+                                  if (!confirmAdminRemoval("esta foto del producto")) return;
                                   patchProduct(
                                     index,
                                     withProductGallery(
                                       product,
                                       photos.filter((item) => item !== url),
                                     ),
-                                  )
-                                }
+                                  );
+                                }}
                               >
                                 ×
                               </button>
@@ -4332,13 +4340,14 @@ export function AdminPage() {
                           <button
                             type="button"
                             className="btn btn--danger"
-                            onClick={() =>
+                            onClick={() => {
+                              if (!confirmAdminRemoval(`la talla ${variant.size || "Única"}${variant.color ? ` (${variant.color})` : ""}`)) return;
                               patchProduct(index, {
                                 variants: product.variants.filter(
                                   (item) => item.id !== variant.id,
                                 ),
-                              })
-                            }
+                              });
+                            }}
                           >
                             Quitar
                           </button>
@@ -4425,6 +4434,7 @@ export function AdminPage() {
                       type="button"
                       className="btn btn--danger"
                       onClick={() => {
+                        if (!confirmAdminRemoval(`el producto “${product.title || "sin título"}”`)) return;
                         patchStore({
                           products: draft.store.products.filter(
                             (item) => item.id !== product.id,
