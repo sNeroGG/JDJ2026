@@ -719,7 +719,7 @@ export const SAVED_CONTENT: SavedContent = {
         "id": "prod-4be0843b",
         "title": "Camisa Nuestra Señora del Rosario",
         "description": "",
-        "price": 10,
+        "price": 8,
         "imageUrl": "/images/CAMISAS-STORE-PJA-02.jpg.webp",
         "imageUrls": [
           "/images/CAMISAS-STORE-PJA-02.jpg.webp",
@@ -764,13 +764,15 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-bde6bf81",
             "size": "XXL",
             "color": "",
-            "stock": 999999
+            "stock": 999999,
+            "priceOverride": 10
           },
           {
             "id": "var-f957c1a3",
             "size": "XXXL",
             "color": "",
-            "stock": 999999
+            "stock": 999999,
+            "priceOverride": 12
           }
         ]
       },
