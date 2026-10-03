@@ -49,7 +49,6 @@ export function StorePage() {
   const [checkout, setCheckout] = useState<Checkout | null>(null);
   const [cart, setCart] = useState<StoreCartItem[]>(loadStoreCart);
   const [modalImgIndex, setModalImgIndex] = useState(0);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50, isZoomed: false });
   const [gallery, setGallery] = useState<{ product: StoreProduct; index: number } | null>(
     null,
   );
@@ -176,52 +175,10 @@ export function StorePage() {
     [cart],
   );
 
-  function handleImageClick(e: React.MouseEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    const currentTarget = e.currentTarget;
-    if (!currentTarget) return;
-    const rect = currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
-    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
-    const x = isNaN(rawX) || !isFinite(rawX) ? 50 : Math.max(0, Math.min(100, rawX));
-    const y = isNaN(rawY) || !isFinite(rawY) ? 50 : Math.max(0, Math.min(100, rawY));
-
-    setZoomPos((prev) => ({
-      x,
-      y,
-      isZoomed: !prev.isZoomed,
-    }));
-  }
-
-  function handleImageMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!zoomPos.isZoomed) return;
-    const currentTarget = e.currentTarget;
-    if (!currentTarget) return;
-    const rect = currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
-    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
-    const x = isNaN(rawX) || !isFinite(rawX) ? 50 : Math.max(0, Math.min(100, rawX));
-    const y = isNaN(rawY) || !isFinite(rawY) ? 50 : Math.max(0, Math.min(100, rawY));
-
-    setZoomPos({
-      x,
-      y,
-      isZoomed: true,
-    });
-  }
-
-  function handleImageMouseLeave() {
-    setZoomPos((prev) => (prev.isZoomed ? { ...prev, isZoomed: false } : prev));
-  }
-
   function openCheckout(product: StoreProduct) {
     if (isProductComingSoon(product)) return;
     setNotice("");
     setModalImgIndex(0);
-    setZoomPos({ x: 50, y: 50, isZoomed: false });
     const initialQty: Record<string, number> = {};
     for (const variant of product.variants) {
       initialQty[variant.id] = 0;
@@ -604,21 +561,17 @@ export function StorePage() {
               </button>
               <div className="store-modal__grid">
                 <div className="store-modal__media">
-                  <div
-                    className={`store-modal__image-wrapper ${zoomPos.isZoomed ? "is-active-zoom" : ""}`}
-                    onClick={handleImageClick}
-                    onMouseMove={handleImageMouseMove}
-                    onMouseLeave={handleImageMouseLeave}
-                  >
+                  <div className="store-modal__image-wrapper">
                     {currentModalImg ? (
-                      <img
-                        src={currentModalImg}
-                        alt={checkout.product.title}
-                        className={`store-modal__zoom-img ${zoomPos.isZoomed ? "is-zoomed" : ""}`}
-                        style={{
-                          transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                        }}
-                      />
+                      <button
+                        type="button"
+                        className="store-modal__image-open"
+                        onClick={() => setGallery({ product: checkout.product, index: modalImgIndex })}
+                        aria-label={`Ver foto ampliada de ${checkout.product.title}`}
+                      >
+                        <img src={currentModalImg} alt={checkout.product.title} />
+                        <span aria-hidden="true">Ampliar foto</span>
+                      </button>
                     ) : (
                       <div className="store-modal__image-placeholder">JDJ</div>
                     )}
@@ -630,7 +583,6 @@ export function StorePage() {
                           aria-label="Foto anterior"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setZoomPos({ x: 50, y: 50, isZoomed: false });
                             setModalImgIndex((prev) =>
                               prev > 0 ? prev - 1 : modalImages.length - 1
                             );
@@ -644,7 +596,6 @@ export function StorePage() {
                           aria-label="Foto siguiente"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setZoomPos({ x: 50, y: 50, isZoomed: false });
                             setModalImgIndex((prev) =>
                               prev < modalImages.length - 1 ? prev + 1 : 0
                             );
