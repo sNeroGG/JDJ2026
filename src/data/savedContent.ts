@@ -820,18 +820,6 @@ export const SAVED_CONTENT: SavedContent = {
             "size": "XL",
             "color": "",
             "stock": 999999
-          },
-          {
-            "id": "var-bd6e0ced",
-            "size": "XXL",
-            "color": "",
-            "stock": 999999
-          },
-          {
-            "id": "var-d97ecc6a",
-            "size": "XXXL",
-            "color": "",
-            "stock": 999999
           }
         ]
       }
