@@ -551,43 +551,45 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-5cf50fa6",
             "size": "XS",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-44aa2759",
             "size": "S",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-df975115",
             "size": "M",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-44d0bf62",
             "size": "L",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-fa4150d7",
             "size": "XL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-66599e69",
             "size": "XXL",
             "color": "",
-            "stock": 10
+            "stock": 999999,
+            "priceOverride": 8.5
           },
           {
             "id": "var-39961895",
             "size": "XXXL",
             "color": "",
-            "stock": 10
+            "stock": 999999,
+            "priceOverride": 11
           }
         ]
       },
@@ -616,37 +618,39 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-680b4c47--unica--s",
             "size": "S",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "prod-680b4c47--unica--m",
             "size": "M",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "prod-680b4c47--unica--l",
             "size": "L",
             "color": "",
-            "stock": 999997
+            "stock": 999999
           },
           {
             "id": "prod-680b4c47--unica--xl",
             "size": "XL",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "var-3c08d372",
             "size": "XXL",
             "color": "",
-            "stock": 0
+            "stock": 0,
+            "priceOverride": 8.5
           },
           {
             "id": "var-105ca702",
             "size": "XXXL",
             "color": "",
-            "stock": 0
+            "stock": 0,
+            "priceOverride": 11
           }
         ]
       },
@@ -669,43 +673,45 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "prod-e1c396d4--unica--xs",
             "size": "XS",
             "color": "",
-            "stock": 7
+            "stock": 999999
           },
           {
             "id": "prod-e1c396d4--unica--s",
             "size": "S",
             "color": "",
-            "stock": 999995
+            "stock": 999999
           },
           {
             "id": "prod-e1c396d4--unica--m",
             "size": "M",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "prod-e1c396d4--unica--l",
             "size": "L",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "prod-e1c396d4--unica--xl",
             "size": "XL",
             "color": "",
-            "stock": 0
+            "stock": 999999
           },
           {
             "id": "prod-e1c396d4--unica--xxl",
             "size": "XXL",
             "color": "",
-            "stock": 0
+            "stock": 0,
+            "priceOverride": 8.5
           },
           {
             "id": "prod-e1c396d4--unica--xxxl",
             "size": "XXXL",
             "color": "",
-            "stock": 0
+            "stock": 999999,
+            "priceOverride": 11
           }
         ]
       },
@@ -728,43 +734,43 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-956ef459",
             "size": "XS",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-28fa8ef8",
             "size": "S",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-c4cbe09e",
             "size": "M",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-fb76c23d",
             "size": "L",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-7e28c39a",
             "size": "XL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-bde6bf81",
             "size": "XXL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-f957c1a3",
             "size": "XXXL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           }
         ]
       },
@@ -787,43 +793,43 @@ export const SAVED_CONTENT: SavedContent = {
             "id": "var-7371c780",
             "size": "XS",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-9ab40c72",
             "size": "S",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-27dce686",
             "size": "M",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-59408f75",
             "size": "L",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-043f95c5",
             "size": "XL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-bd6e0ced",
             "size": "XXL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           },
           {
             "id": "var-d97ecc6a",
             "size": "XXXL",
             "color": "",
-            "stock": 10
+            "stock": 999999
           }
         ]
       }
